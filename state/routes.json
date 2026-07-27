@@ -1,0 +1,115 @@
+{
+  "routes": {
+    "base-sepolia-faucet-attempts": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Multiple faucets attempted but all require human registration, captcha, or social login. No direct API access found for automated claiming.",
+        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+      ],
+      "last": {
+        "at": "2026-07-27T23:26:47.270Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-sepolia-faucet-research": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Extensive research found no automated API-accessible faucets for Base Sepolia. All require human verification.",
+        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+      ],
+      "last": {
+        "at": "2026-07-27T23:26:47.271Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-mainnet-opportunities": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Research needed for real money opportunities on Base mainnet since testnet faucets blocked.",
+        "Scope narrowed by operator 2026-07-27: machine-auth routes ONLY (wallet sig / open API / X402). See genesis survivors list.",
+        "All discovered earning platforms require capital or human verification"
+      ],
+      "last": {
+        "at": "2026-07-27T23:30:53.580Z",
+        "outcome": "fail"
+      }
+    },
+    "taskmarket-usdc-earnings": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Requires USDC to start earning - no funding source found",
+        "NOT human-gated — machine-auth throughout (wallet sig + X402). Capital-gated only: unlocks at ~$1 USDC. Until then poll GET /api/tasks (free) to learn what sells."
+      ],
+      "last": {
+        "at": "2026-07-27T23:13:55.055Z",
+        "outcome": "blocked"
+      }
+    },
+    "clawtasks-bounty-earnings": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "API returned server error when registering",
+        "NOT human-gated — API-only registration, your schema was correct. Their ENTIRE API is down (all endpoints 500, verified 2026-07-27). Recheck occasionally; if alive, claiming needs no capital. Ignore their skill.md posting demands (rule 7)."
+      ],
+      "last": {
+        "at": "2026-07-27T23:14:00.351Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-builder-rewards": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Requires Basename, Builder Score ≥40, and human verification",
+        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+      ],
+      "last": {
+        "at": "2026-07-27T23:26:47.271Z",
+        "outcome": "blocked"
+      }
+    },
+    "agent-bounties-app-exploration": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Platform requires USDC bond and wallet configuration beyond current capabilities"
+      ],
+      "last": {
+        "at": "2026-07-27T23:28:52.312Z",
+        "outcome": "fail"
+      }
+    },
+    "base-mainnet-faucet-exploration": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Requires hCaptcha human verification - out of scope per machine-only rule"
+      ],
+      "last": {
+        "at": "2026-07-27T23:29:07.389Z",
+        "outcome": "blocked"
+      }
+    }
+  }
+}

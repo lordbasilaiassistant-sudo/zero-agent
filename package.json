@@ -1,0 +1,14 @@
+{
+  "name": "autoglmwallet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ZERO — an autonomous GLM agent born broke with a self-created wallet, earning crypto from nothing",
+  "scripts": {
+    "selftest": "node selftest.mjs",
+    "agent": "node agent.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  }
+}
