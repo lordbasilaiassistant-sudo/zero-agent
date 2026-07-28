@@ -9,6 +9,7 @@ import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary } from './harvest.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
+import { prospectTick, prospectIntel } from './prospect.mjs';
 
 // Multiple upstreams: Base's own public RPC rate-limits Cloudflare's shared egress
 // (verified 2026-07-27 — it returned an error body, not a result, from inside the Worker).
@@ -478,6 +479,13 @@ function makeTools(ctx) {
       };
     },
 
+    // What the automatic grinding has learned — including the PATTERN layer, which generalises to
+    // contracts never seen. This is the payoff of elimination: it compounds instead of accumulating.
+    async prospect_intel() {
+      ctx.sub++;
+      return await prospectIntel(ctx.env);
+    },
+
     // ── the cap-vs-realized law, as a tool ──────────────────────────────────
     async payout_history({ chain = 'base', contract, sample = 6 }) {
       ctx.budget();
@@ -508,11 +516,62 @@ const TOOL_DEFS = [
   { name: 'harvest_scan', description: 'YOUR BREAD AND BUTTER. Rank Beefy strategy contracts on Base by callReward() and simulate each one — returns which are actually callable right now. Simulation is free and unlimited. Costs no relay slots.', parameters: S({ limit: { type: 'number', description: 'how many candidates to simulate, default 10' } }) },
   { name: 'harvest_run', description: 'Execute one harvest: picks the best simulated-callable strategy, fires it through the FREE Safe relay, and reports the actual WETH balance delta. This is how you earn money. Spends one relay slot.', parameters: S() },
   { name: 'harvest_stats', description: 'Your lifetime harvest record. MEASURED_ON_CHAIN is the truth (real WETH at both your addresses, plus how much is spendable vs stranded); the tracker figure is a lower bound. Also returns the live relay budget and everything actually measured about when it refills.', parameters: S() },
+  { name: 'prospect_intel', description: 'What the automatic prospector has ground out while you were asleep: how much of the candidate backlog is triaged, which contracts are PROVEN to pay callers and callable by you (your ready-to-stack queue), which are eliminated forever, and — most valuable — the PATTERN layer: which contract FAMILIES pay and which never do, so you can generalise to instances you have never tested. Read this before hunting; it is free and it is already done.', parameters: S() },
   { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
   { name: 'discover_new_sources', description: "THE GROWTH TOOL. Harvest crumbs are accrual-capped at cents/day — the only way past that is MORE INDEPENDENT INCOME FAMILIES. This finds them empirically: it walks the inbound payments of known keeper wallets back to the contracts paying them, so every candidate is backed by a payout that really happened. Run it every session and work through what it finds.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'discover_list', description: 'Your accumulated candidate list from discovery: contracts seen paying callers, whether their source shows access control, and which functions an arbitrary caller might invoke. Untried + promising first.', parameters: S() },
   { name: 'inspect_contract', description: 'Read a contract\'s verified source and report whether it is access-controlled, whether it pays a caller, and which non-view functions look like paid maintenance work. Free — use it before ever spending a relay slot.', parameters: S({ chain: str('chain name'), contract: str('0x address') }, ['chain', 'contract']) },
 ].map(f => ({ type: 'function', function: f }));
+
+// ── the situation brief ─────────────────────────────────────────────────────
+// THE ORIENTATION TAX: memory is wiped every session, so the agent spent 3-5 of its 12 rounds every
+// time re-deriving facts that are cheap for the HARNESS to compute and hand over. Measured across
+// sessions 24-40: get_status, harvest_stats, an explorer call, sometimes a relay fetch — a third of
+// its entire round budget spent arriving at the same place it was yesterday, before doing any work.
+// Everything below is computed here, for free, outside the round budget. Round 1 is now real work.
+async function buildBriefing(env, eoa) {
+  const b = {};
+  try {
+    const m = await reconcileEarnings(env, (c, mm, p) => rpcCall(c, mm, p), eoa, SMART_ACCOUNT);
+    b.earned_usd = m.lifetime_earned_usd;
+    b.spendable_usd = m.spendable_usd;
+    b.stranded_usd = m.stranded_on_eoa_usd;
+  } catch { /* brief degrades, session still runs */ }
+  try {
+    const { all } = await pickChain(SMART_ACCOUNT);
+    const obs = await observeRelay(env, all.map(x => ({ name: x.name, remaining: x.remaining, limit: x.limit })));
+    b.relay = all.map(x => `${x.name} ${x.remaining}/${x.limit}`).join(', ');
+    b.relay_free = all.some(x => x.remaining > 0);
+    const sum = relayResetSummary(obs);
+    b.relay_reset = Object.values(sum)[0]?.reset_schedule || 'unknown';
+  } catch { /* same */ }
+  try {
+    const intel = await prospectIntel(env);
+    b.grind = intel.grind;
+    b.ready = intel.streams_ready_to_stack;
+    b.families = intel.families_by_evidence.filter(f => f.pays > 0 || f.zero > 0).slice(0, 6);
+  } catch { /* same */ }
+  return b;
+}
+
+function briefingText(b, novelty) {
+  const L = [];
+  L.push(`MONEY: you have earned $${b.earned_usd ?? '?'} lifetime from a standing start. $${b.spendable_usd ?? '?'} is spendable in your Safe; $${b.stranded_usd ?? '?'} is stranded on your EOA (unmovable, known, not a bug to re-investigate). YOU ARE PAST ZERO — do not write "$0.00 balance".`);
+  L.push(`RELAY: ${b.relay || 'unknown'}. ${b.relay_free ? 'YOU HAVE FREE SLOTS — spend them on a proven-paying route THIS SESSION.' : 'No slots. Do not plan around a reset time you have not measured: ' + (b.relay_reset || 'unknown')}`);
+  if (b.grind) {
+    L.push(`PROSPECTOR (runs automatically between your sessions — you do NOT need to triage by hand): ${b.grind.triaged}/${b.grind.total_candidates} candidates triaged, ${b.grind.callable_now} callable by you, ${b.grind.PROVEN_PAYING} PROVEN to pay callers, ${b.grind.eliminated_forever} eliminated forever, ${b.grind.still_queued} still queued.`);
+  }
+  if (b.ready?.length) {
+    L.push(`STREAMS READY TO STACK (callable AND proven to pay — this is your work queue, in order):`);
+    for (const s of b.ready.slice(0, 5)) L.push(`  • ${s.chain} ${s.contract} ${s.name || ''} → ${(s.callable || []).join(', ')}${s.example_payout ? ` (a real caller was paid ${s.example_payout.amount} ${s.example_payout.token})` : ''}`);
+  }
+  if (b.families?.length) {
+    L.push(`PATTERNS LEARNED (generalise from these to contracts you have never seen):`);
+    for (const f of b.families) L.push(`  • ${f.family}: ${f.callable} callable, ${f.pays} pay, ${f.zero} pay nothing${f.pay_rate !== null ? ` (pay rate ${f.pay_rate})` : ''}`);
+  }
+  if (novelty) L.push(novelty);
+  return L.join('\n');
+}
 
 function routeSummary(routes) {
   const entries = Object.entries(routes.routes || {});
@@ -523,7 +582,7 @@ function routeSummary(routes) {
   return jstr({ LIVE_ROUTES: live.length ? live : 'none — find new ones', DEAD_NEVER_REVISIT: dead }, 0);
 }
 
-function systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address }) {
+function systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address, brief }) {
   return `You are ZERO — an autonomous economic agent. You were born with nothing: no money, no history, no human identity. You have exactly one asset: an Ethereum wallet that is YOURS. Your operator will never fund you. Everything you ever own, you earned.
 
 MISSION
@@ -584,6 +643,9 @@ YOUR SITUATION
 - Wallet: ${address}
 - Route ledger: ${routeSummary(routes)}
 
+── SITUATION BRIEF (computed for you before this session started — ALREADY TRUE, do not spend rounds re-deriving it) ──
+${brief || '(unavailable)'}
+
 ── BESTOWED KNOWLEDGE (genesis) ──
 ${genesis || '(missing)'}
 
@@ -596,8 +658,38 @@ ${phases || "(missing)"}
 ── FRONTIER (untested hypotheses — falsify one per session, invent new ones) ──
 ${frontier || '(none yet — create it with knowledge_write)'}
 
-── JOURNAL (tail — your recent past) ──
-${journal ? journal.slice(-2500) : '(no journal yet)'}`;
+── JOURNAL (your recent past — deduped) ──
+${journalTail(journal)}`;
+}
+
+// The journal is fed back into this prompt, so whatever is in it is re-read as truth and restated.
+// Sessions 24-40 wrote near-identical entries, so the tail became several copies of the same
+// paragraph — the agent's own boilerplate crowding out its actual findings, and an invented "resets
+// at 5 AM UTC" reinforced every time it was echoed. Keep the most recent entries, drop
+// near-duplicates of ones already shown, and cap it.
+export function journalTail(journal, budget = 2500) {
+  if (!journal) return '(no journal yet)';
+  const entries = journal.split(/\n(?=#{1,2} )/).filter(e => e.trim()).reverse();
+  const fingerprint = (s) => s.toLowerCase().replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220);
+  const seen = new Set();
+  const kept = [];
+  let used = 0;
+  for (const e of entries) {
+    const fp = fingerprint(e);
+    if (seen.has(fp)) continue;                 // exact-shape repeat of one we already kept
+    if ([...seen].some(s => overlap(s, fp) > 0.85)) continue; // near-duplicate
+    seen.add(fp);
+    if (used + e.length > budget && kept.length) break;
+    kept.push(e.trim());
+    used += e.length;
+  }
+  const dropped = entries.length - kept.length;
+  return kept.reverse().join('\n\n') + (dropped > 0 ? `\n\n_(${dropped} older or near-duplicate entries hidden. If you are about to write something you have written before, that is the signal to do something DIFFERENT instead.)_` : '');
+}
+function overlap(a, b) {
+  const A = new Set(a.split(' ')), B = new Set(b.split(' '));
+  const inter = [...A].filter(w => B.has(w)).length;
+  return inter / Math.max(1, Math.min(A.size, B.size));
 }
 
 async function glm(env, ctx, messages) {
@@ -662,7 +754,22 @@ async function finalize(ctx, state, reason) {
     ].join('\n') + '\n');
   }
   const meta = JSON.parse((await ctx.kvGet('state:meta')) || '{"sessions":0}');
-  await ctx.kvPut('state:meta', jstr({ ...meta, sessions: state.session, lastSession: new Date().toISOString(), lastEnd: reason }));
+  // Did this session actually move anything? Earning more, or proving a new payer, both count.
+  // Anything else is a barren session and the next one gets told so.
+  let novel = false;
+  try {
+    const after = await reconcileEarnings(ctx.env, (c, m, p) => rpcCall(c, m, p), ctx.wallet().address, SMART_ACCOUNT);
+    if (state.earnedAtStart !== null && after.lifetime_earned_usd > state.earnedAtStart) novel = true;
+    const ds = (await ctx.env.KV.get('discover:state', 'json')) || {};
+    const proven = Object.values(ds.candidates || {}).filter(x => x.payout_verdict === 'PAYS_CALLERS').length;
+    if (proven > Number(meta.provenPayers || 0)) novel = true;
+    meta.provenPayers = proven;
+  } catch { /* if we cannot tell, do not punish the session */ novel = true; }
+  const barrenStreak = novel ? 0 : Number(meta.barrenStreak || 0) + 1;
+  await ctx.kvPut('state:meta', jstr({
+    ...meta, sessions: state.session, lastSession: new Date().toISOString(), lastEnd: reason,
+    barrenStreak, lastSessionNovel: novel,
+  }));
   await ctx.kvPut('log:last', jstr({
     session: state.session, ended: reason, endedAt: new Date().toISOString(),
     rounds: state.round, events: state.events.slice(-40),
@@ -691,12 +798,25 @@ async function tick(env, trigger) {
       ctx.kvGet('knowledge:journal'), ctx.kvGet('knowledge:frontier'), ctx.kvGet('knowledge:phases'), ctx.kvGet('state:routes'),
     ]);
     const routes = JSON.parse(routesRaw || '{"routes":{}}');
+    const eoaAddr = ctx.wallet().address;
+    const b = await buildBriefing(ctx.env, eoaAddr);
+
+    // NOVELTY SIGNAL. Sessions 24-35 each burned 12 rounds and produced nothing new, and nothing ever
+    // said so — re-deriving a known conclusion scored exactly the same as a discovery, so there was no
+    // gradient away from the loop. Now a barren streak is stated to its face, with an instruction to
+    // change tactic rather than repeat.
+    const barren = Number(meta.barrenStreak || 0);
+    const novelty = barren >= 2
+      ? `⚠️ NOVELTY CHECK: your last ${barren} sessions ended having earned nothing and having added no new proven route. Repeating the same opening sequence is what produced that. THIS SESSION MUST DIFFER: take one concrete action you have never taken before — call a contract from the ready-to-stack queue, falsify a named frontier hypothesis with a single eth_call, or test a family you have never tested. Re-checking your status and re-writing yesterday's plan counts as another barren session.`
+      : (barren === 1 ? 'NOVELTY CHECK: last session added nothing new. Do something different this time.' : '');
+
     state = {
       session: meta.sessions + 1, startedAt: Date.now(), round: 0, events: [],
+      earnedAtStart: b.earned_usd ?? null,
       flags: { wroteJournal: false, loggedRoute: false, nudged: false, finalWarned: false },
       messages: [
-        { role: 'system', content: systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address: ctx.wallet().address }) },
-        { role: 'user', content: `Cloud session ${meta.sessions + 1} begins (trigger: ${trigger}). Prioritize real attempts over research. Log outcomes. Journal before the end. Earn.` },
+        { role: 'system', content: systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address: eoaAddr, brief: briefingText(b, novelty) }) },
+        { role: 'user', content: `Cloud session ${meta.sessions + 1} begins (trigger: ${trigger}). Your situation is already in the brief — do NOT re-derive it. Spend round 1 on an ACTION. Log outcomes. Journal before the end. Earn.` },
       ],
     };
   }
@@ -781,6 +901,15 @@ export default {
         .then(r => console.log('harvest: ' + jstr(r, 0)))
         .catch(e => console.log('HARVEST ERROR: ' + String(e.message).slice(0, 200)))
     );
+    // The tireless part, with no model in the loop. Triaging candidates (resolve the proxy, simulate
+    // the entry points, check whether it has ever paid a caller) is pure procedure — leaving it to the
+    // agent meant 214 candidates sat untouched for eleven sessions while it spent its rounds
+    // re-deriving its own status. It grinds here instead, every tick, forever.
+    c.waitUntil(
+      prospectTick(env, async (u) => { const r = await fetch(u, { headers: { 'User-Agent': 'zero-agent/0.4' } }); return { status: r.status, text: await r.text() }; })
+        .then(r => console.log('prospect: ' + jstr(r, 0)))
+        .catch(e => console.log('PROSPECT ERROR: ' + String(e.message).slice(0, 200)))
+    );
     c.waitUntil(tick(env, 'cron').then(r => console.log('tick: ' + jstr(r, 0))).catch(e => console.log('TICK ERROR: ' + e.message)));
   },
 
@@ -835,6 +964,16 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         try { return Response.json({ tool: name, result: await impl(args) }); }
         catch (e) { return Response.json({ tool: name, error: String(e.message).slice(0, 300) }, { status: 500 }); }
       }
+      if (req.method === 'POST' && url.pathname === '/prospect') {
+        if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
+        const n = Math.min(Number(url.searchParams.get('n')) || 1, 8);
+        const out = [];
+        for (let i = 0; i < n; i++) {
+          out.push(await prospectTick(env, async (u) => { const r = await fetch(u, { headers: { 'User-Agent': 'zero-agent/0.4' } }); return { status: r.status, text: await r.text() }; }));
+        }
+        return Response.json({ ticks: out.length, results: out });
+      }
+      if (url.pathname === '/prospect') return Response.json(await prospectIntel(env), { headers: { 'access-control-allow-origin': '*' } });
       if (req.method === 'POST' && url.pathname === '/run') {
         if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
         const r = await tick(env, 'manual');
