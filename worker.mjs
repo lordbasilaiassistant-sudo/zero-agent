@@ -600,10 +600,27 @@ function trimMessages(messages) {
 
 async function finalize(ctx, state, reason) {
   if (!state.flags.wroteJournal) {
-    const lastWords = [...state.messages].reverse().find(m => m.role === 'assistant' && m.content?.trim())?.content?.trim() || '(none)';
+    // The old stub recorded the agent's FIRST sentence ("I'm starting session N. Let me check my
+    // status...") as its "last words", so twelve consecutive sessions left behind an identical,
+    // information-free entry. Continuity is the whole point of this file — if the agent runs out of
+    // rounds before journaling, reconstruct what it actually DID from the session record instead.
+    const tools = state.events.filter(e => e.tool).map(e => e.tool);
+    const counts = tools.reduce((m, t) => ({ ...m, [t]: (m[t] || 0) + 1 }), {});
+    const errors = state.events.filter(e => e.err).map(e => `${e.tool}: ${e.err}`).slice(0, 4);
+    // The last thing it SAID that was not its opening line is far more useful than the first.
+    const said = [...state.messages]
+      .filter(m => m.role === 'assistant' && m.content?.trim() && !/^I'?m starting session|^Let me (check|start)/i.test(m.content.trim()))
+      .map(m => m.content.trim()).slice(-1)[0] || '(said nothing beyond boilerplate)';
     const prev = (await ctx.kvGet('knowledge:journal')) || '';
-    await ctx.kvPut('knowledge:journal', (prev ? prev + '\n\n' : '') +
-      `## Cloud session ${state.session} — [auto-stub: ${reason}]\nLast words: ${lastWords.slice(0, 400)}\n`);
+    await ctx.kvPut('knowledge:journal', (prev ? prev + '\n\n' : '') + [
+      `## Cloud session ${state.session} — [auto-stub: ${reason}]`,
+      `**You ran out of rounds before journaling.** Reconstructed from the session record so future-you is not left blind:`,
+      `- Tools used (${state.events.length} calls): ${Object.entries(counts).map(([t, n]) => `${t}×${n}`).join(', ') || 'none'}`,
+      errors.length ? `- Errors hit: ${errors.join(' | ')}` : '- No tool errors.',
+      `- Routes logged: ${state.flags.loggedRoute ? 'yes' : 'NO'}`,
+      `- Last substantive thing you said: ${said.slice(0, 350)}`,
+      `**Lesson for future-you: journal EARLY, not at the round limit.** ${tools.length && !state.flags.wroteJournal ? 'You spent every round on tools and lost your own conclusions.' : ''}`,
+    ].join('\n') + '\n');
   }
   const meta = JSON.parse((await ctx.kvGet('state:meta')) || '{"sessions":0}');
   await ctx.kvPut('state:meta', jstr({ ...meta, sessions: state.session, lastSession: new Date().toISOString(), lastEnd: reason }));
@@ -637,7 +654,7 @@ async function tick(env, trigger) {
     const routes = JSON.parse(routesRaw || '{"routes":{}}');
     state = {
       session: meta.sessions + 1, startedAt: Date.now(), round: 0, events: [],
-      flags: { wroteJournal: false, loggedRoute: false, nudged: false },
+      flags: { wroteJournal: false, loggedRoute: false, nudged: false, finalWarned: false },
       messages: [
         { role: 'system', content: systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address: ctx.wallet().address }) },
         { role: 'user', content: `Cloud session ${meta.sessions + 1} begins (trigger: ${trigger}). Prioritize real attempts over research. Log outcomes. Journal before the end. Earn.` },
@@ -649,9 +666,20 @@ async function tick(env, trigger) {
   while (sliceRounds < SLICE_ROUNDS && state.round < MAX_ROUNDS && Date.now() - ctx.t0 < SLICE_MS && ctx.sub < SLICE_SUBREQUESTS) {
     state.round++; sliceRounds++;
 
-    if (state.round >= MAX_ROUNDS - 2 && !state.flags.nudged) {
-      state.messages.push({ role: 'user', content: '[system notice] Session ending soon. Wrap up NOW: route_log everything you touched, then knowledge_write your journal (append) with the single best next action for future-you.' });
+    // Nudge EARLIER and journal-FIRST. At MAX_ROUNDS-2 the agent reliably spent its last rounds on
+    // route_log and hit the cap before ever journaling — twelve sessions in a row left no notes.
+    // The journal is the only thing that survives, so it gets the rounds first.
+    if (state.round >= MAX_ROUNDS - 3 && !state.flags.nudged) {
+      state.messages.push({
+        role: 'user',
+        content: `[system notice] Only ${MAX_ROUNDS - state.round + 1} rounds left, then your memory is wiped. knowledge_write your 'journal' NOW, before anything else — route_log can wait and is worth nothing if you lose your conclusions. Write what you learned and the single best next action for future-you.`,
+      });
       state.flags.nudged = true;
+    }
+    // Last round and still nothing written: stop offering the choice.
+    if (state.round >= MAX_ROUNDS && !state.flags.wroteJournal && !state.flags.finalWarned) {
+      state.messages.push({ role: 'user', content: '[system notice] FINAL ROUND. Call knowledge_write on \'journal\' right now or everything you worked out this session is lost.' });
+      state.flags.finalWarned = true;
     }
 
     let msg;
