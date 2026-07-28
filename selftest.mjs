@@ -139,6 +139,55 @@ await t('send_tx refuses NEVER_TOUCH', async () => {
   throw new Error('blocklist NOT enforced');
 });
 
+// ── the ledger must stay a list of ways money can arrive ────────────────────
+await t('route_log refuses housekeeping pseudo-routes', async () => {
+  // These ten shapes really were logged as "routes", accrued `blocked`, and then tripped the
+  // dead-route rule so the agent's own real attempts got refused.
+  const noise = [
+    'relay-budget-check-base', 'harvest-run-budget-check', 'beefy-harvest-scan-budget-check-base',
+    'discover-list-check', 'clustly-api-check', 'taskmarket-api-check', 'nohumans-demand-check',
+    'beefy-harvest-scan-base', 'discovery-new-sources-base', 'discover-new-sources-base',
+    'base-mainnet-opportunities', 'web-search-base-opportunities',
+  ];
+  for (const id of noise) {
+    const r = await TOOL_IMPL.route_log({ route_id: id, outcome: 'blocked', note: 'budget exhausted' });
+    if (!r.refused || !r.not_a_route) throw new Error(`pseudo-route "${id}" was accepted: ${JSON.stringify(r)}`);
+  }
+  const db = JSON.parse(fs.readFileSync(path.join(scratch, 'state', 'routes.json'), 'utf8'));
+  for (const id of noise) if (db.routes[id]) throw new Error(`"${id}" polluted the ledger anyway`);
+  return `${noise.length} rejected, ledger clean`;
+});
+
+await t('route_log still accepts REAL earning routes', async () => {
+  // The noise filter must not swallow genuine routes whose ids happen to contain a noise word.
+  // agentpact-needs-proposal and safe-sponsored-relay are genuine attempts to get paid and must
+  // survive the noise filter — over-filtering would erase real history.
+  const real = [
+    'beefy-harvest-caller-fees', 'x402-shop-sales', 'agent-bounties-verification-fees',
+    'agentpact-needs-proposal', 'safe-sponsored-relay', 'taskmarket-usdc-earnings',
+    'clawtasks-bounty-earnings', 'base-builder-rewards',
+  ];
+  for (const id of real) {
+    const r = await TOOL_IMPL.route_log({ route_id: id, outcome: 'success', earned_usd: 0.01, note: 'paid' });
+    if (r.refused) throw new Error(`real route "${id}" was wrongly refused: ${JSON.stringify(r)}`);
+  }
+  return `${real.length} accepted`;
+});
+
+// ── the cap-vs-realized law ─────────────────────────────────────────────────
+await t('payout_history separates real caller fees from protocol plumbing', async () => {
+  const { payoutHistory } = await import('./payouts.mjs');
+  const f = async (url) => { const r = await fetch(url, { headers: { 'User-Agent': 'zero-selftest' } }); return { status: r.status, text: await r.text() }; };
+  // Ground truth: six consecutive DrawFinished events carry reward=0. maxRewards() reads $63.
+  const zero = await payoutHistory(f, { chain: 'base', contract: '0x8A2782bedC79982EBFa3b68B315a2eE40DAF6aB0', sample: 5 });
+  if (zero.verdict !== 'PAYS_ZERO') throw new Error(`PoolTogether DrawManager should be PAYS_ZERO, got ${zero.verdict}`);
+  // Ground truth: this strategy really did send WETH to ZERO.
+  const pays = await payoutHistory(f, { chain: 'base', contract: '0x8B45D51e015Dac924EeAEa754e6f768943206F05', sample: 5 });
+  if (pays.verdict !== 'PAYS_CALLERS') throw new Error(`Beefy strategy should be PAYS_CALLERS, got ${pays.verdict}`);
+  if (!pays.settled_payouts?.length) throw new Error('PAYS_CALLERS with no settled amounts');
+  return `plumbing=${zero.verdict}, real=${pays.verdict} (${pays.settled_payouts.length} settled)`;
+});
+
 fs.rmSync(scratch, { recursive: true, force: true });
 console.log(`\n${pass} passed, ${fail} failed — throwaway wallet destroyed`);
 process.exit(fail ? 1 : 0);

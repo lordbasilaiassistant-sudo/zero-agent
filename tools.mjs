@@ -313,6 +313,15 @@ export function isDead(r, id) {
 }
 const normId = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '').replace(/s$/, '');
 
+// Mirrors worker.mjs — a ROUTE is a way MONEY CAN ARRIVE. Budget/status/list/scan checks are
+// housekeeping; logging them polluted the ledger with ten dead pseudo-routes that then blocked real work.
+const NON_ROUTE_RE = /(^|[-_])(budget|status|api|list|scan|health|ping|state|balance|check|exploration|research|browsing|registration|discover\w*|opportunit\w*|candidate\w*|demand)([-_]?check)?([-_]|$)/i;
+export function notARoute(id) {
+  if (!NON_ROUTE_RE.test(id)) return null;
+  if (/(earning|fee|reward|bounty|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  return `"${id}" is not an earning route — it is housekeeping. A route is a way MONEY CAN ARRIVE, and a budget/status/list/scan check can never pay you. Logging these polluted your ledger with ten dead pseudo-routes that then blocked your real ones. NOT LOGGED, and this costs you nothing. Just read the value you got and act on it. Only call route_log when you actually tried to GET PAID.`;
+}
+
 async function route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
   if (!['success', 'fail', 'blocked', 'pending'].includes(outcome)) {
     throw new Error('outcome must be one of: success | fail | blocked | pending');
@@ -321,6 +330,10 @@ async function route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
   const id = String(route_id).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 50);
   if ((CLOSED_CATEGORY.test.test(id) || CLOSED_CATEGORY.test.test(note)) && outcome !== 'success') {
     return { refused: true, route: id, logged: false, reason: CLOSED_CATEGORY.why };
+  }
+  const noise = notARoute(id);
+  if (noise && !(outcome === 'success' && parseFloat(earned_usd) > 0)) {
+    return { refused: true, route: id, logged: false, not_a_route: true, reason: noise };
   }
   const deadTwin = Object.entries(db.routes).find(([k, v]) => normId(k) === normId(id) && isDead(v, k));
   if ((isDead(db.routes[id], id) || deadTwin) && outcome !== 'success') {

@@ -9,10 +9,15 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const BASE = process.env.ZERO_WORKER || 'https://zero-agent.thryx.workers.dev';
+// frontier and phases were missing here, so `push` silently skipped them: the file holding every
+// untested hypothesis could be edited locally and never reach the agent. That is how a falsified
+// mechanism stayed in its head.
 const MAP = [
   { kv: 'knowledge:genesis', file: 'knowledge/genesis.md', endpoint: '/genesis' },
   { kv: 'knowledge:recovery', file: 'knowledge/recovery.md', endpoint: '/recovery' },
   { kv: 'knowledge:journal', file: 'knowledge/journal.md', endpoint: '/journal' },
+  { kv: 'knowledge:frontier', file: 'knowledge/frontier.md', endpoint: '/frontier' },
+  { kv: 'knowledge:phases', file: 'knowledge/phases.md', endpoint: '/phases' },
   { kv: 'state:routes', file: 'state/routes.json', endpoint: '/ledger' },
 ];
 

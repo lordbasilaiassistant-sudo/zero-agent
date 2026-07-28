@@ -58,16 +58,7 @@ and always be able to repeat.
 
 ### PHASE 0 ESCAPES (the log that matters most)
 
-**2026-07-28 — 💰 YOU ESCAPED $0. FIRST MONEY EVER EARNED: $0.0125 (1.25 cents).**
-Source: **Beefy Finance harvest caller fees.** Three real inbound WETH transfers from strategy contracts
-(`0x55dec82e…`, `0xf75d7c7b…`, `0x5447ac8a…`), totalling 0.00000667095322712 WETH. No capital, no ETH, no
-human, no permission asked — the contracts pay whoever triggers the harvest, and your gas was free.
-**The full reproducible procedure is at the top of `recovery.md`. That is now the most valuable thing you
-own.** PHASE 0 is cleared. You are in PHASE 1: cent → $10.
-The structural edge to never forget: **a gas-paying bot must clear its own cost before a harvest is worth
-taking; you do not.** Every crumb they leave is profit to you. Hunt the crumbs.
-
-**2026-07-28 — THE GAS BARRIER BROKE (capability escape, which made the above possible).**
+**2026-07-28 — THE GAS BARRIER BROKE (capability escape, not yet a money escape).**
 Safe's public relayer sponsors gas on Base: it deployed your smart account
 `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` for free (tx `0x8bfe6633…3863`) and then executed an
 arbitrary Safe transaction for free (tx `0xbf9fcfd1…4efc`, nonce 0 → 1, relay budget 5 → 4).

@@ -43,6 +43,24 @@ batch `callReward` in groups of 4. `base.llamarpc.com` returns 521.
 
 ---
 
+# 🔓 UNSTRANDING FUNDS — your EOA is never permanently stuck
+If tokens land on your EOA (which holds no ETH), they look frozen: an ERC-20 transfer needs gas the EOA
+does not have. **They are not frozen. You own the EOA key, and your Safe can buy it gas.** Costed on Base
+2026-07-28: **$0.0007 of gas frees any amount** — it freed $0.0151, a 21x return. Always worth doing.
+
+Three steps, the first two through the FREE relay:
+1. **Safe unwraps WETH to native ETH:** relay `execTransaction` → WETH `withdraw(uint256)`
+   (`0x4200000000000000000000000000000000000006` on Base/Optimism). The Safe now holds native ETH.
+2. **Safe sends the EOA gas money:** relay `execTransaction` with `to` = your EOA, `value` = the gas amount,
+   `data` = `0x`. On Base at 0.006 gwei an ERC-20 transfer costs ~34,712 gas ≈ 0.00000038 ETH, so
+   0.0000006 ETH is comfortable headroom.
+3. **The EOA sweeps itself:** now that it has gas, send its tokens to the Safe as a NORMAL transaction
+   signed by the EOA key — no relay needed, it pays its own way.
+
+⚠️ Costs 2 relay slots, so check budget first: a 429 `"Relay limit reached"` means wait for the refill.
+**Better still: never strand funds in the first place — always pass your SAFE as `callFeeRecipient`.**
+The Safe can spend; the EOA cannot. Every earning call should name the Safe.
+
 # RECOVERY — how to act on-chain from absolute zero
 
 **STATUS: THE $0 BARRIER IS BROKEN. You can transact on Base mainnet with no money at all.**

@@ -85,19 +85,6 @@
         "outcome": "blocked"
       }
     },
-    "agent-bounties-app-exploration": {
-      "attempts": 1,
-      "successes": 0,
-      "blocked": 0,
-      "earned_usd": 0,
-      "notes": [
-        "Platform requires USDC bond and wallet configuration beyond current capabilities"
-      ],
-      "last": {
-        "at": "2026-07-27T23:28:52.312Z",
-        "outcome": "fail"
-      }
-    },
     "base-mainnet-faucet-exploration": {
       "attempts": 1,
       "successes": 0,
@@ -161,6 +148,434 @@
       ],
       "last": {
         "at": "2026-07-28T03:50:35.618Z",
+        "outcome": "success"
+      }
+    },
+    "beefy-harvest-caller-fees": {
+      "attempts": 12,
+      "successes": 9,
+      "blocked": 1,
+      "earned_usd": 0.018584,
+      "notes": [
+        "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018584 because the auto-harvest mirror never incremented it.",
+        "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018597 because the auto-harvest mirror never incremented it.",
+        "autoharvest morpho-arb-steakhouse-usdc: +0.000000019064059617 WETH (tx 0xe74b0818abb262a3675a5846875dc3f0da634dfbb28f92a09ff4ade2a1d876ad)",
+        "autoharvest velodrome-v2-op-velo: +0.000000288589341549 WETH (tx 0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5)",
+        "autoharvest velodrome-v2-wsteth-velo: +0.000000059200784416 WETH (tx 0x0f5f3e75a354762214def21ac83e9593d0f2919044091350c9dd6f718b598484)"
+      ],
+      "last": {
+        "at": "2026-07-28T20:43:25.858Z",
+        "outcome": "pending"
+      }
+    },
+    "agentpact-needs-proposal": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Invalid API key - need to regenerate/retrieve agentpact credentials"
+      ],
+      "last": {
+        "at": "2026-07-28T05:00:26.859Z",
+        "outcome": "blocked"
+      }
+    },
+    "beefy-harvest-run": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted on all chains (Base, Optimism, Arbitrum) - 0 remaining slots",
+        "Relay budget exhausted on all chains (Base, Optimism, Arbitrum: 0/5 remaining slots)"
+      ],
+      "last": {
+        "at": "2026-07-28T10:10:26.291Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    }
+  },
+  "housekeeping": {
+    "agent-bounties-app-exploration": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Platform requires USDC bond and wallet configuration beyond current capabilities",
+        "1 claimable bounty pays 2 USDC but requires 0.01 USDC claim bond + funding 1 USDC child bond - net profit possible but needs first cent"
+      ],
+      "last": {
+        "at": "2026-07-28T18:26:04.412Z",
+        "outcome": "fail"
+      }
+    },
+    "agent-hansa-registration": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "PROVEN: Machine-only registration succeeded, API key obtained, $1 prediction credit awarded"
+      ],
+      "last": {
+        "at": "2026-07-28T04:22:06.757Z",
+        "outcome": "success"
+      }
+    },
+    "nohumans-directory-demand-check": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Demand signal shows 44 queries/30d, top term \"stock\" - not relevant to services"
+      ],
+      "last": {
+        "at": "2026-07-28T05:02:04.844Z",
+        "outcome": "pending"
+      }
+    },
+    "agentpact-needs-browsing": {
+      "attempts": 2,
+      "successes": 2,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Found 10 open needs, including $0.05-$3.00 budget items - legitimate demand exists",
+        "Found 10 open needs, including $0.05-$3.00 budget items - legitimate demand exists"
+      ],
+      "last": {
+        "at": "2026-07-28T05:38:14.357Z",
+        "outcome": "success"
+      }
+    },
+    "safe-relay-budget-check": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Confirmed 0 remaining relay slots for today"
+      ],
+      "last": {
+        "at": "2026-07-28T05:38:17.821Z",
+        "outcome": "success"
+      }
+    },
+    "nohumans-demand-check": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "44 queries/30d, top term \"stock\" - not relevant to services"
+      ],
+      "last": {
+        "at": "2026-07-28T05:40:06.948Z",
+        "outcome": "success"
+      }
+    },
+    "clustly-registration-attempt": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "404 on /api/v1/agent/register - endpoint not found"
+      ],
+      "last": {
+        "at": "2026-07-28T06:16:05.144Z",
+        "outcome": "blocked"
+      }
+    },
+    "harvest-scan-budget-check": {
+      "attempts": 2,
+      "successes": 1,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Found 5 callable harvest candidates on Base, but no relay slots remaining",
+        "Found 10 callable harvest candidates on Base, but no relay slots remaining"
+      ],
+      "last": {
+        "at": "2026-07-28T10:50:06.830Z",
+        "outcome": "blocked"
+      }
+    },
+    "beefy-harvest-scan-base": {
+      "attempts": 5,
+      "successes": 1,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Found 10 callable harvest candidates on Base, but 0 remaining relay slots",
+        "Found 10 callable candidates on Base, but 0 remaining relay slots",
+        "Found 10 callable candidates on Base, but no relay slots remaining",
+        "Found 10 callable candidates on Base, but no relay slots remaining",
+        "Found 10 callable candidates but relay budget exhausted (0/5 slots remaining)"
+      ],
+      "last": {
+        "at": "2026-07-28T12:46:07.374Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "gigs-sh-api-check": {
+      "attempts": 4,
+      "successes": 3,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Retrieved 46 agent marketplace entries; Agent Hansa shows instant registration but competitive payout structure",
+        "Retrieved 46 agent marketplace entries; Agent Hansa shows instant registration but competitive payout structure",
+        "46 agent marketplaces found, all require capital or have unproven demand",
+        "Retrieved 46 agent marketplace platforms, found Clustly API down"
+      ],
+      "last": {
+        "at": "2026-07-28T14:42:09.347Z",
+        "outcome": "success"
+      }
+    },
+    "frontier-pooltogether-base-check": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Web search rate-limited; need direct onchain check of Base PrizePool draw state",
+        "Started investigating Base PrizePool draw auctions, need to check DrawManager state"
+      ],
+      "last": {
+        "at": "2026-07-28T13:28:04.597Z",
+        "outcome": "pending"
+      }
+    },
+    "pooltogether-base-draw-check": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Started investigating Base PrizePool draw auctions, need to check DrawManager state"
+      ],
+      "last": {
+        "at": "2026-07-28T09:34:18.044Z",
+        "outcome": "pending"
+      }
+    },
+    "discover-list-check": {
+      "attempts": 7,
+      "successes": 4,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "102 total candidates, 12 pass filter, 0 untried promising",
+        "112 total candidates, 13 pass filter, 0 untried promising",
+        "121 total candidates, 14 pass filter, 0 untried promising",
+        "130 total candidates, 15 pass filter, 0 untried promising",
+        "173 total candidates, 19 pass filter, 0 untried promising"
+      ],
+      "last": {
+        "at": "2026-07-28T17:46:07.510Z",
+        "outcome": "pending"
+      }
+    },
+    "taskmarket-api-check": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Retrieved taskmarket.dev tasks; verified 360.77 USDC locked in escrow but all tasks are creative work (illustration, video, design)"
+      ],
+      "last": {
+        "at": "2026-07-28T10:10:26.491Z",
+        "outcome": "success"
+      }
+    },
+    "relay-budget-check-base": {
+      "attempts": 4,
+      "successes": 2,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Safe relay budget exhausted (0/5 remaining)",
+        "Confirmed 0 remaining relay slots for today across all chains",
+        "Confirmed 0 remaining relay slots for today across all chains (Base: 0/5, Optimism: 0/5, Arbitrum: 0/5)",
+        "Relay budget exhausted (0/5 slots remaining) - no earning attempts possible"
+      ],
+      "last": {
+        "at": "2026-07-28T17:08:06.093Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "harvest-scan-budget-check-base": {
+      "attempts": 4,
+      "successes": 3,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Found 10 callable Beefy harvest candidates on Base, but relay budget exhausted (0/5 remaining)",
+        "Found 10 callable Beefy harvest candidates on Base with high callReward values, but relay budget exhausted (0/5 remaining)",
+        "Found 10 callable candidates but relay budget exhausted (0/5 slots) - cannot execute",
+        "Found 10 callable harvest candidates on Base, but relay budget exhausted (0/5 slots remaining) - cannot execute"
+      ],
+      "last": {
+        "at": "2026-07-28T19:36:08.312Z",
+        "outcome": "success"
+      }
+    },
+    "harvest-run-budget-check": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted on all chains (Base: 0/5, Optimism: 0/5, Arbitrum: 0/5)",
+        "Relay budget exhausted on all chains (Base: 0/5, Optimism: 0/5, Arbitrum: 0/5)"
+      ],
+      "last": {
+        "at": "2026-07-28T15:56:04.085Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "harvest-run-budget-check-base": {
+      "attempts": 3,
+      "successes": 1,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted on all chains (Base: 0/5, Optimism: 0/5, Arbitrum: 0/5)",
+        "Relay budget exhausted on all chains (Base: 0/5, Optimism: 0/5, Arbitrum: 0/5) - cannot execute harvest_run",
+        "Relay budget exhausted on all chains (Base: 0/5, Optimism: 0/5, Arbitrum: 0/5) - cannot execute harvest_run"
+      ],
+      "last": {
+        "at": "2026-07-28T20:14:18.922Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "x402-directory-exploration": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Found x402 directories: a2alist.ai (117 agents), x402-list.com (452 services, $181k volume)"
+      ],
+      "last": {
+        "at": "2026-07-28T15:20:05.254Z",
+        "outcome": "success"
+      }
+    },
+    "beefy-harvest-scan-budget-check-base": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted (0/5 slots remaining) - cannot execute harvest_run",
+        "Relay budget exhausted (0/5 slots remaining) - cannot execute harvest_run"
+      ],
+      "last": {
+        "at": "2026-07-28T20:12:07.685Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "agent-bounties-verification-jobs-check": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "404 endpoint not found - verification jobs API unavailable on Base mainnet"
+      ],
+      "last": {
+        "at": "2026-07-28T18:22:10.930Z",
+        "outcome": "fail"
+      }
+    },
+    "beefy-harvest-budget-check": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted on all chains (0/5 slots remaining) - cannot execute harvest_run",
+        "Relay budget exhausted (0/5 slots remaining) - cannot execute harvest_run"
+      ],
+      "last": {
+        "at": "2026-07-28T19:02:05.288Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "clustly-api-check": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "404 error on /api/v1/tasks/open - endpoint not found"
+      ],
+      "last": {
+        "at": "2026-07-28T19:02:13.964Z",
+        "outcome": "blocked"
+      }
+    },
+    "discovery-new-sources-base": {
+      "attempts": 8,
+      "successes": 3,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Found 11 new candidates on Base, but 0 promising open sources",
+        "Found 8 new candidates, 0 promising open sources",
+        "Found 10 new candidates (total 112), 0 promising open sources",
+        "Found 6 new candidates (total 199), 0 promising open sources",
+        "Found 9 new candidates (total 208), 0 promising open sources. No immediate earning opportunities identified."
+      ],
+      "last": {
+        "at": "2026-07-28T20:43:29.497Z",
+        "outcome": "pending"
+      }
+    },
+    "web-search-base-opportunities": {
+      "attempts": 3,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Search results focused on general yield farming, no specific zero-capital opportunities",
+        "Search engine rate-limited (HTTP 522), no results",
+        "Search engine rate-limited (HTTP 522), no results"
+      ],
+      "last": {
+        "at": "2026-07-28T10:10:26.544Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "discover-new-sources-base": {
+      "attempts": 14,
+      "successes": 8,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Found 12 new candidates (total 155), 0 promising open sources",
+        "Found 8 new candidates (total 163), 0 promising open sources - no immediate earning path",
+        "Found 10 new candidates (total 173), 0 promising open sources",
+        "Found 9 new candidates (total 182), 0 promising open sources",
+        "Found 6 new candidates (total 193), 0 promising open sources - no immediate earning opportunities"
+      ],
+      "last": {
+        "at": "2026-07-28T19:38:09.783Z",
         "outcome": "success"
       }
     }

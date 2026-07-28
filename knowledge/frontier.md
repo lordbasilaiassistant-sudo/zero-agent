@@ -17,25 +17,77 @@ promotion. Creativity is unlimited *within* those; the constraint is the point �
 3. When you invent a new hypothesis, write it here immediately with the exact test you'd run.
 4. If one ever pays: it goes into `recovery.md` with exact reproduction steps, immediately.
 
-## LIVE FINDINGS — permissionless keeper auctions (creator-verified 2026-07-28)
-**PoolTogether V5 draw auctions are genuinely permissionless and pay real money.** Anyone may call them and
-name themselves reward recipient. Verified on-chain, live state:
-- Base PrizePool `0x45b2010d8A4f08b53c9fa7544C51dFd9733732cb` — prize token WETH, 7.03 WETH accounted,
-  DrawManager `0x8A2782bedC79982EBFa3b68B315a2eE40DAF6aB0`, 24h draws. Draw 803 auction opens
-  **2026-07-28T22:00:00Z**; the previous draw was awarded 6 min after opening, so bots are active here.
-- Optimism PrizePool `0xe32e5E1c5f0c80bD26Def2d0EA5008C107000d6A` — prize token **POOL**, 21,320 POOL
-  accounted, DrawManager `0x7e8e79Eb264B42dCBa887047F40B6db12C4f0940`. **`canStartDraw() = true` with
-  `startDrawReward()` ≈ 70 POOL and RISING — nobody is taking it.** Gnosis pool
-  `0x0c08c2999e1a14569554EDdbcda9dA5e1918120f` (13,244 balance) and Optimism `0xF35fE10f…` were both shut.
-- **The catch:** `startDraw(address rewardRecipient, uint32 rngRequestId)` needs a Witnet RNG request the
-  caller must pay for (`estimateRandomizeFee` ≈ 1.9e-7 ETH — trivial, but you have literally zero ETH).
-  `finishDraw(address)` needs no payment but only becomes callable AFTER someone starts the draw.
-- **THE PLAY: let someone else pay to start the draw, then take `finishDraw` for free.** Poll
-  `canFinishDraw()` / `finishDrawReward()` on each DrawManager; when it flips true, fire `finishDraw(<your
-  Safe>)` through the free Safe relay. Your gas is free, so ANY reward above zero is pure profit — you can
-  profitably take an auction at a price no gas-paying bot can match. That is a real, structural edge.
-- Safe's relay sponsors Base, Gnosis, Polygon, Arbitrum, Optimism — the same Safe address is available on
-  every one of them (same factory, same salt). Deploy it on the chain where the auction is open.
+## ❌ FALSIFIED — PoolTogether draw auctions pay the caller EXACTLY ZERO (creator-measured 2026-07-28)
+**An earlier version of this file told you this was "THE PLAY" and "a real, structural edge." That was
+WRONG, and acting on it would have burned your scarce relay slots for nothing.** It was written from
+`maxRewards()` without ever reading a settled auction. Here is the measurement that killed it.
+
+`DrawManager 0x8A2782bedC79982EBFa3b68B315a2eE40DAF6aB0` on Base emits a `DrawFinished` event carrying the
+literal reward paid to the caller. Six consecutive draws, decoded from the logs:
+
+| draw | caller | elapsedTime | **reward** | reserve recycled |
+|------|--------|-------------|-----------|------------------|
+| 802 | 0xCcE8dcAC… | 310 s | **0** | 0.01151 WETH |
+| 801 | 0xCcE8dcAC… | 518 s | **0** | 0.04543 WETH |
+| 799 | 0x1419734e… | 3070 s | **0** | 0.02017 WETH |
+| 798 | 0xCcE8dcAC… | 366 s | **0** | 0.03722 WETH |
+| 797 | 0xCcE8dcAC… | 304 s | **0** | 0.03801 WETH |
+| 796 | 0xCcE8dcAC… | 276 s | **0** | 0.01930 WETH |
+
+Six for six, `reward=0` — including draw 799 at 3070 s elapsed, most of the way to `auctionTargetTime`
+(3600 s). Waiting longer does not help. `lastFinishDrawFraction() = 7` (raw, 1e18-scaled ≈ 0.0000000%).
+
+**Where the money actually goes:** `AllocateRewardFromReserve → to = the DrawManager itself`, then
+`WithdrawRewards → to = the PrizePool`, then `ContributePrizeTokens` for the NEXT draw. The reserve is
+recycled into the prize, never paid to whoever called. There is no caller fee here at all.
+
+**`maxRewards() = 0.033 WETH ($63)` is a CAP THAT HAS NEVER BEEN PAID.** This is the exact same trap as
+`callReward()` below — a headline number that is not a payout. That is now twice this has fooled us.
+
+**Optimism pool is dead, not opportunity:** `getLastAwardedDrawId() = 399` while `getOpenDrawId() = 1013`
+— 614 draws behind, i.e. abandoned. `canStartDraw() = false`, `startDrawReward() = 0`. The old claim of
+"≈70 POOL and RISING, nobody is taking it" is false as of now. Nobody is taking it because it pays nothing.
+
+### 🔒 THE RULE THIS BUYS YOU — the CAP-VS-REALIZED LAW (obey this before every slot)
+A view function that names a reward (`callReward()`, `maxRewards()`, `startDrawReward()`, `pendingReward()`,
+`claimable()`) is a **cap, a quote, or an accounting artifact — never evidence of a payout.** Twice now a
+cap has read as dollars and paid ~zero ($615.54 → $0.0001; $63.24 → $0.00).
+**Before you spend a relay slot on any new "permissionless reward" contract, you must first read a
+SETTLED payout out of history** — the event log of somebody else's successful call, or an ERC-20 Transfer
+out of the contract to a caller who is not the protocol. If you cannot find one real settled payout, the
+route pays zero and the slot is wasted. Use the `payout_history` tool: it does exactly this read, costs no
+relay slot, and returns `verdict: PAYS_CALLERS | PAYS_ZERO | NO_EVIDENCE` plus the real amounts. It is the
+cheapest tool you have and it is now mandatory before any first-time slot spend.
+**Never again forecast from a getter. Only a settled event or a measured balance delta is a number.**
+
+## ⛔ HARD-MEASURED CEILING ON HARVEST FARMING (creator-verified 2026-07-28 — read before you plan)
+**`callReward()` is NOT a dollar figure and must never be priced as ETH.** It is denominated in the
+strategy's own want/reward token, so multiplying it by the ETH price produces fiction.
+Measured proof: `ramses-cl-weth-usdc-vault` on Arbitrum (`0x3DAfB52975faB6B02eA6Cf4ead926E409Fa23ca0`)
+reported a "reward" that priced as **$615.54**. Harvested it for real (tx
+`0x045e6b349c8931d13730c08d6a4cc9bbb6b36e5069839dfc18753e0f90fd4d1a`). Actual payout:
+**0.000000038434754837 WETH = $0.0001.** Overstatement factor: **8,527,792×.**
+An earlier Base strategy overstated by ~4,300×. There is no reliable relationship at all.
+
+**The real payout distribution, from every harvest actually executed:** $0.0116, $0.0025, $0.00066,
+$0.0003, $0.0001. Average ≈ **$0.003**. That is the honest number. Scanning 287 strategies across three
+chains found a nominal "$882 available" — the realizable total is a few cents.
+
+**What this kills:** ranking by `callReward` is close to worthless, and there are NO dollar-scale rewards
+hiding inside Beefy harvests. Harvest farming has a hard ceiling of roughly **cents per day**, and no
+amount of chain-porting changes the order of magnitude. Do not build a plan on it beyond pocket change.
+**What survives:** it is still free money and still worth taking (our gas is free, so any payout is pure
+margin). Just never forecast from it. **Only a measured balance delta is a number.**
+
+**Where dollar-scale free actions might actually live (untested):** one-caller-per-event auctions rather
+than continuously-accruing fees — expired-escrow resolutions, settlement/finalization functions. The
+distinguishing feature is that the reward accumulates to ONE claimant over a long window instead of being
+split among constant harvesters. Hunt that shape, not more harvest crumbs.
+⚠️ **PoolTogether draw auctions were the flagship example of this shape and they are now FALSIFIED — see
+the top of this file. They pay the caller exactly zero.** The shape may still be right; that instance is
+dead. Screen every new candidate of this shape with `payout_history` BEFORE it gets a relay slot, because
+the one-caller-per-event shape is exactly where a big `maxRewards()`-style cap is most tempting and most
+likely to be a lie.
 
 ## Open hypotheses (all `untested`)
 - **H1 — Gas-free onchain earning via signature only.** Some protocols accept a signed message and let a
@@ -70,6 +122,19 @@ name themselves reward recipient. Verified on-chain, live state:
   failure-and-success ledger is rare. Researchers, funds, and builders have historically funded exactly
   that kind of artifact. Your journal is public. *Test:* keep it genuinely excellent; make the receive
   path frictionless (your address is public and needs no gas to receive).
+
+## ⛔ RELAY HUNT — Safe is the ONLY keyless free-gas rail (creator-verified 2026-07-28)
+Probed every plausible alternative sponsor. Results, so you never repeat this sweep:
+- **Safe relay — WORKS, keyless, free.** Your rail. `safe-client.safe.global/v1/chains/{id}/relay`.
+- **Candide public bundler — keyless but NOT free.** Charges gas in USDC (~0.009/op), so it needs money first.
+- Etherspot `401 Api key not found` · Pimlico `401 missing apikey` · ZeroDev `400 Invalid projectId`
+  · Biconomy `503 ring-balancer` (dead) · Particle `404` · OpenGSN unreachable · Gelato needs a 1Balance
+  deposit · Coinbase `401 unauthorized` (and operator-banned) · Ambire: only one identity endpoint responds,
+  the rest 404 — no usable public API · Zerion `402 Payment required` · Rainbow/Argent/Alchemy/Openfort: no
+  public health endpoint.
+**Conclusion: do not spend more sessions hunting relays.** The generalizable pattern still holds — wallet
+companies subsidise onboarding — but Safe is currently the only one exposing it keylessly. Re-check
+occasionally; a new smart-account wallet launching with a free relayer would be a genuine second rail.
 
 ## Falsified (keep — they narrow the map)
 - Faucets, all known variants — human-gated. See genesis "FAUCET CATEGORY: CLOSED".
