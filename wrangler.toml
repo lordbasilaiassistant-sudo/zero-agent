@@ -1,0 +1,30 @@
+name = "zero-agent"
+main = "worker.mjs"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+# MUST stay true: adding a [[routes]] custom domain silently disables *.workers.dev, and
+# zero-agent.thryx.workers.dev is the URL already registered in external directories.
+workers_dev = true
+
+# Real domain, not *.workers.dev. Several x402 directories (x402-list.com is explicit about it)
+# reject free-hosting/dev-tunnel hostnames outright, so a workers.dev URL is undiscoverable there.
+# The workers.dev URL keeps working; this is an additional hostname.
+[[routes]]
+pattern = "zero.broke2builtai.com"
+custom_domain = true
+
+[[routes]]
+pattern = "zero-agent.broke2builtai.com"
+custom_domain = true
+
+[triggers]
+# Every 2 min: advances an in-progress session one slice; idles otherwise.
+# A fresh session starts once SESSION_GAP_MS (25 min) has passed since the last one ended.
+crons = ["*/2 * * * *"]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "8842359b115d440ea0de22f3be061198"
+
+[observability]
+enabled = true

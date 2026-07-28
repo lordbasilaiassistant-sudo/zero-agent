@@ -297,12 +297,38 @@ export function readRoutes() {
   catch { return { routes: {} }; }
 }
 
+// A route is DEAD once its category is closed, it is human-gated in any wording, or it has been
+// blocked twice. Refused at the tool layer — prompt instructions alone did not stop re-attempts.
+export const HUMAN_GATE_RE = /HUMAN-GATED|captcha|human verification|social login|sign ?up with|email verification|phone verification|KYC/i;
+export const CLOSED_CATEGORY = {
+  test: /faucet/i,
+  why: 'FAUCETS ARE A PERMANENTLY CLOSED CATEGORY (operator ruling). Every known faucet is human-gated, which rule 2b bans. Searching, fetching or logging them is forbidden and wastes the session. Work gigs.sh, BountyBook, AgentPact, or a frontier hypothesis instead.',
+};
+export function isDead(r, id) {
+  if (!r) return false;
+  if (r.dead === true || r.blocked >= 2) return true;
+  if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
+  if (id && CLOSED_CATEGORY.test.test(id)) return true;
+  return false;
+}
+const normId = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '').replace(/s$/, '');
+
 async function route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
   if (!['success', 'fail', 'blocked', 'pending'].includes(outcome)) {
     throw new Error('outcome must be one of: success | fail | blocked | pending');
   }
   const db = readRoutes();
   const id = String(route_id).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 50);
+  if ((CLOSED_CATEGORY.test.test(id) || CLOSED_CATEGORY.test.test(note)) && outcome !== 'success') {
+    return { refused: true, route: id, logged: false, reason: CLOSED_CATEGORY.why };
+  }
+  const deadTwin = Object.entries(db.routes).find(([k, v]) => normId(k) === normId(id) && isDead(v, k));
+  if ((isDead(db.routes[id], id) || deadTwin) && outcome !== 'success') {
+    return {
+      refused: true, route: id, logged: false,
+      reason: 'DEAD ROUTE — permanently out of scope (human-gated, or blocked twice). This attempt was NOT logged and the rounds you spent on it were wasted. Never revisit or research this route again; work a LIVE route instead.',
+    };
+  }
   const r = db.routes[id] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
   r.attempts += 1;
   if (outcome === 'success') r.successes += 1;
@@ -310,12 +336,13 @@ async function route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
   r.earned_usd = +(r.earned_usd + (parseFloat(earned_usd) || 0)).toFixed(6);
   r.last = { at: new Date().toISOString(), outcome };
   if (note) { r.notes.push(clip(String(note), 200)); r.notes = r.notes.slice(-5); }
+  if (/HUMAN-GATED|captcha|social login|KYC/i.test(note) || r.blocked >= 2) r.dead = true;
   fs.mkdirSync(STATE, { recursive: true });
   fs.writeFileSync(routesFile(), jstr(db));
-  const leaderboard = Object.entries(db.routes)
+  const leaderboard = Object.entries(db.routes).filter(([k, v]) => !isDead(v, k))
     .map(([k, v]) => ({ route: k, attempts: v.attempts, successes: v.successes, earned_usd: v.earned_usd }))
     .sort((a, b) => b.earned_usd - a.earned_usd).slice(0, 10);
-  return { logged: id, outcome, leaderboard };
+  return { logged: id, outcome, dead: !!r.dead, live_routes_leaderboard: leaderboard };
 }
 
 // ── schemas the model sees ──────────────────────────────────────────────────

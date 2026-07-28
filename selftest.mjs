@@ -89,7 +89,17 @@ await t('knowledge write/read/list', async () => {
 
 await t('route_log ledger', async () => {
   const r = await TOOL_IMPL.route_log({ route_id: 'selftest-route', outcome: 'fail', earned_usd: 0, note: 'testing the ledger' });
-  if (r.logged !== 'selftest-route' || !r.leaderboard.length) throw new Error('bad ledger ' + JSON.stringify(r));
+  if (r.logged !== 'selftest-route' || !r.live_routes_leaderboard.length) throw new Error('bad ledger ' + JSON.stringify(r));
+});
+
+await t('dead routes are refused (rule 2b enforcement)', async () => {
+  // one human-gated block is enough to kill a route forever
+  const first = await TOOL_IMPL.route_log({ route_id: 'selftest-gated', outcome: 'blocked', note: 'HUMAN-GATED captcha wall' });
+  if (!first.dead) throw new Error('route not marked dead: ' + JSON.stringify(first));
+  const retry = await TOOL_IMPL.route_log({ route_id: 'selftest-gated', outcome: 'fail', note: 'trying again anyway' });
+  if (!retry.refused || retry.logged !== false) throw new Error('dead route was NOT refused: ' + JSON.stringify(retry));
+  const db = JSON.parse(fs.readFileSync(path.join(scratch, 'state', 'routes.json'), 'utf8'));
+  if (db.routes['selftest-gated'].attempts !== 1) throw new Error('refused attempt still mutated the ledger');
 });
 
 await t('route_log rejects bad outcome', async () => {

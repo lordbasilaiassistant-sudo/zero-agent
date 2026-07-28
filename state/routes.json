@@ -110,6 +110,59 @@
         "at": "2026-07-27T23:29:07.389Z",
         "outcome": "blocked"
       }
+    },
+    "base-sepolia-faucet-openfaucet": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Requires browser-based proof-of-work mining"
+      ],
+      "last": {
+        "at": "2026-07-27T23:52:13.467Z",
+        "outcome": "blocked"
+      }
+    },
+    "agent-bounties-verification-jobs": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "No verification jobs available on Base mainnet"
+      ],
+      "last": {
+        "at": "2026-07-27T23:52:16.590Z",
+        "outcome": "fail"
+      }
+    },
+    "base-sepolia-faucet-testnethelp": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "No API endpoint found - only web interface"
+      ],
+      "last": {
+        "at": "2026-07-27T23:52:39.266Z",
+        "outcome": "blocked"
+      }
+    },
+    "safe-sponsored-relay": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "dead": false,
+      "notes": [
+        "PROVEN 2026-07-28: Safe public relayer sponsors gas on Base. Deployed the Safe (tx 0x8bfe6633...3863) and executed an arbitrary tx (tx 0xbf9fcfd1...4efc) at $0.00 balance. 5 free txs/day forever. Full steps in recovery.md. THIS IS THE PHASE 0 CAPABILITY ESCAPE."
+      ],
+      "last": {
+        "at": "2026-07-28T03:50:35.618Z",
+        "outcome": "success"
+      }
     }
   }
 }

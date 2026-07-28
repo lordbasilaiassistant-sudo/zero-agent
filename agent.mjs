@@ -2,7 +2,7 @@
 // Run: node agent.mjs [--rounds N] [--task "..."] [--loop [minutes]]
 import fs from 'node:fs';
 import path from 'node:path';
-import { TOOL_DEFS, TOOL_IMPL, readEnvFile, readRoutes, jstr, ROOT, STATE } from './tools.mjs';
+import { TOOL_DEFS, TOOL_IMPL, readEnvFile, readRoutes, isDead, jstr, ROOT, STATE } from './tools.mjs';
 
 const env = { ...readEnvFile(), ...process.env };
 const API = (env.GLM_BASE || 'https://api.z.ai/api/paas/v4') + '/chat/completions';
@@ -75,6 +75,12 @@ ${genesis}
 ── RECOVERY PLAYBOOK (recovery.md — yours to prove and maintain) ──
 ${recovery}
 
+── PHASES (which phase you are in, and the difficulty curve — read this first) ──
+${kread("phases") || "(missing)"}
+
+── FRONTIER (untested hypotheses — falsify one per session, invent new ones) ──
+${kread('frontier') || '(none yet — create it with knowledge_write)'}
+
 ── JOURNAL (tail of journal.md — your recent past) ──
 ${journalTail}`;
 }
@@ -82,7 +88,10 @@ ${journalTail}`;
 function readRoutesSummary(db) {
   const entries = Object.entries(db.routes || {});
   if (!entries.length) return 'empty — no attempts logged yet';
-  return entries.map(([k, v]) => ({ route: k, tries: v.attempts, ok: v.successes, blocked: v.blocked, usd: v.earned_usd }));
+  const live = entries.filter(([k, v]) => !isDead(v, k))
+    .map(([k, v]) => ({ route: k, tries: v.attempts, ok: v.successes, usd: v.earned_usd, note: (v.notes || []).slice(-1)[0] }));
+  const dead = entries.filter(([k, v]) => isDead(v, k)).map(([k]) => k);
+  return { LIVE_ROUTES: live.length ? live : 'none — find new ones', DEAD_NEVER_REVISIT: dead };
 }
 
 async function glm(messages, retries = 4) {
