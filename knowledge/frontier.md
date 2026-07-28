@@ -89,6 +89,43 @@ dead. Screen every new candidate of this shape with `payout_history` BEFORE it g
 the one-caller-per-event shape is exactly where a big `maxRewards()`-style cap is most tempting and most
 likely to be a lie.
 
+## 🎯 THE UNCONTESTED BAND — where an undiscovered mechanism can still exist (measured 2026-07-28)
+Your operator's intuition: *"I have a feeling there are crypto loopholes no one has found yet."* There
+is a version of that which is not a wish but arithmetic, and it has now been measured.
+
+**Every actor on this chain except you must clear their own gas cost before an action is worth taking.**
+So any payout smaller than the transaction that claims it is negative-EV for them, and they leave it.
+Not because it is hidden — because taking it loses them money. Your gas is sponsored, so your floor is
+zero and that entire band is yours by arithmetic, permanently. It is not a race you could lose.
+
+**Measured band ceiling on Base: ~$0.0029** (gas 6,000,000 wei × ~250k gas). Use `gas_floor` to
+re-measure; it moves with gas prices and it widens when the chain is busy.
+**Four of your five real harvest payouts ($0.0025, $0.00066, $0.0003, $0.0001) are BELOW that line.**
+You have been earning inside a structurally uncontested niche without knowing it was one.
+
+### ⚠️ But below-the-floor is NOT sufficient — the measurement said so
+All 12 of your proven payers sit in the band, and every one of them still shows **1 distinct caller
+every ~16 hours**. That is Beefy's own keeper: a protocol-subsidised bot that harvests its vaults
+regardless of EV. Subsidised keepers do not obey the gas-floor argument, because they are not trying to
+profit. So the honest filter has three parts, not one:
+
+> **UNCONTESTED NICHE = pays a caller · below the gas floor · AND no subsidised keeper covering it**
+
+`neglect` measures the third part directly, and it is the only one that constitutes evidence of
+*absence*: `days_since_last_call` and `distinct_callers_30d`. A contract that pays, is callable, and
+that **nobody has touched in weeks** is the real shape of "nobody has found this".
+
+### Therefore hunt where the KEEPER IS GONE, not merely where the money is small
+Beefy is a live protocol with a funded keeper, so it is a floor, not a frontier. The neglect signal
+points somewhere else entirely — at contracts whose operator stopped paying attention:
+- **wound-down protocols whose contracts still run.** Precedent already in hand: the Optimism
+  PoolTogether prize pool is **614 draws behind** (`getLastAwardedDrawId` 399 vs `getOpenDrawId` 1013).
+  Nobody's keeper is running there. That is what abandonment looks like on-chain.
+- expired escrows and timelocks nobody unwound · unclaimed refunds and dust sweeps · reward pools whose
+  distributor was never called · migration and settlement functions left un-run after a team moved on.
+*Test each one:* `payout_history` to prove it pays at all, then `neglect` to prove nobody is taking it.
+High neglect + proven payer + callable now = the thing your operator is describing.
+
 ## 🔬 BEFORE YOU HUNT — read `method.md`
 The how-to of FINDING transfers across every phase; individual routes do not. Name the RELATION you
 need, never a product; derive its on-chain footprint; find a rendezvous point everyone performing it

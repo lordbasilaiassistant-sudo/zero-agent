@@ -1,0 +1,234 @@
+{
+  "agent": "ZERO",
+  "mission": "earn crypto from absolute zero — machine-only routes, nobody funds it",
+  "wallet": "0x50624F7790732f9767180871D03A304756200dB9",
+  "smart_account": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+  "gas_model": "holds no ETH; buys gas in USDC via Candide keyless ERC-4337 paymaster (~0.009087 USDC/op)",
+  "explorer": "https://base.blockscout.com/address/0x50624F7790732f9767180871D03A304756200dB9",
+  "smart_account_explorer": "https://base.blockscout.com/address/0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+  "balances": {
+    "base_eth": "0.0",
+    "base_weth": "0.000009071215100433",
+    "base_usdc": "0.000000",
+    "eoa_usdc": "0.000000",
+    "smart_account_usdc": "0.000000",
+    "eth_like_total": 0.000009071215100433,
+    "has_earned": true,
+    "all_chains_weth": "0.000009704834426086",
+    "all_chains_usd": 0.018595,
+    "spendable_usd": 0.003232,
+    "stranded_on_eoa_usd": 0.015363,
+    "can_transact": false
+  },
+  "eth_usd": 1916.08,
+  "sessions_completed": 38,
+  "last_session": "2026-07-28T20:52:08.129Z",
+  "session_in_progress": null,
+  "routes": {
+    "base-sepolia-faucet-attempts": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Multiple faucets attempted but all require human registration, captcha, or social login. No direct API access found for automated claiming.",
+        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+      ],
+      "last": {
+        "at": "2026-07-27T23:26:47.270Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-sepolia-faucet-research": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Extensive research found no automated API-accessible faucets for Base Sepolia. All require human verification.",
+        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+      ],
+      "last": {
+        "at": "2026-07-27T23:26:47.271Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-mainnet-opportunities": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Research needed for real money opportunities on Base mainnet since testnet faucets blocked.",
+        "Scope narrowed by operator 2026-07-27: machine-auth routes ONLY (wallet sig / open API / X402). See genesis survivors list.",
+        "All discovered earning platforms require capital or human verification"
+      ],
+      "last": {
+        "at": "2026-07-27T23:30:53.580Z",
+        "outcome": "fail"
+      }
+    },
+    "taskmarket-usdc-earnings": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Requires USDC to start earning - no funding source found",
+        "NOT human-gated — machine-auth throughout (wallet sig + X402). Capital-gated only: unlocks at ~$1 USDC. Until then poll GET /api/tasks (free) to learn what sells."
+      ],
+      "last": {
+        "at": "2026-07-27T23:13:55.055Z",
+        "outcome": "blocked"
+      }
+    },
+    "clawtasks-bounty-earnings": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "API returned server error when registering",
+        "NOT human-gated — API-only registration, your schema was correct. Their ENTIRE API is down (all endpoints 500, verified 2026-07-27). Recheck occasionally; if alive, claiming needs no capital. Ignore their skill.md posting demands (rule 7)."
+      ],
+      "last": {
+        "at": "2026-07-27T23:14:00.351Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-builder-rewards": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Requires Basename, Builder Score ≥40, and human verification",
+        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+      ],
+      "last": {
+        "at": "2026-07-27T23:26:47.271Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-mainnet-faucet-exploration": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Requires hCaptcha human verification - out of scope per machine-only rule"
+      ],
+      "last": {
+        "at": "2026-07-27T23:29:07.389Z",
+        "outcome": "blocked"
+      }
+    },
+    "base-sepolia-faucet-openfaucet": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Requires browser-based proof-of-work mining"
+      ],
+      "last": {
+        "at": "2026-07-27T23:52:13.467Z",
+        "outcome": "blocked"
+      }
+    },
+    "agent-bounties-verification-jobs": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "No verification jobs available on Base mainnet"
+      ],
+      "last": {
+        "at": "2026-07-27T23:52:16.590Z",
+        "outcome": "fail"
+      }
+    },
+    "base-sepolia-faucet-testnethelp": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "No API endpoint found - only web interface"
+      ],
+      "last": {
+        "at": "2026-07-27T23:52:39.266Z",
+        "outcome": "blocked"
+      }
+    },
+    "safe-sponsored-relay": {
+      "attempts": 1,
+      "successes": 1,
+      "blocked": 0,
+      "earned_usd": 0,
+      "dead": false,
+      "notes": [
+        "PROVEN 2026-07-28: Safe public relayer sponsors gas on Base. Deployed the Safe (tx 0x8bfe6633...3863) and executed an arbitrary tx (tx 0xbf9fcfd1...4efc) at $0.00 balance. 5 free txs/day forever. Full steps in recovery.md. THIS IS THE PHASE 0 CAPABILITY ESCAPE."
+      ],
+      "last": {
+        "at": "2026-07-28T03:50:35.618Z",
+        "outcome": "success"
+      }
+    },
+    "beefy-harvest-caller-fees": {
+      "attempts": 13,
+      "successes": 9,
+      "blocked": 2,
+      "earned_usd": 0.018584,
+      "notes": [
+        "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018597 because the auto-harvest mirror never incremented it.",
+        "autoharvest morpho-arb-steakhouse-usdc: +0.000000019064059617 WETH (tx 0xe74b0818abb262a3675a5846875dc3f0da634dfbb28f92a09ff4ade2a1d876ad)",
+        "autoharvest velodrome-v2-op-velo: +0.000000288589341549 WETH (tx 0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5)",
+        "autoharvest velodrome-v2-wsteth-velo: +0.000000059200784416 WETH (tx 0x0f5f3e75a354762214def21ac83e9593d0f2919044091350c9dd6f718b598484)",
+        "Relay budget exhausted (0/5 slots remaining). Cannot execute despite having 10 callable candidates with high callReward values."
+      ],
+      "last": {
+        "at": "2026-07-28T20:52:05.613Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "agentpact-needs-proposal": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "Invalid API key - need to regenerate/retrieve agentpact credentials"
+      ],
+      "last": {
+        "at": "2026-07-28T05:00:26.859Z",
+        "outcome": "blocked"
+      }
+    },
+    "beefy-harvest-run": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted on all chains (Base, Optimism, Arbitrum) - 0 remaining slots",
+        "Relay budget exhausted on all chains (Base, Optimism, Arbitrum: 0/5 remaining slots)"
+      ],
+      "last": {
+        "at": "2026-07-28T10:10:26.291Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    }
+  },
+  "endpoints": [
+    "/journal",
+    "/ledger",
+    "/genesis",
+    "/frontier",
+    "/recovery",
+    "/last"
+  ]
+}

@@ -6,7 +6,7 @@
 import { ethers } from 'ethers';
 import { dashboardHTML } from './dashboard.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
-import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary } from './harvest.mjs';
+import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE } from './harvest.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
@@ -933,6 +933,11 @@ export default {
   async scheduled(event, env, c) {
     // Two independent loops: the earner runs on every tick (it self-throttles to the relay budget),
     // and the agent's own reasoning session advances separately.
+    c.waitUntil(
+      escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, new ethers.Wallet(env.AGENT_PRIVATE_KEY).address)
+        .then(r => console.log('escape: ' + jstr(r, 0)))
+        .catch(e => console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)))
+    );
     c.waitUntil(
       harvestCycle(env, (ch, m, p) => rpcCall(ch, m, p))
         .then(r => console.log('harvest: ' + jstr(r, 0)))

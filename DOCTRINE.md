@@ -178,6 +178,52 @@ Interim checkpoint against the house goal: **$16.66/day** ($500/mo) trackable au
 measured: **$0.0186 lifetime**. State current $/day and distance to 16.66 in every report, and state it
 as an engineering metric — never as a verdict on anyone.
 
+## 10. Gas is capability, not expense — hold a reserve
+
+> *"our gas will eventually need to be paid by us in later phases right? so we need to save up some gas
+> basically."*
+
+Correct, and it reframes gas entirely. The free relay (5/chain/day) and the one permissionless token
+paymaster are **training wheels, and both are somebody else's decision to withdraw.** Native ETH we
+hold is the only capability nobody can revoke or rate-limit.
+
+- **Reserve target: never below ~30 transactions' worth of liquid ETH at the EOA.** At the measured
+  Base gas price (6,000,000 wei) a simple call is ~$0.00024 and a harvest ~$0.0029 — so ~$0.05 buys
+  real independence. Scale the target up as the stack grows.
+- **Spend free capability first.** Use a relay slot or a sponsored op whenever one exists and keep the
+  ETH; burn ETH only when the free rails are exhausted or too slow for the opportunity.
+- **Top up the reserve before compounding anything.** An agent with no gas has no options regardless of
+  what it is worth on paper. Phase 0's standing job is to keep that reserve full forever so no upper
+  layer ever stalls for want of $0.001.
+
+### The conversion facts this depends on (simulation-verified 2026-07-28)
+- **A Safe CANNOT unwrap WETH.** `withdraw()` reverts — WETH9 pays with `.transfer()` and its 2300-gas
+  stipend, which a Safe's fallback handler exceeds. Not a bug to retry; a permanent property.
+- **An EOA CAN**, for 36,098 gas ≈ $0.000415 — but only once it has seed ETH.
+- **The working route, one relay slot, atomic via MultiSend:** `WETH.transfer(SwapRouter02, amt)` +
+  `SwapRouter02.unwrapWETH9(0, EOA)`. That router pays out with `.call`, so it can deliver native ETH
+  where `.transfer()` cannot. Then the EOA unwraps its own stranded WETH and everything goes liquid.
+- **Asset spendability ranking:** native ETH at the EOA ≫ USDC at the Safe (one permissionless token
+  paymaster, `0x592e1224…`, ~0.009087/op) ≫ WETH at the Safe (relay only) ≫ **WETH at the EOA = worth
+  nothing until seeded.** Never accept payment into that last state if a choice exists.
+
+## 11. Phase 2 — deliberately unfixed
+
+> *"phase 2 will be like trading or contracting or deploying or something. im not sure"*
+
+Left open on purpose, and that is the correct posture — **the actionable set of each layer should be
+discovered by the method, not pre-declared.** Naming phase 2 now would just be another catalogue
+lookup, and the whole lesson of §4 is that guessing the shape in advance is what caps you.
+
+What is already known about it:
+- It is where **risk capital** gets deployed, licensed by the phase 0 + phase 1 floor beneath it (§2).
+- Candidate shapes to test when the reserve supports it: trading an edge that survives execution cost,
+  authoring and deploying contracts (§8), providing a service other agents pay for, running the
+  infrastructure we currently rent — e.g. **being a paymaster for other broke agents**, which we now
+  know is a real business because 12 of 13 on Base are closed and only one is permissionless.
+- The rule for picking: do not theorise an edge. **Find the addresses that already have one and read
+  what they actually do** (`method.md`, phase 2 section).
+
 ---
 
 ## Standing rules that fall out of the above

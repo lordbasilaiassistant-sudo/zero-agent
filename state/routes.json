@@ -152,21 +152,22 @@
       }
     },
     "beefy-harvest-caller-fees": {
-      "attempts": 12,
+      "attempts": 13,
       "successes": 9,
-      "blocked": 1,
+      "blocked": 2,
       "earned_usd": 0.018584,
       "notes": [
-        "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018584 because the auto-harvest mirror never incremented it.",
         "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018597 because the auto-harvest mirror never incremented it.",
         "autoharvest morpho-arb-steakhouse-usdc: +0.000000019064059617 WETH (tx 0xe74b0818abb262a3675a5846875dc3f0da634dfbb28f92a09ff4ade2a1d876ad)",
         "autoharvest velodrome-v2-op-velo: +0.000000288589341549 WETH (tx 0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5)",
-        "autoharvest velodrome-v2-wsteth-velo: +0.000000059200784416 WETH (tx 0x0f5f3e75a354762214def21ac83e9593d0f2919044091350c9dd6f718b598484)"
+        "autoharvest velodrome-v2-wsteth-velo: +0.000000059200784416 WETH (tx 0x0f5f3e75a354762214def21ac83e9593d0f2919044091350c9dd6f718b598484)",
+        "Relay budget exhausted (0/5 slots remaining). Cannot execute despite having 10 callable candidates with high callReward values."
       ],
       "last": {
-        "at": "2026-07-28T20:43:25.858Z",
-        "outcome": "pending"
-      }
+        "at": "2026-07-28T20:52:05.613Z",
+        "outcome": "blocked"
+      },
+      "dead": true
     },
     "agentpact-needs-proposal": {
       "attempts": 1,

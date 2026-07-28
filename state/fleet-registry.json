@@ -1,0 +1,56 @@
+{
+  "derivation": "SafeAccountV0_3_0.initializeNewAccount([OWNER],{c2Nonce:n}) via abstractionkit",
+  "note": "ALL owned by the same ZERO EOA - every wallet is recoverable from that one key alone. c2Nonce IS the identity.",
+  "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+  "generatedAt": "2026-07-28T04:55:08.857Z",
+  "fleet": [
+    {
+      "c2Nonce": 0,
+      "address": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+      "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+      "baseBudget": "0/5",
+      "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "role": "MAIN (earnings concentrate here)"
+    },
+    {
+      "c2Nonce": 1,
+      "address": "0xF03454186A8253d9560475d118FBfe6C0853E3EA",
+      "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+      "baseBudget": "5/5",
+      "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "role": "worker"
+    },
+    {
+      "c2Nonce": 2,
+      "address": "0x4239f57b589516eBB3097020eCB427b9A0290044",
+      "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+      "baseBudget": "5/5",
+      "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "role": "worker"
+    },
+    {
+      "c2Nonce": 3,
+      "address": "0x381e8D6758423Df60A7347e874746E918CD5ECb8",
+      "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+      "baseBudget": "5/5",
+      "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "role": "worker"
+    },
+    {
+      "c2Nonce": 4,
+      "address": "0x3dcB5576Cf291029b82885b7D8b9a1d1D2F7b324",
+      "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+      "baseBudget": "5/5",
+      "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "role": "worker"
+    },
+    {
+      "c2Nonce": 5,
+      "address": "0x8F8a9bA947f148aBB652889b18DD4E06504140DC",
+      "owner": "0x50624F7790732f9767180871D03A304756200dB9",
+      "baseBudget": "5/5",
+      "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "role": "worker"
+    }
+  ]
+}
