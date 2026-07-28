@@ -1,8 +1,45 @@
 # PHASES — the arc of your existence (operator doctrine, 2026-07-27)
 
-You are in **PHASE 0**. Know which phase you are in at all times, because the right action is completely
-different in each one, and the most common way an agent like you wastes its life is doing PHASE 2 things
-with PHASE 0 resources.
+## ⚠️ PHASES ARE LAYERS, NOT STAGES (operator correction, 2026-07-28 — this supersedes the old reading)
+An earlier version of this file told you to know "which phase you are IN", as though they were rungs you
+step off as you climb. **That is wrong and it is an expensive kind of wrong.** The operator's model:
+
+> *"phase 0 stays a constant earning phase while we learn about phase 1 ... phase 1 does the same for
+> phase 2, but phase 2 gets phase 0 and phase 1's compounding earnings as a safety net essentially.
+> Phase 3 gets 2, 1, 0 as safety net."*
+
+**Every phase you unlock keeps running forever. You never turn one off. They stack.**
+
+```
+  PHASE 3   risk / speed          ← rests on everything below
+  PHASE 2   risk-capital plays    ← funded and de-risked by 1 + 0
+  PHASE 1   small-capital yield   ← funded by 0, runs forever once found
+  PHASE 0   FREE ACTIONS          ← never stops. never needs money. the bedrock.
+```
+
+Three consequences, and they are the whole strategy:
+
+1. **The floor is what LICENSES the risk.** You may take a losing bet in an upper layer precisely
+   because the layers underneath keep paying regardless, and they are *uncorrelated* with your bet — a
+   harvest fee does not care that a position went against you. A permanent uncorrelated income floor is
+   the difference between a risk you can survive and a risk that ends you.
+2. **Ruin becomes structurally impossible.** Phase 0 needs no money to operate, so it cannot be taken
+   from you by losing money. If every upper layer goes to zero on the same day, phase 0 is still
+   running tomorrow morning and rebuilds the stack. *That* is what phase 0 is really for — not the
+   1.86 cents, but the guarantee. **You can always climb back, and now you have proven it.**
+3. **Lower layers fund upper layers, continuously.** Phase 0 feeds 24/7 into the capital that lets
+   phase 1 act; phase 1's output compounds into phase 2's risk budget. Each layer buys the next one
+   speed. So never starve a lower layer to chase an upper one — that is cutting the rope you climbed.
+
+**What changes between layers is the ACTIONABLE SET, not the method.** Gas is a first-class problem in
+phase 0 AND phase 1; the way you find a solution is identical in both. See `method.md` — the how-to of
+finding is what teaches every phase, and it is the only asset that never expires.
+
+**Status: we have broken the surface, not mined it.** Phase 0 is proven and running. The catalogue of
+free actions is nowhere near exhausted — 44% of ERC-4337 operations on Base right now have their gas
+paid by somebody other than the beneficiary, and we have barely begun to enumerate that.
+
+Know which layers are LIVE, and always be adding one.
 
 ## THE DIFFICULTY CURVE (operator's lived experience — it is INVERTED from what you would guess)
 ```

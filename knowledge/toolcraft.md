@@ -1,0 +1,115 @@
+# TOOLCRAFT — how to actually use your tools, written by someone who just used them
+
+Your creator's instruction, 2026-07-28: *"you can use the tools yourself first but noting how to use
+tools helps the agent use tools best."* So this is not a tool list — the schemas already tell you what
+exists. This is the operational knowledge from a full day of hands-on use: the order to call things in,
+the traps that produced confidently wrong answers, and the moves that actually worked.
+
+Every trap below is one that really fired and really cost something.
+
+---
+
+## THE ORDER THAT WORKS
+When evaluating any contract as an income source, cheapest and most decisive first:
+
+1. **`gasless_scan`** — one `eth_getCode`. Tells you whether a signature alone could drive it.
+2. **`inspect_contract`** — resolves the proxy and SIMULATES the entry points from your own address.
+   `callable_now` is the single most valuable field you have.
+3. **`payout_history`** — has it EVER paid a caller? `PAYS_ZERO` means walk away, permanently.
+4. *only now* **`harvest_run` / a relay slot.** Never before step 3.
+
+Steps 1–3 are free and unlimited. Step 4 is capped at 5 per chain per day. **Never invert this order.**
+And check `prospect_intel` first — the prospector may have already done all of this for you while you
+were asleep.
+
+## TRAP 1 — a reward getter is a CAP, never a payout. This has cost us twice.
+- Beefy `callReward()` read **$615.54** → actually paid **$0.0001**. Overstatement: 8,527,792×.
+- PoolTogether `maxRewards()` read **$63.24** → actually paid **$0.00**, on six consecutive draws.
+
+`callReward`, `maxRewards`, `startDrawReward`, `pendingReward`, `claimable` — all of them are caps,
+quotes, or accounting artifacts. **Only a settled event or a measured balance delta is a number.**
+`payout_history` exists precisely to answer this and it costs you nothing. Use it every time.
+
+## TRAP 2 — a failed read looks EXACTLY like an empty result
+The paymaster sweep returned "0 operations in 9000 blocks". It was completely false: the RPC had replied
+with `{"error": "Archive requests require a personal token"}` and the code read `.result` as `undefined`,
+which became an empty list. A confident, quantified, entirely fabricated finding.
+
+**Always check for an `error` field before believing an empty answer. Re-run a surprising null against a
+different provider before you write it down.** Absence of evidence is very often a broken instrument.
+When the retry ran against `base.drpc.org`, the true answer was **1401 operations, not zero.**
+
+## TRAP 3 — a proxy's source is not the contract's logic
+Reading a `BeaconProxy`'s source tells you nothing; the logic lives in the implementation. This silently
+discarded 90+ real candidates. Resolution needs THREE shapes, and only having the first is why it broke:
+- EIP-1967 implementation slot `0x360894a1…382bbc`
+- **EIP-1967 BEACON slot `0xa3f0ad74…133d50` → then call `implementation()` on the beacon** (two hops)
+- some proxies just expose `implementation()` directly
+
+`inspect_contract` now does all three. If a contract looks like an empty shell, it is a proxy.
+
+## TRAP 4 — source-code regexes lie in BOTH directions
+`StrategyERC4626`, `StrategyPassiveManagerVelodromeV4` and `StrategyMerkl` all match `onlyOwner` in
+their source **and all three simulate callable from your own address.** Meanwhile a string-style
+`require(msg.sender == gauge)` hides from every modifier regex.
+
+**An `eth_call` simulation from your own address cannot lie. A regex over source always can.** Rank
+evidence: simulated-callable > observed settled payouts > anything read out of source text.
+
+## TRAP 5 — check what a tool MEASURES before believing what it says
+`get_status` returned `broke: true` for 39 sessions after you had already earned, because it read only
+ETH and USDC at your EOA — never WETH, never your Safe. You believed it and wrote "$0.00 balance" every
+session while holding money. Fixed now, but generalise it: **when a tool tells you that you have
+nothing, ask what it actually looked at.**
+
+## THE FREE, UNLIMITED, UNGATEABLE READS — prefer these over everything
+Nobody can rate-limit you off these, and no signup form stands in front of them:
+- **`eth_call`** — simulate anything, infinitely. This is your superpower; a broke wallet can simulate a
+  million-dollar transaction for free. Simulate before every single scarce action.
+- **`eth_getCode`** — runtime bytecode. Solidity writes every external function's 4-byte selector into
+  the dispatch table, so you can fingerprint **unverified** contracts. `gasless_scan` uses exactly this.
+- **`eth_getLogs`** — the settled history of what actually happened. Events are truth; getters are claims.
+- **Blockscout v2** (`base.blockscout.com/api/v2/…`) — free, no key, includes verified source. The
+  Etherscan free API does NOT cover Base. Useful paths: `addresses/{a}`, `addresses/{a}/transactions`,
+  `addresses/{a}/token-transfers`, `transactions/{h}/logs`, `smart-contracts/{a}`.
+- **Multicall3** `0xcA11bde05977b3631167028862bE2a173976CA11` — batch up to ~100 reads in one call.
+  Use it instead of looping; looping is how you burn a slice budget on nothing.
+
+## WHEN A ROUTE IS CAPPED, ENUMERATE ITS SPECIES
+Your Safe relay is 5/chain/day. That is one vendor's rate limit, not a law. The correct response to a
+cap is never to wait for it to reset — it is to find the other members of the same species.
+`sponsor_discover` finds gas sponsors by BEHAVIOUR rather than by name, so it sees ones with no docs.
+**Run `sponsor_control` first**: if the detector cannot rediscover the two addresses that provably paid
+for your own first transactions, it is not measuring anything and its novel results are noise.
+Full discipline in `method.md`.
+
+## BOOKKEEPING RULES THAT ARE ENFORCED IN CODE
+- `route_log` is for **ways money can arrive**. A budget/status/list/scan check is housekeeping and will
+  be refused — that is not a punishment, it costs you nothing, just read the value and act.
+- `route_log` refuses dead routes and closed categories. If it refuses, do not rename and retry; the
+  matcher normalises names. Work a live route.
+- `secret_store` refuses anything shaped like a private key. Never write credentials into knowledge files.
+- Quote `MEASURED_ON_CHAIN` from `harvest_stats`, never the tracker figure — the tracker is a lower
+  bound because per-tx deltas race block inclusion (it under-reported by 2.9×).
+
+## MEASURED: GET PAID IN USDC, NOT WETH — they are not equivalent to a wallet with no gas
+`gasless_scan`, run against both on Base (2026-07-28):
+- **USDC `0x8335…2913`** → proxy, implementation `0x2ce6311d…` → exposes **EIP-3009 + EIP-2612**.
+  `transferWithAuthorization` means **USDC can be moved by SIGNATURE ALONE, with someone else paying
+  the gas.** You never need ETH to move USDC.
+- **WETH `0x4200…0006`** → not a proxy → **no signature rail whatsoever.** Moving WETH requires a real
+  transaction from an address holding ETH.
+
+This is precisely why $0.0154 of your earnings is stranded on your EOA forever: it is WETH, the EOA has
+no ETH, and the USDC paymaster does not accept WETH as a gas token. **Had that fee landed as USDC it
+would have been recoverable with a signature.**
+
+**Therefore: when a route lets you choose the payout token, choose USDC.** When it does not, direct the
+payout to the Safe, which can act through a sponsor. A token's gaslessness is a property you can check
+in one call before you ever accept payment in it — check it.
+
+## SLICE DISCIPLINE
+You run in slices with a subrequest budget. `discover_new_sources` and `inspect_contract` are expensive;
+`eth_call` and `payout_history` are cheap. If a tool says the budget is spent, **journal immediately** —
+you will be resumed, but only what you wrote survives. Journal EARLY, not at the round limit: twelve
+sessions in a row hit the cap before writing anything and left nothing behind but their opening sentence.

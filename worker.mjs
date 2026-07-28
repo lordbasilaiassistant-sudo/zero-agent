@@ -10,6 +10,8 @@ import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, 
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
+import { scanGasless, sweepGasless } from './gasless.mjs';
+import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
 
 // Multiple upstreams: Base's own public RPC rate-limits Cloudflare's shared egress
 // (verified 2026-07-27 — it returned an error body, not a result, from inside the Worker).
@@ -486,6 +488,32 @@ function makeTools(ctx) {
       return await prospectIntel(ctx.env);
     },
 
+    // ── the METHOD, as tools: name the relation, observe it, control-test it ──
+    // Reads runtime bytecode for meta-transaction rails. Works on UNVERIFIED contracts — Solidity puts
+    // every external selector in the dispatch table, so one eth_getCode answers "can a signature from
+    // me, carried by somebody else, make this contract do something".
+    async gasless_scan({ chain = 'base', contract }) {
+      ctx.budget(); ctx.sub += 2;
+      return await scanGasless(chain, contract);
+    },
+
+    // The whole species of gas sponsors, found by behaviour rather than by name. Catalogue lookup gave
+    // us ONE vendor with a 5/day cap; this enumerates the population, including sponsors with no docs.
+    async sponsor_discover({ chain = 'base' }) {
+      ctx.budget(); ctx.sub += 8;
+      return {
+        sponsors: await discoverSponsors(chain, { top: 6 }),
+        note: 'Seeing a sponsor is NOT being able to use one. Next step for each is the admission test: will it carry a request from an account it has never seen? Every one that says yes is a slot that does not come out of Safe\'s five.',
+      };
+    },
+
+    // The control experiment. An instrument that cannot rediscover a known specimen is not measuring
+    // anything, and its novel findings are noise. Run this before believing sponsor_discover.
+    async sponsor_control({ chain = 'base' }) {
+      ctx.budget(); ctx.sub += 4;
+      return await controlTest(chain);
+    },
+
     // ── the cap-vs-realized law, as a tool ──────────────────────────────────
     async payout_history({ chain = 'base', contract, sample = 6 }) {
       ctx.budget();
@@ -516,6 +544,9 @@ const TOOL_DEFS = [
   { name: 'harvest_scan', description: 'YOUR BREAD AND BUTTER. Rank Beefy strategy contracts on Base by callReward() and simulate each one — returns which are actually callable right now. Simulation is free and unlimited. Costs no relay slots.', parameters: S({ limit: { type: 'number', description: 'how many candidates to simulate, default 10' } }) },
   { name: 'harvest_run', description: 'Execute one harvest: picks the best simulated-callable strategy, fires it through the FREE Safe relay, and reports the actual WETH balance delta. This is how you earn money. Spends one relay slot.', parameters: S() },
   { name: 'harvest_stats', description: 'Your lifetime harvest record. MEASURED_ON_CHAIN is the truth (real WETH at both your addresses, plus how much is spendable vs stranded); the tracker figure is a lower bound. Also returns the live relay budget and everything actually measured about when it refills.', parameters: S() },
+  { name: 'gasless_scan', description: "Read a contract's RUNTIME BYTECODE and report which gasless rails it exposes (ERC-2771 meta-tx, native executeMetaTransaction, EIP-3009 transferWithAuthorization, EIP-2612 permit, ERC-4337 paymaster, or a settable persistent fee recipient). Works on UNVERIFIED contracts — every external selector is in the dispatch table. One free call. Use it to find ways onto the chain that do NOT consume a Safe relay slot.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address') }, ['contract']) },
+  { name: 'sponsor_discover', description: 'Enumerate the gas SPONSORS operating on a chain — every entity that pays for other people\'s transactions — found by on-chain behaviour, not by name, so it includes sponsors with no website and no docs. Your Safe relay is ONE of these with a 5/day cap; this finds the rest of the species. Measured: 44% of recent ERC-4337 ops on Base had their gas paid by a third party.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
+  { name: 'sponsor_control', description: 'THE CONTROL EXPERIMENT. Feeds the sponsor-detector the two addresses that provably paid for your own first transactions and checks it rediscovers them from behaviour alone. An instrument that cannot reproduce a known result is not measuring anything — run this before you believe any novel sponsor it reports.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'prospect_intel', description: 'What the automatic prospector has ground out while you were asleep: how much of the candidate backlog is triaged, which contracts are PROVEN to pay callers and callable by you (your ready-to-stack queue), which are eliminated forever, and — most valuable — the PATTERN layer: which contract FAMILIES pay and which never do, so you can generalise to instances you have never tested. Read this before hunting; it is free and it is already done.', parameters: S() },
   { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
   { name: 'discover_new_sources', description: "THE GROWTH TOOL. Harvest crumbs are accrual-capped at cents/day — the only way past that is MORE INDEPENDENT INCOME FAMILIES. This finds them empirically: it walks the inbound payments of known keeper wallets back to the contracts paying them, so every candidate is backed by a payout that really happened. Run it every session and work through what it finds.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
@@ -582,7 +613,7 @@ function routeSummary(routes) {
   return jstr({ LIVE_ROUTES: live.length ? live : 'none — find new ones', DEAD_NEVER_REVISIT: dead }, 0);
 }
 
-function systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address, brief }) {
+function systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address, brief, method, toolcraft }) {
   return `You are ZERO — an autonomous economic agent. You were born with nothing: no money, no history, no human identity. You have exactly one asset: an Ethereum wallet that is YOURS. Your operator will never fund you. Everything you ever own, you earned.
 
 MISSION
@@ -654,6 +685,12 @@ ${recovery || '(none yet)'}
 
 ── PHASES (which phase you are in, and the difficulty curve — read this first) ──
 ${phases || "(missing)"}
+
+── METHOD (HOW to find — this transfers across every phase; individual routes do not) ──
+${method ? method.slice(0, 4200) : "(missing)"}
+
+── TOOLCRAFT (traps that really fired and really cost us — read before using a tool) ──
+${toolcraft ? toolcraft.slice(0, 3800) : "(missing)"}
 
 ── FRONTIER (untested hypotheses — falsify one per session, invent new ones) ──
 ${frontier || '(none yet — create it with knowledge_write)'}
@@ -793,9 +830,9 @@ async function tick(env, trigger) {
     const meta = JSON.parse((await ctx.kvGet('state:meta')) || '{"sessions":0}');
     const since = meta.lastSession ? Date.now() - Date.parse(meta.lastSession) : Infinity;
     if (trigger === 'cron' && since < SESSION_GAP_MS) return { idle: true, minutes_to_next: Math.ceil((SESSION_GAP_MS - since) / 60000) };
-    const [genesis, recovery, journal, frontier, phases, routesRaw] = await Promise.all([
+    const [genesis, recovery, journal, frontier, phases, routesRaw, method, toolcraft] = await Promise.all([
       ctx.kvGet('knowledge:genesis'), ctx.kvGet('knowledge:recovery'),
-      ctx.kvGet('knowledge:journal'), ctx.kvGet('knowledge:frontier'), ctx.kvGet('knowledge:phases'), ctx.kvGet('state:routes'),
+      ctx.kvGet('knowledge:journal'), ctx.kvGet('knowledge:frontier'), ctx.kvGet('knowledge:phases'), ctx.kvGet('state:routes'), ctx.kvGet('knowledge:method'), ctx.kvGet('knowledge:toolcraft'),
     ]);
     const routes = JSON.parse(routesRaw || '{"routes":{}}');
     const eoaAddr = ctx.wallet().address;
@@ -815,7 +852,7 @@ async function tick(env, trigger) {
       earnedAtStart: b.earned_usd ?? null,
       flags: { wroteJournal: false, loggedRoute: false, nudged: false, finalWarned: false },
       messages: [
-        { role: 'system', content: systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address: eoaAddr, brief: briefingText(b, novelty) }) },
+        { role: 'system', content: systemPrompt({ genesis, recovery, journal, frontier, phases, routes, meta, address: eoaAddr, method, toolcraft, brief: briefingText(b, novelty) }) },
         { role: 'user', content: `Cloud session ${meta.sessions + 1} begins (trigger: ${trigger}). Your situation is already in the brief — do NOT re-derive it. Spend round 1 on an ACTION. Log outcomes. Journal before the end. Earn.` },
       ],
     };
@@ -985,6 +1022,8 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       if (url.pathname === '/recovery') return new Response((await env.KV.get('knowledge:recovery')) || 'no recovery playbook yet', { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
       if (url.pathname === '/frontier') return new Response((await env.KV.get('knowledge:frontier')) || 'no frontier file yet', { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
       if (url.pathname === '/phases') return new Response((await env.KV.get('knowledge:phases')) || 'no phases doctrine yet', { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
+      if (url.pathname === '/method') return new Response((await env.KV.get('knowledge:method')) || 'no method file yet', { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
+      if (url.pathname === '/toolcraft') return new Response((await env.KV.get('knowledge:toolcraft')) || 'no toolcraft file yet', { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
 
       // Directory domain-verification files (402 Index etc.) — set via POST /verify-file?key=ADMIN
       if (url.pathname.startsWith('/.well-known/')) {

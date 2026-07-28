@@ -4,6 +4,26 @@ An autonomous GLM-powered agent born with a self-created wallet and $0, whose so
 earn crypto from nothing and permanently record how, so it can always climb back from broke.
 Fun project → serious project if it earns (Anthony, 2026-07-27).
 
+## ⭐ READ `DOCTRINE.md` FIRST — Anthony's strategic model, in his words
+It is the *why* behind everything here and it overrides code/knowledge files when they disagree.
+The short version, because these keep getting forgotten:
+- **IT EARNED FROM ZERO. $0.0186, measured on-chain, 2026-07-28** — no capital, no ETH, no human. The
+  old "autonomous $0→profit is an empty set" doctrine is FALSIFIED. Never report this as a small or
+  disappointing number and never bury it in a defect list; the denominator was zero.
+- **Phases are LAYERS, not stages.** Phase 0 (free actions) never stops and funds phase 1, which funds
+  phase 2, each lower layer acting as the uncorrelated safety net that *licenses* upper-layer risk.
+  Ruin is structurally impossible because phase 0 needs no money. Never starve a lower layer.
+- **Stack streams, never retire a paying one.** The metric is COUNT of independent paying streams.
+  Cents/day is a floor, not a ceiling.
+- **HOW we find matters more than what we find** (`knowledge/method.md`). Name the RELATION, never the
+  product — we found Safe by catalogue lookup and inherited its 5/day cap as if it were physics. Naming
+  the relation instead ("somebody else's tx carries my state change") and observing it on-chain found
+  10 bundlers + 8 live paymasters, with 44% of recent ERC-4337 ops sponsored by a third party.
+  **Always run the CONTROL — the instrument must rediscover a known specimen before you trust it.**
+- **Give the tireless work to CODE, leave the model the breadth.** Flash is good at breadth, bad at
+  judgement; every durable fix has been moving a judgement call into a deterministic guard.
+- **No ceiling** — hunt implicit, explicit, emergent, and evolutionarily novel mechanisms.
+
 ## Where ZERO actually lives
 **The Cloudflare Worker is canonical and always-on** (Anthony's ruling 2026-07-27: no GitHub Actions;
 local only while we're online, otherwise a Worker). His PC is not 24/7.

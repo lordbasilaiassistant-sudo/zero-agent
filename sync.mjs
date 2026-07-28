@@ -18,6 +18,8 @@ const MAP = [
   { kv: 'knowledge:journal', file: 'knowledge/journal.md', endpoint: '/journal' },
   { kv: 'knowledge:frontier', file: 'knowledge/frontier.md', endpoint: '/frontier' },
   { kv: 'knowledge:phases', file: 'knowledge/phases.md', endpoint: '/phases' },
+  { kv: 'knowledge:method', file: 'knowledge/method.md', endpoint: '/method' },
+  { kv: 'knowledge:toolcraft', file: 'knowledge/toolcraft.md', endpoint: '/toolcraft' },
   { kv: 'state:routes', file: 'state/routes.json', endpoint: '/ledger' },
 ];
 

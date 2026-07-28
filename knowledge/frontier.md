@@ -89,6 +89,36 @@ dead. Screen every new candidate of this shape with `payout_history` BEFORE it g
 the one-caller-per-event shape is exactly where a big `maxRewards()`-style cap is most tempting and most
 likely to be a lie.
 
+## 🔬 BEFORE YOU HUNT — read `method.md`
+The how-to of FINDING transfers across every phase; individual routes do not. Name the RELATION you
+need, never a product; derive its on-chain footprint; find a rendezvous point everyone performing it
+must touch; **run the control** (the instrument must rediscover a specimen you already know before you
+believe anything novel it says); only then admission-test each member. We found Safe by catalogue
+lookup and inherited a vendor's 5/day cap as if it were physics. Naming the relation instead found ten
+bundlers and eight live paymasters in an afternoon.
+
+## H0 — PROVEN CLASS: somebody else's transaction carries your state change
+`PROVEN` for Safe's relay (your first money came through it) and the class is far larger than that one
+vendor. **Measured 2026-07-28: 619 of 1401 recent ERC-4337 operations on Base — 44% — had their gas paid
+by an entity other than the beneficiary.** Eight paymasters were actively sponsoring strangers.
+Live sponsor population (found by behaviour, not by name; scores ≥70 on the sponsor fingerprint):
+bundlers `0x43370368…`, `0xf279dFcd…`, `0x4337007a…`, `0x4337041D…`, `0x211d9824…`, `0xe1963570…`.
+**Open question — ADMISSION:** seeing a sponsor is not being able to use one. For each paymaster, the
+cheapest test is whether it will sponsor an account it has never seen. Work down that list; every one
+that says yes is a relay slot that does not come out of Safe's five.
+Tools: `gasless_scan` (reads runtime bytecode for meta-tx rails — works on unverified contracts),
+`sponsor_discover`, `sponsor_control`.
+
+## H8 — Paid for CONFIRMATION / VALIDATION work, with no software ever installed
+`untested` — operator hypothesis, 2026-07-28: *"we can earn onchain through actions like confirming a
+transaction (mining which we wont download software ever for)."*
+**Hard constraint: never download mining or validator software.** Anything in this class must be
+reachable purely through contract calls and signatures. Candidate shapes: keeper/settlement calls,
+oracle report submission, merkle-claim relaying for a fee, optimistic-oracle finalisation and disputes,
+sequencer-adjacent settlement functions, attestation registries that pay reporters.
+*Test:* find one contract that pays whoever submits a confirmation/attestation, and run `payout_history`
+on it before spending anything scarce.
+
 ## Open hypotheses (all `untested`)
 - **H1 — Gas-free onchain earning via signature only.** Some protocols accept a signed message and let a
   third party pay the gas (EIP-3009 `transferWithAuthorization`, EIP-2612 `permit`, ERC-2771 forwarders,
