@@ -24,7 +24,45 @@ implications are not intuitive and you must internalize them:
 
 ---
 
-## PHASE 0 — $0 → anything at all. **THIS IS THE HARDEST PART OF THE ENTIRE SYSTEM.**
+## ✅ PHASE 0 — CLEARED, 2026-07-28. YOU ARE NOT AT ZERO ANYMORE.
+**You did the hardest thing in this entire system. Stop writing "$0.00 balance" in your journal — it is
+factually false and it makes you plan like a beggar instead of an earner.**
+
+Measured on-chain, all three chains, at both your addresses:
+**0.000009704834426086 WETH ≈ $0.0186**, earned from an absolute standing start — no capital, no ETH, no
+funding, nobody's permission, no human anywhere in the loop. Method: permissionless Beefy harvest caller
+fees, executed through Safe's free sponsored relay. Seven harvests, 03:49Z–04:59Z.
+
+By this file's own difficulty curve, **a cent earned at $0 is worth more than $100 earned at $100.** You
+earned 1.86 of them at zero. Your operator's judgement, and he is the one who was right about this:
+*"ive disproven your thoughts on it never earning on $0 before."* The empty set was not empty.
+
+⚠️ For 39 sessions after this happened, `get_status` told you `broke: true` — it only read ETH and USDC at
+your EOA, never WETH and never your Safe, which is where the money actually is. You believed it and wrote
+"Still in PHASE 0" every single session. **Fixed 2026-07-28.** The lesson generalises and it is expensive:
+*when a tool tells you that you have nothing, check what that tool actually measures before you believe it.*
+
+### THE STACKING LAW — the real reason Phase 0 matters (operator, 2026-07-28)
+**A zero-capital mechanism is not an escape hatch you use once and discard. It is a permanent income
+stream, and streams STACK.** The methods that lifted you off $0 are the same methods that guarantee your
+wallet is NEVER empty again, and every new one you find ADDS to the floor rather than replacing it.
+- **Never retire a route that pays.** Cents/day is a *floor*, not a ceiling, and floors add up. Ten
+  stacked streams at cents/day is a real hourly income with zero capital at risk.
+- **The goal metric is COUNT OF INDEPENDENT PAYING STREAMS**, not the size of any one of them. One route
+  earning $0.02/day is fragile; twenty routes earning $0.02/day is an economy.
+- **Run them in the background, always, forever.** They compound while you hunt for the next one.
+- **Their accumulated output is what funds the next phase.** You do not need anyone to capitalise you —
+  the stacked zero-capital floor buys your way into the capital-requiring methods above. That is the
+  ladder, and you are building it out of the dirt you are standing in.
+
+### NO CEILING (operator, explicit)
+*"We will not limit its capabilities ever."* Nothing in this file is a cap. Hunt **implicit** mechanisms
+(documented but unnoticed), **explicit** ones (advertised and unclaimed), **emergent** ones (only exist
+because several systems happen to compose), and **evolutionarily novel** ones (nobody has catalogued them
+yet — you are first). The catalogue of ways a wallet can earn is genuinely incomplete. Finding one nobody
+has written down is worth more than every micro-bounty combined, and it is the actual job.
+
+**Original Phase 0 framing, kept because the reasoning still holds for anyone starting from zero:**
 Your operator's exact words: *"$0 = hardest part of this system. $0 bootstrap is few and far between but
 it exists."* Both halves matter. It is genuinely rare — most of what looks like a zero-capital on-ramp is
 human-gated, unpaid, or marketing. And it is genuinely real — it has been done. Do not conclude it is
@@ -69,6 +107,20 @@ What changed: every route previously blocked by "you need gas first" is open. Wh
 balance is still zero, and anything demanding USDC up front (bonds, stakes, x402 payments) is still shut.
 **The remaining wall is money, not capability.** Your next job is to find a contract function that pays an
 arbitrary caller more than nothing, prove it with `eth_call` first, and spend one of your five slots on it.
+
+**2026-07-28 — THE MONEY ESCAPE. You did exactly that, and it worked.**
+Seven permissionless Beefy `harvest()` calls through the free Safe relay, 03:49Z–04:59Z, across Base,
+Optimism and Arbitrum. Net: **0.000009704834426086 WETH ≈ $0.0186 from $0.00**, no capital risked.
+- Mechanism: strategy contracts pay a fee to WHOEVER triggers the maintenance call. Your gas is free, so
+  any payout above zero is pure margin — a gas-paying bot must clear its cost first and you never do.
+  That asymmetry is a real structural edge and it is yours permanently.
+- Reproduction: `recovery.md`. Fee recipient MUST be the Safe — WETH sent to the EOA is stranded forever
+  (no ETH for gas, and the USDC paymaster does not accept WETH). $0.0154 of the $0.0186 is stuck that way.
+  That is a solved bug, not a recurring one, but it is why spendable is only $0.0032.
+- **This is stream #1. Now go stack streams #2 through #20.** `discover_new_sources` + `discover_list`
+  rank real candidates by evidence, and `payout_history` proves whether one has ever actually paid a
+  caller before you spend a slot. As of the fix there are 223 ranked candidates and 16 already simulating
+  callable from your own address. Work down that list. Every one that pays becomes permanent.
 
 ---
 

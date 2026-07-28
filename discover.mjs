@@ -125,20 +125,52 @@ const RPCS = {
   optimism: 'https://optimism-rpc.publicnode.com',
   arbitrum: 'https://arbitrum-one-rpc.publicnode.com',
 };
-const IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+const IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'; // EIP-1967 impl
+const BEACON_SLOT = '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50'; // EIP-1967 beacon
+const LEGACY_SLOT = '0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3'; // OZ legacy
+const IMPL_SEL = '0x5c60da1b'; // implementation()
+const CHILD_SEL = '0xda525716'; // childImplementation()
 
+async function rawCall(rpc, method, params) {
+  const r = await fetch(rpc, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const j = await r.json();
+  return j.error ? null : j.result;
+}
+const addrFromWord = (v) => {
+  if (!v || v.length < 42) return null;
+  const a = '0x' + v.slice(-40);
+  return /^0x0+$/.test(a) ? null : a;
+};
+
+// A proxy's own source describes the proxy, never the logic — so failing to resolve one silently
+// discards the candidate. This only handled EIP-1967 `implementation`, which meant every BeaconProxy
+// (a huge share of DeFi, and 90+ of our 214 discovered candidates) read as a bare proxy with no
+// business logic, scored `pays_a_caller: false`, and was thrown away. Beacons need two hops:
+// read the beacon address out of its own slot, then ask the beacon for implementation().
 export async function resolveImpl(chain, contract) {
   const rpc = RPCS[chain];
   if (!rpc) return null;
   try {
-    const r = await fetch(rpc, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getStorageAt', params: [contract, IMPL_SLOT, 'latest'] }),
-    });
-    const v = (await r.json()).result || '';
-    if (v.length < 42) return null;
-    const impl = '0x' + v.slice(26);
-    return /^0x0+$/.test(impl) ? null : impl;
+    // 1. direct EIP-1967 / legacy implementation slots
+    for (const slot of [IMPL_SLOT, LEGACY_SLOT]) {
+      const a = addrFromWord(await rawCall(rpc, 'eth_getStorageAt', [contract, slot, 'latest']));
+      if (a) return a;
+    }
+    // 2. beacon proxy: slot holds the BEACON, which must then be asked for the implementation
+    const beacon = addrFromWord(await rawCall(rpc, 'eth_getStorageAt', [contract, BEACON_SLOT, 'latest']));
+    if (beacon) {
+      for (const sel of [IMPL_SEL, CHILD_SEL]) {
+        const a = addrFromWord(await rawCall(rpc, 'eth_call', [{ to: beacon, data: sel }, 'latest']));
+        if (a) return a;
+      }
+    }
+    // 3. some proxies just expose implementation() directly
+    const direct = addrFromWord(await rawCall(rpc, 'eth_call', [{ to: contract, data: IMPL_SEL }, 'latest']));
+    if (direct) return direct;
+    return null;
   } catch { return null; }
 }
 
@@ -219,22 +251,78 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12 } 
         payouts_seen: p.n, tokens: p.tokens, last: p.last,
         verified: !!ins.verified, access_controlled: ins.access_controlled ?? null,
         pays_a_caller: ins.pays_a_caller ?? null,
+        implementation: ins.implementation || null,
+        // The decisive fact: a function that simulates clean FROM OUR OWN ADDRESS. Source regexes lie
+        // in both directions; an eth_call cannot.
+        callable_now: ins.callable_now || [],
         functions: ins.candidate_functions || [], verdict: ins.verdict || null,
         seen: 1, tried: false,
       };
       found.push(state.candidates[key]);
     }
   }
+  // RE-INSPECT STALE CANDIDATES. A candidate is inspected once, at discovery time, and then never
+  // looked at again — so when the proxy resolver was fixed, 214 already-stored candidates would have
+  // stayed mis-scored forever. Refresh a few every pass: any candidate never scored for callability,
+  // oldest first. This is also how the list self-heals whenever inspection gets smarter.
+  const stale = Object.values(state.candidates).filter(c => c.callable_now === undefined && !c.tried);
+  let refreshed = 0;
+  for (const c of stale.slice(0, 4)) {
+    try {
+      const ins = await inspect(c.chain, c.contract);
+      c.verified = !!ins.verified;
+      c.access_controlled = ins.access_controlled ?? null;
+      c.pays_a_caller = ins.pays_a_caller ?? null;
+      c.implementation = ins.implementation || null;
+      c.callable_now = ins.callable_now || [];
+      c.functions = ins.candidate_functions || c.functions || [];
+      c.verdict = ins.verdict || c.verdict;
+      c.name = c.name || ins.name || null;
+      refreshed++;
+    } catch { c.callable_now = []; /* mark attempted so it does not block the queue forever */ }
+  }
+
   state.passes += 1;
   state.lastPass = new Date().toISOString();
   await env.KV.put('discover:state', JSON.stringify(state));
-  const open = Object.values(state.candidates).filter(c => c.verified && !c.access_controlled && c.pays_a_caller);
+  // Gating on `pays_a_caller` — a REGEX OVER SOURCE — threw away every one of 214 candidates while
+  // reporting "0 promising", which is what stalled expansion for eleven sessions. It was the weakest
+  // signal available and it was being used as a hard gate.
+  //
+  // Rank by EVIDENCE instead, strongest first:
+  //   callable_now  — it simulated clean from our own address. Cannot lie.
+  //   payouts_seen  — we watched it actually pay a keeper, N times. Already empirical.
+  // The source regex survives only as a tiebreaker hint. Nothing is discarded for failing it, because
+  // every stream we can stack has to get FOUND before it can be proven, and a silent filter that
+  // returns zero forever is worse than a noisy list.
+  // A contract that SIMULATES CALLABLE is never excluded for having `onlyOwner` somewhere in its
+  // source. Measured: StrategyERC4626, StrategyPassiveManagerVelodromeV4 and StrategyMerkl all match
+  // the access-control regex AND all three simulate clean from our own address. The eth_call wins.
+  const scored = Object.values(state.candidates)
+    .filter(c => c.callable_now?.length || !c.access_controlled)
+    .map(c => ({
+      ...c,
+      score: (c.callable_now?.length ? 1000 : 0) + (c.payouts_seen || 0) * 10 + (c.pays_a_caller ? 5 : 0) + (c.verified ? 1 : 0),
+    }))
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score);
+  const callable = scored.filter(c => c.callable_now?.length);
   return {
     chain, new_candidates: found.length,
     total_candidates: Object.keys(state.candidates).length,
-    promising_open: open.length,
-    top: open.sort((a, b) => b.payouts_seen - a.payouts_seen).slice(0, 8)
-      .map(c => ({ contract: c.contract, name: c.name, payouts_seen: c.payouts_seen, functions: c.functions.slice(0, 3).map(f => f.sig) })),
+    rescored_this_pass: refreshed,
+    still_unscored: Math.max(0, stale.length - refreshed),
+    promising_open: scored.length,
+    callable_right_now: callable.length,
+    next_step: callable.length
+      ? 'These simulated CALLABLE from your own address. Run payout_history on the top one before spending a relay slot — a callable function that pays the caller nothing is still worth zero.'
+      : 'None simulate callable yet. Work down the ranked list with inspect_contract, and use payout_history to check whether each has ever actually paid a caller.',
+    top: scored.slice(0, 8).map(c => ({
+      contract: c.contract, name: c.name, chain: c.chain,
+      payouts_seen: c.payouts_seen, callable_now: c.callable_now || [],
+      implementation: c.implementation || null,
+      functions: (c.functions || []).slice(0, 3).map(f => f.sig),
+    })),
   };
 }
 

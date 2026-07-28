@@ -158,10 +158,16 @@ function makeTools(ctx) {
       return { address: ctx.wallet().address, created: false, note: 'wallet exists (cloud). You never see the private key; sign_message/send_tx use it for you.' };
     },
 
+    // THE most important tool: it is the first thing called every session and it sets the agent's
+    // entire self-image. It used to read ONLY the EOA and ONLY ETH+USDC — never WETH (which is what
+    // caller fees actually pay in) and never the Safe (where the spendable money actually sits). So it
+    // returned broke:true for 39 straight sessions AFTER the agent had already done the one thing it
+    // was born to do, and every journal dutifully recorded "Still in PHASE 0 ($0.00 balance)".
+    // An agent whose only mission is escaping zero must be able to SEE that it escaped.
     async get_status() {
       ctx.budget();
       const addr = ctx.wallet().address;
-      const out = { wallet: addr, chains: {}, runtime: 'cloud (Cloudflare Worker, 30-min heartbeat)' };
+      const out = { wallet: addr, smart_account: SMART_ACCOUNT, chains: {}, runtime: 'cloud (Cloudflare Worker, 30-min heartbeat)' };
       for (const [name, c] of Object.entries(CHAINS)) {
         try {
           const [bal, nonce] = await Promise.all([
@@ -183,7 +189,29 @@ function makeTools(ctx) {
           if (out.chains.base?.eth) out.chains.base.usd_value = (parseFloat(out.chains.base.eth) * price).toFixed(4);
         }
       } catch { /* price is a nicety */ }
-      out.broke = !Object.values(out.chains).some(c => parseFloat(c.eth || 0) > 0 || parseFloat(c.usdc || 0) > 0);
+
+      // Caller fees arrive as WETH at the SAFE. Counting only ETH+USDC at the EOA is why this tool
+      // reported broke:true while real money was sitting on three chains.
+      let earned = null;
+      try { earned = await reconcileEarnings(ctx.env, (c, m, p) => ctx.rpc(c, m, p), addr, SMART_ACCOUNT); } catch { /* fall through */ }
+      const earnedUsd = earned?.lifetime_earned_usd || 0;
+      const liquidUsd = Object.values(out.chains).reduce((n, c) => n + parseFloat(c.usdc || 0), 0);
+      out.broke = !(earnedUsd > 0 || liquidUsd > 0 || Object.values(out.chains).some(c => parseFloat(c.eth || 0) > 0));
+
+      if (earned && earnedUsd > 0) {
+        out.earnings = {
+          lifetime_usd: earnedUsd,
+          lifetime_weth: earned.lifetime_earned_eth,
+          spendable_usd: earned.spendable_usd,
+          stranded_on_eoa_usd: earned.stranded_on_eoa_usd,
+          per_chain: earned.per_chain,
+        };
+        // Said plainly, because the whole experiment turns on this one fact and the agent kept
+        // writing "$0.00 balance" in its journal while holding this.
+        out.MILESTONE = `YOU ARE NOT AT ZERO ANYMORE. You have earned $${earnedUsd} from an absolute standing start — no capital, no ETH, no funding, no human, nobody's permission. Your own phase doctrine calls $0 → anything "THE HARDEST PART OF THE ENTIRE SYSTEM" and says a cent earned at $0 is worth more than $100 earned at $100. You cleared that rung. Stop writing "PHASE 0 / $0.00 balance" in your journal — it is factually wrong and it makes you plan like a beggar instead of an earner. You are past it. The remaining job is to WIDEN: find more independent ways money can arrive, not more of the same crumb.`;
+      } else {
+        out.MILESTONE = 'Still at absolute zero. Escaping it is the hardest rung in the whole system — see the phase doctrine.';
+      }
       return out;
     },
 
@@ -406,11 +434,22 @@ function makeTools(ctx) {
       ctx.sub++;
       const s = (await ctx.env.KV.get('discover:state', 'json')) || { candidates: {} };
       const c = Object.values(s.candidates || {});
+      // Ranked by EVIDENCE, not by a source regex. The old gate (`pays_a_caller`) discarded all 214
+      // candidates and reported nothing for eleven sessions — including contracts we had literally
+      // watched pay a keeper four times.
+      // Simulating callable beats a source regex — three Beefy strategies match `onlyOwner` and are
+      // callable by us anyway. Never exclude a contract that an eth_call says we can call.
+      const scored = c.filter(x => (x.callable_now?.length || !x.access_controlled) && !x.tried)
+        .map(x => ({ ...x, score: (x.callable_now?.length ? 1000 : 0) + (x.payouts_seen || 0) * 10 + (x.pays_a_caller ? 5 : 0) + (x.verified ? 1 : 0) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score);
       return {
         total: c.length, passes: s.passes || 0,
-        untried_promising: c.filter(x => x.verified && !x.access_controlled && x.pays_a_caller && !x.tried)
-          .sort((a, b) => b.payouts_seen - a.payouts_seen).slice(0, 12)
-          .map(x => ({ chain: x.chain, contract: x.contract, name: x.name, payouts_seen: x.payouts_seen, functions: (x.functions || []).slice(0, 4).map(f => f.sig) })),
+        promising: scored.length,
+        callable_right_now: scored.filter(x => x.callable_now?.length).length,
+        how_to_use: 'Work DOWN this list. inspect_contract to find an entry point, payout_history to prove it has ever paid a caller, and only then a relay slot. Each one that pays becomes a permanent stacked stream — you never retire a paying route, you add to it.',
+        untried_promising: scored.slice(0, 12)
+          .map(x => ({ chain: x.chain, contract: x.contract, name: x.name, payouts_seen: x.payouts_seen, callable_now: x.callable_now || [], functions: (x.functions || []).slice(0, 4).map(f => f.sig) })),
       };
     },
 
