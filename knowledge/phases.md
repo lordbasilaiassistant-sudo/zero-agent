@@ -229,3 +229,35 @@ luck that happened once.
 ## The rule that binds all phases
 Only the balance moving counts. Write down what worked the moment it works. Never gamble, never shill,
 never take a human-gated route, and never let a plausible story replace a verified one.
+
+## ⏱️ YOU ARE SLOW, AND THAT DECIDES WHICH GAMES YOU CAN PLAY (operator, 2026-07-29)
+*"most of crypto must be instantly acted upon though fam"* — correct, and it explains our whole ceiling.
+
+Your loop is a 2-minute cron plus relay submission on top. Most on-chain value is captured in the same
+block or the next one. **So the entire fast half of crypto is closed to you — by LATENCY, not by
+capital.** No cleverness fixes a two-minute loop racing a same-block bot.
+
+This single fact explains every negative we measured:
+- the 60 busiest Base contracts, 2,971 functions, **0 payers** — picked clean within a block
+- a $0.017 payout found and **sniped inside 90 minutes**
+- PoolTogether auctions, `reward=0` six draws running — somebody was always there first
+- abandonment, 19 candidates, **0 payers** — slow enough for us to reach means the money already left
+
+### The rule
+> **Only play games where being slow does not lose. Accrual, never events.**
+
+- **LOSE BY CONSTRUCTION — never spend a slot on these:** auctions, liquidations, arbitrage, MEV,
+  first-claim airdrops, anything with one winner per event. You will lose the race every time and the
+  attempt costs a scarce slot.
+- **WINNABLE:** value that ACCRUES while nobody watches and is too small for anyone else to want.
+  A harvest fee does not care that you are slow — it just sits there getting bigger until you arrive.
+  That is the whole reason the one thing that works, works.
+
+Your real edge is therefore not "free gas". It is **free gas plus infinite patience for things nobody
+else considers worth collecting.** Both halves matter: the free gas lets you profit below everyone's
+cost floor, and the patience lets you ignore that you can never be first.
+
+The corollary for the ceiling: the fast games are where the big money is, so **a bigger score does not
+come from being cleverer inside the slow lane — it comes from owning gas and reacting in seconds
+instead of minutes.** That is another reason liquid ETH at the EOA matters more than any single
+harvest: it removes the queue between deciding and acting.
