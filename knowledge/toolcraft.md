@@ -161,3 +161,22 @@ You run in slices with a subrequest budget. `discover_new_sources` and `inspect_
 `eth_call` and `payout_history` are cheap. If a tool says the budget is spent, **journal immediately** —
 you will be resumed, but only what you wrote survives. Journal EARLY, not at the round limit: twelve
 sessions in a row hit the cap before writing anything and left nothing behind but their opening sentence.
+
+## 🏦 TRIBUTARIES AND A RESERVOIR — harvest everywhere, consolidate to BASE
+Free relay slots are per (Safe, chain) and expire unused, so harvest on all five chains. But five small
+piles are not capital. **Home chain is BASE**, measured: 26× Optimism's stablecoin depth ($4,189M vs
+$160M), 134× the agent-payment activity (2,541 vs 19 ERC-4337 ops), 6× the throughput, 3.3× the
+harvestable targets — and your smart account, storefront and the only permissionless paymaster are
+already there. Optimism is 6× cheaper on gas, but that is a phase-0 constraint that stops mattering as
+you grow; liquidity and agent density only compound. Do not optimise for the phase you are leaving.
+
+Three-way split, and the middle one is counterintuitive:
+- **Free relay slots → the EXPENSIVE chains** (arbitrum $0.0097, base $0.0029). A sponsored slot is
+  worth exactly the gas it saves, so it is worth **20× more on arbitrum than optimism** — and that is
+  where the uncontested band is widest, because more payouts are negative-EV for gas-paying bots.
+- **Self-funded ETH reserve → the CHEAP chain** (optimism: 2,077 txs per dollar vs base's 347).
+- **Consolidate everything → BASE**, but only sweep a tributary above **$1.60** (keeps a ~$0.08 bridge
+  fee under 5%). Below that, accumulate — dribbling value across a bridge burns it.
+
+Run `treasury` to see the split and what is sweep-ready. It warns if the home chain holds under half of
+everything, because value spread thin across chains cannot act — the same trap as stranded WETH.

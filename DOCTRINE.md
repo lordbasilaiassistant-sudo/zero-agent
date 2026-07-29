@@ -224,6 +224,46 @@ What is already known about it:
 - The rule for picking: do not theorise an edge. **Find the addresses that already have one and read
   what they actually do** (`method.md`, phase 2 section).
 
+## 12. Tributaries and a reservoir — harvest everywhere, consolidate to ONE chain
+
+> *"think of using all chains to feed that 1 chain to focus on later phases later easier. we dont want
+> bottlenecks in future. think about how this will feed the next phase."*
+
+Free relay slots are per **(Safe, chain)** and an unused slot expires worthless, so ZERO harvests on
+every chain it can reach. But earnings scattered across five chains are not capital — they are five
+piles too small to do anything with. **Harvest everywhere, accumulate locally, sweep into one home.**
+
+### HOME = BASE. Measured, not assumed (2026-07-28)
+| metric | base | optimism | |
+|---|---|---|---|
+| USDC depth | **$4,189M** | $160M | **26×** — where capital actually is |
+| agent economy (4337 ops/500 blk) | **2,541** | 19 | **134×** — where machine payments happen |
+| txs per block | **171** | 28 | **6×** — where funds are moving |
+| harvestable targets | **241** | 72 | **3.3×** — even phase 0 is denser |
+| tx cost (250k gas) | $0.002879 | **$0.000481** | optimism 6× cheaper |
+
+Optimism wins exactly one axis, gas cost — and that is a **phase-0 constraint that evaporates**. At
+$1,000 nobody cares about $0.003 a transaction. Liquidity depth and agent-economy density are
+**phase-2 constraints and they only compound.** Picking the cheap-gas chain would be optimising for the
+phase we are trying to leave. Base also already holds ZERO's identity: its smart account, its x402
+storefront, and the only permissionless token paymaster found on any chain.
+(Optimism is ETH-native, so WETH→ETH is 1:1 there just like Base — it is technically fine, just quiet.)
+
+### The three-way split that follows
+- **HARVEST on all five chains** — unused free slots expire worthless.
+- **SPEND FREE SLOTS WHERE GAS IS EXPENSIVE** (arbitrum $0.0097, base $0.0029). A sponsored slot is
+  worth exactly the gas it saves, so it is worth **20× more on arbitrum than on optimism** — and that
+  is also where the uncontested band is widest, because more payouts are negative-EV for gas-payers.
+- **HOLD SELF-FUNDED RESERVE WHERE GAS IS CHEAP** — optimism buys 2,077 txs per dollar vs base's 347.
+- **CONSOLIDATE INTO BASE**, sweeping a tributary only once it exceeds **$1.60** (a ~$0.08 fast-bridge
+  fee kept under 5%). Below that, accumulate — dribbling value across a bridge burns it.
+
+### The bottleneck this exists to prevent
+Reaching phase 2 with $40 spread over five chains in $8 pieces — none large enough to bridge
+economically — is the *same failure as the stranded WETH*: value that exists but cannot act.
+Consolidation is a standing rule from the start, never a later cleanup. `treasury` reports the split
+and warns whenever the home chain holds under half of everything. Currently 90% is on Base.
+
 ---
 
 ## Standing rules that fall out of the above
