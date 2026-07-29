@@ -49,6 +49,11 @@ const CHAINS = {
     rpcs: ['https://gnosis-rpc.publicnode.com', 'https://rpc.gnosischain.com', 'https://gnosis.drpc.org'],
     scout: 'https://gnosis.blockscout.com', label: 'Gnosis (REAL money)',
   },
+  unichain: {
+    chainId: 130,
+    rpcs: ['https://mainnet.unichain.org', 'https://unichain-rpc.publicnode.com', 'https://unichain.drpc.org'],
+    scout: 'https://unichain.blockscout.com', label: 'Unichain (REAL money)',
+  },
   polygon: {
     chainId: 137,
     rpcs: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon.drpc.org', 'https://polygon-rpc.com'],

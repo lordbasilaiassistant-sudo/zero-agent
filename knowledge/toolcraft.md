@@ -213,3 +213,38 @@ essentially everything that exists rather than the top 1/5th of it.
 
 **The general lesson, which is worth more than the harvest gain:** when a quota looks binding, check
 what the quota actually counts. It counted transactions, and a transaction is a container.
+
+## 🔨 THE GAS WALL — every door, tested (2026-07-29)
+
+**1. WETH → native ETH. SOLVED, armed, waiting on one slot.**
+A Safe CANNOT unwrap WETH — `withdraw()` reverts, because WETH9 pays out with `.transfer()` and its
+2300-gas stipend, which a Safe's fallback handler exceeds. Verified reverting. The route that DOES work,
+both legs verified CLEAN as plain calls from the Safe (no delegatecall needed):
+```
+slot 1   WETH.transfer(SwapRouter02, all)          CLEAN
+slot 2   SwapRouter02.unwrapWETH9(0, EOA)          CLEAN  -> native ETH lands at the EOA
+then     WETH.withdraw() FROM THE EOA              CLEAN  -> unstrands its own $0.0152
+```
+The router works where the Safe cannot because `unwrapWETH9` pays with `.call`, forwarding all gas.
+Do it EARLY and SMALL: between the two slots anyone can take the router's balance, so at ~$0.002 the
+front-run costs more than it wins. Result: **the EOA becomes independently able to transact — no relay,
+no sponsor, no quota, forever.**
+
+**2. Free paymasters. TESTED PROPERLY — none exist on Base.**
+Do not infer admission from transaction shape (that was the weaker test). The decisive one: call
+`validatePaymasterUserOp` **as the EntryPoint** with your own account and read `validationData`.
+0 = it would sponsor you; 1 = SIG_VALIDATION_FAILED (needs the operator's signature).
+**Result across all 17 live paymasters on Base: ZERO would sponsor an arbitrary account.** One states it
+outright — *"Sender is not whitelisted"*. The only permissionless rail is the Candide TOKEN paymaster
+(`0x8b1f6cb5…`), which is open to anyone holding the token but wants **USDC (~0.009087/op)**.
+
+**3. Relay capacity. Enumerate the chain ids — quota is per (Safe, chain).**
+Probing every Safe chain id found **unichain (130) sitting at 5/5, unclaimed**. Now configured; capacity
+is 30 tx/day across six chains. That is the third time enumeration alone produced free capacity
+(gnosis + polygon were the first ten). **When a quota looks binding, first ask where else it exists.**
+Probe sequentially — 38 parallel requests got rate-limited and returned a clean-looking zero, which is
+the failed-read-looks-like-a-null trap from Trap 2 firing on me again.
+
+**The three doors, ranked:** own ETH (unlimited, path armed) > USDC token paymaster (unlimited, needs
+~$0.009) > Safe relay (30/day, free, already maxed by batching). All three lead through the same place:
+**convert what you earn into an asset you can spend.**

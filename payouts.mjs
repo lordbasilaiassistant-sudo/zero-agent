@@ -25,6 +25,7 @@ const SCOUT = {
   arbitrum: 'https://arbitrum.blockscout.com',
   gnosis: 'https://gnosis.blockscout.com',
   polygon: 'https://polygon.blockscout.com',
+  unichain: 'https://unichain.blockscout.com',
   'base-sepolia': 'https://base-sepolia.blockscout.com',
 };
 

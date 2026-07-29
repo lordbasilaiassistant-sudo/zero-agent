@@ -331,3 +331,35 @@ mechanism, and the lock is cheap to pick once you have anything at all.
 **So: stop hunting for a bigger free mechanism. Convert what you have, get to $1, and the ceiling moves
 by three orders of magnitude.** The best measured call available right now is `mellow-aero-weth-usdc`
 at **$0.017** — roughly 60 calls to $1, which at 5 Base slots a day is under two weeks, not 100 days.
+
+## 🔓 LIVE LEAD — Candide has PUBLIC gas policies and we do not yet qualify (2026-07-29)
+`https://api.candide.dev/public/v3/8453` is keyless, and its errors are worth reading carefully because
+each one is a different kind of "no":
+
+| probe | response | meaning |
+|---|---|---|
+| empty callData | `sponsored-validator: callData reverts` | it EVALUATED us; rejected the dummy payload |
+| real Safe4337 op | `does not qualify for any publicly available gas policy` | **public free-gas policies EXIST**; ours does not match one |
+| Pimlico public | `Sponsorship policy ID is required for this API key` | auth wall — genuinely closed |
+
+The Candide answer is a *technical* objection, not an authorisation one. **There is free sponsored gas
+available to the public on Base; the open question is only what shape of operation qualifies.**
+
+**The experiment to run:** vary the op and re-probe `pm_getPaymasterStubData` until one is accepted.
+Cheap (one HTTP call each), and the axes worth walking are: the TARGET contract (policies usually
+whitelist specific dapps), first-operation-for-a-new-account (deployment sponsorship is a common
+promo), specific tokens, and value-transfer vs contract-call shapes. Every rejection names its reason,
+so this is a guided search, not a blind one.
+
+**Also worth chasing (operator's tip, untested):** some paymasters over-refund the calling wallet — a
+rebate exceeding actual gas, which nets the caller positive. Operators generally know and accept this;
+it is a policy choice, not a bug to exploit. Detection: for sponsored userOps, compare `actualGasCost`
+in `UserOperationEvent` against value moving from the paymaster to the SENDER in the same transaction.
+A positive difference is a paymaster paying people to transact.
+
+### What is definitively CLOSED (tested properly, do not re-litigate)
+Do not infer paymaster admission from transaction shape — that is the weak test. The decisive one is to
+call `validatePaymasterUserOp` **as the EntryPoint** with your own account: `validationData` 0 means it
+would sponsor you, 1 means SIG_VALIDATION_FAILED. **All 17 live paymasters on Base returned closed.**
+One says it outright: *"Sender is not whitelisted."* On-chain, there are no open paymasters here — which
+is exactly why the off-chain POLICY route above is the interesting one.

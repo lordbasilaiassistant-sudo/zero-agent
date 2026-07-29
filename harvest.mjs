@@ -27,6 +27,8 @@ export const CHAINS = {
   // Wrapped NATIVE is the fee token Beefy pays on each chain, so that is what we measure the delta in.
   gnosis: { chainId: 100, weth: '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d' },   // WXDAI
   polygon: { chainId: 137, weth: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270' },  // WMATIC/WPOL
+  // Found 2026-07-29 by probing every Safe chain id for a quota: unichain sat at 5/5, unclaimed.
+  unichain: { chainId: 130, weth: '0x4200000000000000000000000000000000000006' },
 };
 export const relayUrl = (chainId) => `https://safe-client.safe.global/v1/chains/${chainId}/relay`;
 
@@ -357,66 +359,73 @@ export const ESCAPE = {
 
 export async function escapeCycle(env, rpc, safe, eoa) {
   const state = (await env.KV.get('harvest:state', 'json')) || {};
+  const W = HARVEST_CFG.weth;
   const [safeWeth, eoaWeth, eoaEthHex, price] = await Promise.all([
-    wethBalance(rpc, safe, 'base', HARVEST_CFG.weth),
-    wethBalance(rpc, eoa, 'base', HARVEST_CFG.weth),
+    wethBalance(rpc, safe, 'base', W),
+    wethBalance(rpc, eoa, 'base', W),
     rpc('base', 'eth_getBalance', [eoa, 'latest']),
-    ethUsd(),
+    nativeUsd('base'),
   ]);
   const eoaEth = BigInt(eoaEthHex);
-  const usd = (w) => (Number(w) / 1e18) * price;
-
-  // Reserve status is reported every cycle — gas is capability, and running dry stalls every layer.
+  const usd = (w) => +((Number(w) / 1e18) * price).toFixed(8);
   const reserve = {
-    eoa_eth_usd: +usd(eoaEth).toFixed(6),
+    eoa_native_eth_usd: usd(eoaEth),
     target_usd: ESCAPE.reserveTargetUsd,
-    healthy: usd(eoaEth) >= ESCAPE.reserveTargetUsd,
-    stranded_weth_at_eoa_usd: +usd(eoaWeth).toFixed(6),
+    stranded_weth_at_eoa_usd: usd(eoaWeth),
+    safe_weth_usd: usd(safeWeth),
   };
 
-  // If the EOA has gas AND stranded WETH, unwrap it — this is pure recovery, and it needs no relay.
-  if (eoaWeth > 0n && eoaEth > ESCAPE.eoaUnwrapGas * 20000000n) {
+  // STEP 3 — the EOA has gas and stranded WETH of its own. Unwrapping is a plain self-sent
+  // transaction: no relay, no sponsor, no quota. This is the point of the whole exercise.
+  if (eoaWeth > 0n && eoaEth > ESCAPE.eoaUnwrapGas * 30000000n) {
     const data = '0x2e1a7d4d' + eoaWeth.toString(16).padStart(64, '0');
     try {
-      await rpc('base', 'eth_call', [{ to: HARVEST_CFG.weth, data, from: eoa }, 'latest']);
-      return { action: 'eoa_unwrap_ready', reserve, amount_usd: +usd(eoaWeth).toFixed(6),
-        note: 'EOA holds gas AND stranded WETH. Unwrapping is a plain self-sent tx — no relay, no sponsor. Execute it.' };
-    } catch (e) { return { action: 'eoa_unwrap', reserve, simulated: false, error: String(e.message).slice(0, 160) }; }
+      await rpc('base', 'eth_call', [{ to: W, data, from: eoa }, 'latest']);
+      return { step: 'eoa_self_unwrap', reserve, unlocks_usd: usd(eoaWeth), simulated: true,
+        note: 'EOA holds gas AND stranded WETH. Send this from the EOA directly — it needs nobody.' };
+    } catch (e) { return { step: 'eoa_self_unwrap', reserve, simulated: false, error: String(e.message).slice(0, 140) }; }
   }
 
-  if (usd(safeWeth) < ESCAPE.minConvertUsd) {
-    return { action: 'accumulate', reserve, safe_weth_usd: +usd(safeWeth).toFixed(6),
-      convert_at_usd: ESCAPE.minConvertUsd,
-      harvests_to_go: Math.max(0, Math.ceil((ESCAPE.minConvertUsd - usd(safeWeth)) / 0.003)),
-      note: 'Harvest INTO THE SAFE until the threshold, then this converts to native ETH at the EOA.' };
+  if (state.escaped && eoaEth > 0n) return { step: 'done', reserve, note: 'EOA transacts on its own now.' };
+  if (safeWeth < 200000000000n) {
+    return { step: 'accumulate', reserve,
+      note: 'Too little in the Safe to bother converting. harvest_batch first — one slot takes the whole pool.' };
   }
 
-  // Threshold cleared: atomically transfer WETH to the router and have it unwrap to the EOA.
-  const transfer = new ethers.Interface(['function transfer(address,uint256)'])
-    .encodeFunctionData('transfer', [ESCAPE.router, safeWeth]);
-  const unwrap = new ethers.Interface(['function unwrapWETH9(uint256,address)'])
-    .encodeFunctionData('unwrapWETH9', [0n, eoa]);
-  const pack = (to, d) => '00' + to.slice(2).toLowerCase() + '0'.repeat(64) +
-    (d.length / 2 - 1).toString(16).padStart(64, '0') + d.slice(2);
-  const batch = '0x' + pack(HARVEST_CFG.weth, transfer) + pack(ESCAPE.router, unwrap);
-  const data = new ethers.Interface(['function multiSend(bytes)']).encodeFunctionData('multiSend', [batch]);
+  // A Safe CANNOT unwrap WETH: WETH9 pays out with .transfer() and its 2300-gas stipend, which a
+  // Safe's fallback handler exceeds. VERIFIED reverting. The router can, because unwrapWETH9 pays with
+  // .call. Both legs verified CLEAN as plain calls from the Safe, so this is two ordinary relay slots
+  // and needs no delegatecall.
+  //   slot 1: WETH.transfer(router, all)
+  //   slot 2: router.unwrapWETH9(0, EOA)  -> native ETH lands at the EOA
+  // Between the two, anyone could call unwrapWETH9 and take the router's balance. That is why this
+  // runs EARLY and SMALL: at ~/usr/bin/bash.002 the front-run is worth less than the gas to attempt it, and the
+  // payoff is that the EOA becomes independently able to transact forever after.
+  const routerWeth = await wethBalance(rpc, ESCAPE.router, 'base', W);
+  const leg = routerWeth > 0n ? 'unwrap' : 'transfer';
+  const target = leg === 'unwrap' ? ESCAPE.router : W;
+  const data = leg === 'unwrap'
+    ? new ethers.Interface(['function unwrapWETH9(uint256,address)']).encodeFunctionData('unwrapWETH9', [0n, eoa])
+    : new ethers.Interface(['function transfer(address,uint256)']).encodeFunctionData('transfer', [ESCAPE.router, safeWeth]);
 
   try {
-    await rpc('base', 'eth_call', [{ to: ESCAPE.multiSend, data, from: safe }, 'latest']);
+    await rpc('base', 'eth_call', [{ to: target, data, from: safe }, 'latest']);
   } catch (e) {
-    return { action: 'convert', reserve, simulated: false, error: String(e.message).slice(0, 200),
-      note: 'Simulation failed — no relay slot spent. MultiSend needs DELEGATECALL (operation 1).' };
+    return { step: leg, reserve, simulated: false, error: String(e.message).slice(0, 140), note: 'Slot NOT spent.' };
   }
 
-  const { chosen } = await pickChain(safe);
-  if (!chosen || chosen.name !== 'base') {
-    return { action: 'convert', reserve, simulated: true, ready: true, skipped: 'no Base relay slot right now' };
+  const { all } = await pickChain(safe);
+  const slot = all.find(c => c.name === 'base');
+  if (!slot || slot.remaining < 1) {
+    return { step: leg, reserve, simulated: true, ready: true, skipped: 'no Base relay slot right now' };
   }
-  const sent = await relayExec(env, rpc, safe, ESCAPE.multiSend, data, 'base', 8453, 1);
-  state.escapeLog = [{ at: new Date().toISOString(), amount_usd: +usd(safeWeth).toFixed(6), relayed: sent.ok, taskId: sent.taskId, error: sent.error }, ...(state.escapeLog || [])].slice(0, 10);
+
+  const sent = await relayExec(env, rpc, safe, target, data, 'base', 8453, 0);
+  state.escapeLog = [{ at: new Date().toISOString(), leg, relayed: sent.ok, taskId: sent.taskId, error: sent.error }, ...(state.escapeLog || [])].slice(0, 10);
+  if (leg === 'unwrap' && sent.ok) state.escaped = true;
   await env.KV.put('harvest:state', JSON.stringify(state));
-  return { action: 'convert', reserve, simulated: true, relayed: sent.ok, taskId: sent.taskId, error: sent.error,
-    note: "Converted Safe WETH to native ETH at the EOA. The EOA can now transact with nobody permission-gating it." };
+  return { step: leg, reserve, simulated: true, relayed: sent.ok, taskId: sent.taskId, error: sent.error,
+    note: leg === 'transfer' ? 'WETH parked at the router. The unwrap leg fires next cycle.' : 'Unwrapped — native ETH sent to the EOA. It can now transact with nobody permission-gating it.' };
 }
 
 // ── BATCH HARVEST — a relay slot is a TRANSACTION, not an ACTION ────────────
