@@ -255,8 +255,11 @@ storefront, and the only permissionless token paymaster found on any chain.
   worth exactly the gas it saves, so it is worth **20× more on arbitrum than on optimism** — and that
   is also where the uncontested band is widest, because more payouts are negative-EV for gas-payers.
 - **HOLD SELF-FUNDED RESERVE WHERE GAS IS CHEAP** — optimism buys 2,077 txs per dollar vs base's 347.
-- **CONSOLIDATE INTO BASE**, sweeping a tributary only once it exceeds **$1.60** (a ~$0.08 fast-bridge
-  fee kept under 5%). Below that, accumulate — dribbling value across a bridge burns it.
+- **CONSOLIDATE INTO BASE via CCTP** — Circle burn-and-mint has NO liquidity pool and NO operator fee, so you pay gas and nothing else, and `receiveMessage` on the destination is permissionless so a free relay slot can cover the mint leg. Measured thresholds: **optimism $0.0069**, polygon $0.0728, arbitrum $0.1390.
+
+### ⚠️ THE MISTAKE THAT ALMOST SET THIS POLICY WRONG
+The first version of this section asserted "cheapest bridge ~$0.08" **from memory, never measured**, set a $1.60 threshold on it, and concluded consolidation was *"impossible at this size"*. Measured against CCTP it was **wrong by 231x** — the real cost from optimism is **$0.000346**, and ZERO already holds 16% of the true threshold there rather than the 0.07% reported.
+**An unmeasured limit is a hypothesis, not a wall.** This is the same failure as the agent inventing "the relay resets at 5 AM UTC" — and it is worse coming from me, because I wrote the rule forbidding it. When something looks impossible, that is the cue to EXPAND the search, not to record the limit.
 
 ### The bottleneck this exists to prevent
 Reaching phase 2 with $40 spread over five chains in $8 pieces — none large enough to bridge

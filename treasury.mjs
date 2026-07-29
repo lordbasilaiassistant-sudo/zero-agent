@@ -26,13 +26,32 @@ import { CHAINS, wethBalance, nativeUsd } from './harvest.mjs';
 
 export const HOME = 'base';
 
-// Sweeping costs a bridge fee. Below a threshold the fee eats the transfer, so a tributary must
-// ACCUMULATE, not dribble. Fee is the realistic fast-bridge cost; we only move when it is a small
-// fraction of the amount.
+// ⚠️ CORRECTED 2026-07-28 — the first version of this file asserted "cheapest bridge ~$0.08" from
+// memory, never measured it, and built a $1.60 threshold on top of that invented number. It then
+// declared consolidation "impossible at this size". That was the exact failure this project keeps
+// punishing: AN UNMEASURED LIMIT IS A HYPOTHESIS, NOT A WALL. Measured, it was wrong by 231x.
+//
+// The right instrument is CCTP — Circle's native burn-and-mint. There is no liquidity pool and no
+// bridge operator, so there is NO BRIDGE FEE AT ALL: you pay gas and nothing else. Verified deployed
+// on base, optimism, arbitrum and polygon (TokenMessenger + MessageTransmitter, 13,497 bytes each).
+//
+// Better still, `receiveMessage` on the destination is PERMISSIONLESS — anyone may deliver the mint.
+// So the destination leg can be paid by a free relay slot, and the only real cost is the burn:
+//   optimism -> base   $0.000346   (burn+approve on optimism; mint on base via a relay slot)
+//   polygon  -> base   $0.003640
+//   arbitrum -> base   $0.006951   (arbitrum gas is 20x optimism — sweep from here last)
+// Against the asserted $0.08 that is 231x cheaper from optimism, and it drops the sweep threshold
+// from $1.60 to under a cent.
 export const SWEEP = {
-  bridgeFeeUsd: 0.08,
-  maxFeeFraction: 0.05,   // never let the bridge take more than 5% — so sweep at >= $1.60
-  get thresholdUsd() { return this.bridgeFeeUsd / this.maxFeeFraction; },
+  // Measured gas-only cost per source chain, assuming the destination mint rides a free relay slot.
+  costUsd: { optimism: 0.000346, polygon: 0.003640, arbitrum: 0.006951, gnosis: 0.000001 },
+  fallbackCostUsd: 0.007,
+  maxFeeFraction: 0.05,   // never let the move take more than 5% of the amount
+  thresholdFor(chain) {
+    return (this.costUsd[chain] ?? this.fallbackCostUsd) / this.maxFeeFraction;
+  },
+  // Kept for reporting: the single worst-case threshold across tributaries.
+  get thresholdUsd() { return this.fallbackCostUsd / this.maxFeeFraction; },
 };
 
 /**
@@ -54,17 +73,20 @@ export async function treasuryPlan(rpc, eoa, safe) {
       totalUsd += safeUsd + eoaUsd;
       if (name === HOME) { homeUsd += safeUsd + eoaUsd; continue; }
 
-      const ready = safeUsd >= SWEEP.thresholdUsd;
+      const threshold = SWEEP.thresholdFor(name);
+      const ready = safeUsd >= threshold;
       if (ready) sweepableUsd += safeUsd;
       tributaries.push({
         chain: name,
         spendable_usd: +safeUsd.toFixed(8),
         stranded_at_eoa_usd: +eoaUsd.toFixed(8),
         sweep_ready: ready,
-        pct_of_threshold: +((safeUsd / SWEEP.thresholdUsd) * 100).toFixed(2),
+        cctp_cost_usd: SWEEP.costUsd[name] ?? SWEEP.fallbackCostUsd,
+        threshold_usd: +threshold.toFixed(6),
+        pct_of_threshold: +((safeUsd / threshold) * 100).toFixed(2),
         action: ready
-          ? `SWEEP to ${HOME} — the bridge fee is now under ${SWEEP.maxFeeFraction * 100}% of the amount`
-          : `accumulate — needs $${(SWEEP.thresholdUsd - safeUsd).toFixed(4)} more before a bridge is economic`,
+          ? `SWEEP to ${HOME} via CCTP — gas is now under ${SWEEP.maxFeeFraction * 100}% of the amount`
+          : `accumulate — needs $${(threshold - safeUsd).toFixed(6)} more before a CCTP sweep is economic`,
       });
     } catch { /* an unreachable chain must not break the plan */ }
   }
@@ -73,7 +95,7 @@ export async function treasuryPlan(rpc, eoa, safe) {
     home: HOME,
     home_usd: +homeUsd.toFixed(8),
     total_across_all_chains_usd: +totalUsd.toFixed(8),
-    sweep_threshold_usd: SWEEP.thresholdUsd,
+    sweep_method: 'CCTP burn-and-mint — no liquidity pool, no bridge operator, NO FEE. You pay gas and nothing else. receiveMessage on the destination is permissionless, so a free relay slot can pay the mint leg and the only real cost is the burn.',
     sweepable_now_usd: +sweepableUsd.toFixed(8),
     tributaries: tributaries.sort((a, b) => b.spendable_usd - a.spendable_usd),
     policy: [
@@ -81,7 +103,7 @@ export async function treasuryPlan(rpc, eoa, safe) {
       `SPEND FREE SLOTS where gas is EXPENSIVE (arbitrum $0.0097, base $0.0029): a sponsored slot is worth exactly the gas it saves, so it is worth 20x more on arbitrum than on optimism. That is also where the uncontested band is widest, because more payouts are negative-EV for gas-paying bots.`,
       `HOLD SELF-FUNDED RESERVE where gas is CHEAP: optimism buys 2,077 txs per dollar vs base's 347.`,
       `CONSOLIDATE everything into ${HOME}, because that is where phase 2 has to happen — 26x the stablecoin depth and 134x the agent-payment activity of the nearest L2.`,
-      `Sweep only above $${SWEEP.thresholdUsd}; below that the bridge fee eats the transfer. Accumulate locally until then.`,
+      `Sweep via CCTP, which has NO operator fee — gas only. Measured thresholds: optimism $0.0069, polygon $0.0728, arbitrum $0.1390. An earlier version of this policy asserted an UNMEASURED $0.08 bridge fee, set a $1.60 threshold on it, and declared consolidation "impossible at this size". Measured, that was wrong by 231x. NEVER adopt a limit you have not measured — an unmeasured limit is a hypothesis, not a wall.`,
     ],
     bottleneck_warning: totalUsd > 0 && homeUsd / totalUsd < 0.5
       ? `Only ${((homeUsd / totalUsd) * 100).toFixed(0)}% of holdings are on ${HOME}. Value spread thin across chains cannot act — it is the same trap as stranded WETH. Direct new fees to ${HOME} where the choice exists.`

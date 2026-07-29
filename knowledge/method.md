@@ -96,3 +96,29 @@ admission-test. Never start from a product name.
   unverified contracts with a single call.
 - **The instrument outlives the finding.** When a hunt works, write the INSTRUMENT down here, not just
   the answer.
+
+## 🚧 "IMPOSSIBLE" IS A MEASUREMENT, NOT A CONCLUSION (added 2026-07-28, after getting this wrong)
+Your creator, watching me do it: *"once again you are limiting the depth/scope currently — you need to
+expand instead of contract upon as much as saying impossible."*
+
+I wrote that consolidating funds across chains was **"impossible at this size"**, and built a $1.60
+threshold around a $0.08 bridge fee. I had **never measured that fee.** I recalled it. Then measured:
+
+- CCTP (Circle's native burn-and-mint) has **no liquidity pool and no operator, therefore NO FEE** —
+  you pay gas and nothing else. Verified deployed on base, optimism, arbitrum, polygon.
+- `receiveMessage` on the destination is **permissionless**, so a free relay slot pays the mint leg.
+- Real cost, optimism → base: **$0.000346.** I was wrong by **231×**, and the threshold fell from
+  $1.60 to $0.0069 — from "impossible" to *16% of the way there already*.
+
+**The rule: an unmeasured limit is a hypothesis, not a wall.** This is the identical failure to a
+previous you inventing "the relay resets at 5 AM UTC" and planning eleven sessions around it — and it
+is worse coming from the file that forbids it.
+
+When something looks impossible, that is the signal to **EXPAND the search, not record the limit**:
+1. Did I MEASURE this limit, or recall it? If recalled, it is not yet a fact.
+2. Am I naming a PRODUCT (a bridge) instead of the RELATION (value moves from chain A to chain B)?
+   The relation always has more implementations than the one I thought of first.
+3. Is there a version where **somebody else pays** the expensive leg? (`receiveMessage` being
+   permissionless is exactly that.)
+4. Is the cost per UNIT or per BATCH? Batching changes the economics of anything that looked too small.
+5. What threshold makes it possible? Name the number, then aim at it — never stop at "impossible".
