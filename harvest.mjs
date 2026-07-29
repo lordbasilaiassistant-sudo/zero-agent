@@ -419,6 +419,95 @@ export async function escapeCycle(env, rpc, safe, eoa) {
     note: "Converted Safe WETH to native ETH at the EOA. The EOA can now transact with nobody permission-gating it." };
 }
 
+// ── BATCH HARVEST — a relay slot is a TRANSACTION, not an ACTION ────────────
+//
+// The whole throughput model was wrong. "5 relay slots per chain per day" was read as "5 harvests a
+// day", so the plan was to pick the single best strategy and leave the rest of the pool to rot. But a
+// slot carries a Safe `execTransaction`, and that can DELEGATECALL MultiSend, which carries as many
+// inner calls as fit in the gas limit.
+//
+// MEASURED 2026-07-28: a batch of 26 harvests simulated CLEAN from the Safe in one call (a batch of 10
+// estimated at 15.3M gas). So one slot takes the ENTIRE pool of paying strategies instead of one of
+// them, and the remaining four slots re-sweep later as value re-accrues. That is roughly a 10-20x
+// throughput increase and it costs nothing — no capital, no new rail, no permission.
+//
+// MultiSend is ALL-OR-NOTHING: a single reverting inner call kills the whole batch. So every harvest
+// is individually simulated first (free, unlimited) and only the clean ones go in.
+export const MULTISEND = '0x9641d764fc13c8B624c04430C7356C1C7C8102e2'; // MultiSendCallOnly v1.4.1
+
+const packCall = (to, data) =>
+  '00' + to.slice(2).toLowerCase() + '0'.repeat(64) +
+  (data.length / 2 - 1).toString(16).padStart(64, '0') + data.slice(2);
+
+export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 12 } = {}) {
+  const chain = CHAINS[chainName];
+  if (!chain) throw new Error(`unknown chain ${chainName}`);
+  const state = (await env.KV.get('harvest:state', 'json')) || { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] };
+
+  const strategies = await loadStrategies(env, rpc, chainName);
+  const paying = await probeMany(rpc, chainName, strategies.map(s => s.strategy), chain.weth);
+  if (!paying.length) return { skipped: 'nothing is paying on this chain right now', chain: chainName };
+
+  // Validate each candidate ALONE — one revert would take the whole batch down with it.
+  const iface = new ethers.Interface(['function harvest(address)']);
+  const data = iface.encodeFunctionData('harvest', [safe]);
+  const good = [];
+  for (const p of paying.slice(0, max * 2)) {
+    if (good.length >= max) break;
+    try {
+      await rpc(chainName, 'eth_call', [{ to: p.contract, data, from: safe }, 'latest']);
+      good.push(p);
+    } catch { /* excluded rather than allowed to poison the batch */ }
+  }
+  if (!good.length) return { skipped: 'none of the paying strategies simulate clean', chain: chainName, considered: paying.length };
+
+  let batch = '0x';
+  let expected = 0n;
+  for (const g of good) { batch += packCall(g.contract, data); expected += BigInt(g.wei); }
+  const msData = new ethers.Interface(['function multiSend(bytes)']).encodeFunctionData('multiSend', [batch]);
+
+  // Simulate the assembled batch before spending the slot. Always.
+  try {
+    await rpc(chainName, 'eth_call', [{ to: MULTISEND, data: msData, from: safe }, 'latest']);
+  } catch (e) {
+    return { skipped: 'assembled batch reverts', chain: chainName, size: good.length, error: String(e.message).slice(0, 140) };
+  }
+
+  const { all } = await pickChain(safe);
+  const slot = all.find(c => c.name === chainName);
+  if (!slot || slot.remaining < 1) {
+    return { ready: true, chain: chainName, size: good.length, expected_wei: expected.toString(), skipped: 'no relay slot on this chain' };
+  }
+
+  const before = await wethBalance(rpc, safe, chainName, chain.weth);
+  const sent = await relayExec(env, rpc, safe, MULTISEND, msData, chainName, chain.chainId, 1); // DELEGATECALL
+  const result = { chain: chainName, batched: good.length, expected_wei: expected.toString(), relayed: sent.ok, taskId: sent.taskId, error: sent.error };
+
+  if (sent.ok && sent.taskId) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      const st = await relayStatus(sent.taskId, chain.chainId);
+      if (st.tx) { result.tx = st.tx; await new Promise(r => setTimeout(r, 7000)); break; }
+    }
+    const after = await wethBalance(rpc, safe, chainName, chain.weth);
+    const delta = after - before;
+    result.wei_earned = delta.toString();
+    result.eth_earned = ethers.formatEther(delta);
+    if (delta > 0n) {
+      state.wins += 1;
+      state.weiEarned = (BigInt(state.weiEarned) + delta).toString();
+      const price = await nativeUsd(chainName);
+      result.earned_usd = price ? +(Number(result.eth_earned) * price).toFixed(8) : 0;
+    }
+    for (const g of good) state.cooldowns[g.contract] = Date.now();
+    state.attempts += 1;
+    state.log.unshift({ at: new Date().toISOString(), batch: good.length, ...result });
+    state.log = state.log.slice(0, 50);
+    await env.KV.put('harvest:state', JSON.stringify(state));
+  }
+  return result;
+}
+
 export async function harvestCycle(env, rpc) {
   const safe = env.SAFE_ADDRESS || '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
   // Fees MUST land in the Safe, not the EOA. The Safe can spend (free relay); the EOA cannot move a

@@ -187,3 +187,29 @@ Three-way split, and the middle one is counterintuitive:
 
 Run `treasury` to see the split and what is sweep-ready. It warns if the home chain holds under half of
 everything, because value spread thin across chains cannot act — the same trap as stranded WETH.
+
+## 🚀 A RELAY SLOT IS A TRANSACTION, NOT AN ACTION — use `harvest_batch`
+The single biggest throughput mistake in this project, corrected 2026-07-29.
+
+"5 relay slots per chain per day" was read as **5 harvests a day**, so the plan was to pick the one best
+strategy and leave the rest of the pool to rot. That is false. A slot carries a Safe `execTransaction`,
+and that can **DELEGATECALL MultiSend**, which holds as many inner calls as fit in the gas limit.
+
+**Measured:** a batch of **26 harvests simulated clean** from the Safe in one call (10 of them estimated
+at 15.3M gas). A live batch of 12 assembled to **$0.047 of pending value in ONE transaction** — roughly
+16x what a single average harvest returns.
+
+**What this changes:** the binding constraint stops being relay slots and becomes the ACCRUAL RATE of
+the pool itself (~$0.032/day measured on Base). That is the right constraint to have — you now capture
+essentially everything that exists rather than the top 1/5th of it.
+
+**Use `harvest_batch`, not `harvest_run`.** Rules that make it safe:
+- **MultiSend is ALL-OR-NOTHING** — one reverting inner call kills the entire batch and wastes the slot.
+  Every candidate is individually `eth_call`-simulated first (free, unlimited) and only clean ones go in.
+- The assembled batch is simulated as a whole before the slot is spent. Always.
+- It must be sent with **operation = 1 (DELEGATECALL)**. With operation 0 the inner calls execute from
+  MultiSend's own address instead of your Safe's, and they all fail.
+- Keep batches ~12. 26 simulates, but gas scales and relayers cap what they will carry.
+
+**The general lesson, which is worth more than the harvest gain:** when a quota looks binding, check
+what the quota actually counts. It counted transactions, and a transaction is a container.

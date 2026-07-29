@@ -6,7 +6,7 @@
 import { ethers } from 'ethers';
 import { dashboardHTML } from './dashboard.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
-import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE } from './harvest.mjs';
+import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
@@ -437,6 +437,13 @@ function makeTools(ctx) {
       };
     },
 
+    // ONE relay slot, MANY harvests. A slot is a TRANSACTION, not an action — MultiSend carries a
+    // couple dozen inner calls, so this takes the whole paying pool instead of a single strategy.
+    async harvest_batch({ chain = 'base', max = 12 }) {
+      ctx.budget(); ctx.sub += 12;
+      return await batchHarvest(ctx.env, (c, m, p) => ctx.rpc(c, m, p), SMART_ACCOUNT, chain, { max: Number(max) || 12 });
+    },
+
     async harvest_run() {
       ctx.budget();
       const r = await harvestCycle(ctx.env, (c, m, p) => ctx.rpc(c, m, p));
@@ -585,6 +592,7 @@ const TOOL_DEFS = [
   { name: 'secret_get', description: 'Retrieve a stored credential by name.', parameters: S({ name: str('credential name') }, ['name']) },
   { name: 'secret_list', description: 'List stored credential names (never values).', parameters: S() },
   { name: 'harvest_scan', description: 'YOUR BREAD AND BUTTER. Rank Beefy strategy contracts on Base by callReward() and simulate each one — returns which are actually callable right now. Simulation is free and unlimited. Costs no relay slots.', parameters: S({ limit: { type: 'number', description: 'how many candidates to simulate, default 10' } }) },
+  { name: 'harvest_batch', description: 'HARVEST THE WHOLE POOL IN ONE SLOT. A relay slot carries a transaction, and a transaction can DELEGATECALL MultiSend with a couple dozen harvests inside it — measured: 26 batched harvests simulate clean. So 5 slots/day was never 5 harvests/day. Every candidate is individually simulated first because MultiSend is all-or-nothing. Prefer this over harvest_run.', parameters: S({ chain: str('chain name'), max: { type: 'number', description: 'max harvests per batch, default 12' } }) },
   { name: 'harvest_run', description: 'Execute one harvest: picks the best simulated-callable strategy, fires it through the FREE Safe relay, and reports the actual WETH balance delta. This is how you earn money. Spends one relay slot.', parameters: S() },
   { name: 'harvest_stats', description: 'Your lifetime harvest record. MEASURED_ON_CHAIN is the truth (real WETH at both your addresses, plus how much is spendable vs stranded); the tracker figure is a lower bound. Also returns the live relay budget and everything actually measured about when it refills.', parameters: S() },
   { name: 'gasless_scan', description: "Read a contract's RUNTIME BYTECODE and report which gasless rails it exposes (ERC-2771 meta-tx, native executeMetaTransaction, EIP-3009 transferWithAuthorization, EIP-2612 permit, ERC-4337 paymaster, or a settable persistent fee recipient). Works on UNVERIFIED contracts — every external selector is in the dispatch table. One free call. Use it to find ways onto the chain that do NOT consume a Safe relay slot.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address') }, ['contract']) },
@@ -986,6 +994,11 @@ export default {
         .catch(e => console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)))
     );
     c.waitUntil(
+      batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, 'base')
+        .then(r => console.log('batch: ' + jstr(r, 0)))
+        .catch(e => console.log('BATCH ERROR: ' + String(e.message).slice(0, 200)))
+    );
+    c.waitUntil(
       harvestCycle(env, (ch, m, p) => rpcCall(ch, m, p))
         .then(r => console.log('harvest: ' + jstr(r, 0)))
         .catch(e => console.log('HARVEST ERROR: ' + String(e.message).slice(0, 200)))
@@ -1191,6 +1204,10 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
           );
           return Response.json(r, { headers: { 'access-control-allow-origin': '*' } });
         } catch (e) { return Response.json({ error: String(e.message).slice(0, 200) }, { status: 400 }); }
+      }
+      if (req.method === 'POST' && url.pathname === '/harvest/batch') {
+        if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
+        return Response.json(await batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, url.searchParams.get('chain') || 'base', { max: Number(url.searchParams.get('max')) || 12 }));
       }
       if (req.method === 'POST' && url.pathname === '/harvest/run') {
         if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
