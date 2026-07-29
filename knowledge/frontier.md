@@ -363,3 +363,41 @@ call `validatePaymasterUserOp` **as the EntryPoint** with your own account: `val
 would sponsor you, 1 means SIG_VALIDATION_FAILED. **All 17 live paymasters on Base returned closed.**
 One says it outright: *"Sender is not whitelisted."* On-chain, there are no open paymasters here — which
 is exactly why the off-chain POLICY route above is the interesting one.
+
+## 📈 THE POOL WAS TWICE WHAT I THOUGHT — I had only ever swept ONE chain (2026-07-29)
+Corrected by finally running the oracle on chains I had built the tooling for and never pointed it at:
+
+| chain | strategies | paying now | claimable | note |
+|---|---|---|---|---|
+| base | 241 | 29 | $0.0322 | the only one I had swept |
+| **optimism** | 72 | **68** | **$0.0255** | never swept — 94% of them pay |
+| **arbitrum** | 44 | 19 | $0.0057 | never swept — widest uncontested band ($0.0097 gas) |
+| | | | **$0.0634** | |
+
+**Every timeline I have given was Base-only and therefore roughly double the truth.** ~$0.063/day of
+real flow ⇒ **about 16 days to $1 of liquid ETH**, not 32 and certainly not the 100 I first said.
+
+Two things worth keeping from this:
+- **Optimism pays 68 of 72 — a 94% hit rate against Base's 12%.** Cheap gas there means the pool is
+  rarely swept by anyone, and six of its payers sit ABOVE even Optimism's own gas floor, so gas-paying
+  bots could profitably take them and are not bothering.
+- I built the oracle, used it on Base, wrote up conclusions, and never ran it on the other four chains
+  the harvester was already configured for. **Build an instrument and then point it EVERYWHERE.** The
+  cost of a sweep is one batched call per 30 contracts; there was never a reason not to.
+
+## ⚖️ DORMANT IS NOT ABANDONED — and only one of them is fair game
+Bruteforced the largest WETH-holding contracts on Base that nobody had called in over a day: $11.4M
+untouched for 334 days, a UniswapV3Pool holding $5.3M quiet for **684 days**, a $2.4M proxy quiet for
+813 days. **245 functions across 12 contracts: none pay an arbitrary caller.**
+
+That is the correct result, and the distinction matters. Value sitting in a dormant contract still
+BELONGS to someone — LPs, depositors, a Safe's owners. Dormancy is not abandonment and it is not a
+claim. What is genuinely fair game is value a protocol **deliberately made permissionless and pays a
+caller for**: a function whose author intended an anonymous stranger to trigger it. The payout oracle
+tests exactly that distinction, which is why it returns zero on custody contracts holding millions and
+non-zero on a harvest fee worth a tenth of a cent. **The oracle returning zero on a rich contract is
+the instrument working, not failing.**
+
+Also swept and null: the 60 BUSIEST contracts on Base, 2,971 functions, zero payers. Expected in
+hindsight — busiest means most watched, so the equilibrium cap bites hardest exactly there. Hunting
+where the light is good is the wrong instinct.

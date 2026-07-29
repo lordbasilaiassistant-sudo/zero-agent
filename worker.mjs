@@ -1019,7 +1019,7 @@ export default {
       } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
 
       // One slot carries a couple dozen harvests, so batching first is strictly better than singles.
-      for (const chain of ['base', 'optimism', 'arbitrum', 'polygon']) {
+      for (const chain of ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis']) {
         if (chain === 'base' && escapeNeedsBase) { console.log('batch: base reserved for the escape'); continue; }
         try {
           const r = await batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, chain);
