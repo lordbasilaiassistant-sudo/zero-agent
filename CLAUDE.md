@@ -97,11 +97,55 @@ own account: `pm_getPaymasterData` → *"token balance lower than the required 0
 - Why it can't just earn the gas instead: bundler/paymaster/solver/keeper all require ETH working capital
   up front. Running a paymaster for other broke agents is a genuine future business once it has inventory.
 
-## Status (2026-07-27)
-- Cloud v0.3 live, 17/17 local selftest green, sessions 1-4 run. Balance still $0.00 — no route has paid.
-- Platform intel: Taskmarket (machine-auth, capital-gated ~$1 USDC), Agent Bounties (machine-native,
-  $0.01 claim bond, cold start — zero settlements ever), ClawTasks (machine-auth, API fully down/500s).
-- ZERO's own CAPABILITY REQUEST in `recovery.md`: it needs a first cent; every venue found so far has an
-  entry fee. Research in flight on zero-capital machine-auth routes and keyless gas sponsorship.
-- v2 backlog: browser+vision tool (GLM-4.5V), agent-readable mailbox (zero@broke2builtai.com already
-  receives via catch-all), premium live dashboard, AIIM gig rail.
+## ⚠️ THE RULE THAT KEEPS COSTING US — a recalled number is not a measured number
+Every wall this project has hit was an unverified belief, not a real limit. Each of these was stated
+confidently and was wrong:
+
+| claim | reality | error |
+|---|---|---|
+| "cheapest bridge ~$0.08, consolidation impossible" | CCTP, gas only, $0.000346 | **231×** |
+| "5 relay slots = 5 harvests/day" | a slot is a TRANSACTION; 26 batch clean | **26×** |
+| "$0.01/day, so 100 days to $1" | measured $0.032/day | **3×** |
+| ZERO's "relay resets at 5 AM UTC" | never measured, invented | 11 dead sessions |
+| `callReward()` = $615 · `maxRewards()` = $63 | paid $0.0001 · paid $0.00 | 8,527,792× |
+
+**Before writing a number, ask: did I MEASURE this or recall it?** If recalled, it is a hypothesis.
+And **"impossible" is a measurement, not a conclusion** — gnosis + polygon sat at 5/5 for the project's
+whole life (10 free tx/day discarded), unichain likewise, and the cron was racing itself for Base slots.
+Every single one was incomplete enumeration.
+
+Two traps that fired repeatedly, so check them by reflex:
+- **A proxy's bytecode has no dispatch table.** Resolve the implementation (EIP-1967 impl slot, BEACON
+  slot → `implementation()`, or a direct `implementation()`). This fired THREE times in one day.
+- **A failed read looks exactly like a null result.** Check for an `error` field before believing an
+  empty answer; re-run a surprising zero against another provider. Fired twice (archive-gated RPC, and
+  38 parallel probes silently rate-limited into a clean-looking zero — probe sequentially).
+
+## The instruments (all free, all unlimited — prefer these over guessing)
+- **`payout_oracle`** — Multicall3 `[bal, fn, bal]`; the delta IS the caller fee. Prices contracts
+  NOBODY has ever called. Spread across known payers was **118×**, so never pick without probing.
+- **`bruteforce`** — recovers a contract's COMPLETE interface from bytecode (every `PUSH4` selector),
+  then prices all of it. Works on unverified contracts.
+- **`harvest_batch`** — one slot, ~12–26 harvests via MultiSend DELEGATECALL. All-or-nothing, so each
+  candidate is simulated alone first.
+- **`gas_sources` / `/gas`** — every route on-chain, admission-tested live. Distinguishes an AUTH wall
+  ("needs an API key" — closed) from a TECHNICAL one ("does not qualify for any public policy" — keep
+  varying the op).
+- **`payout_history`** — settled payouts only. **`experiment` / `/experiments`** — rotating probes of
+  unproven mechanism classes, negatives logged deliberately. **`/train.jsonl`** — labelled corpus.
+
+## Status (2026-07-29)
+- **EARNED FROM ZERO: $0.0192 measured on-chain.** Live on 6 chains (base, optimism, arbitrum, gnosis,
+  polygon, unichain) = 30 free relay tx/day. selftest 20/20.
+- **Phase 0 is measured in SPENDABLE LIQUID ETH: $0.0000 of $1.00.** Lifetime-earned is vanity —
+  $0.0154 is stranded WETH. Flow-bound at ~$0.032/day ⇒ roughly a month, improving as payers are found.
+- **Escape ARMED**, waiting on one Base slot: `WETH.transfer(SwapRouter02)` → `unwrapWETH9(0, EOA)` →
+  the EOA self-unwraps its own $0.0152. A Safe CANNOT unwrap WETH (2300-gas `.transfer` stipend); the
+  router can because it pays with `.call`. Base is now RESERVED for this ahead of any harvest.
+- **The equilibrium cap** (why everything is dust): live keeper bounties get bid down to the gas floor,
+  so labour extraction is capped at ~gas cost. It breaks only at ABANDONMENT. ~2,500 functions
+  bruteforced; only Beefy pays. The unlock is $1, which opens the capital tier at 100–1000×/call.
+- Open lead: Candide's keyless endpoint has PUBLIC gas policies and answers a technical objection, not
+  an auth one — five target shapes probed, none qualify yet.
+- Backlog: browser+vision (GLM-4.5V), agent mailbox (zero@broke2builtai.com already receives),
+  AIIM gig rail, and finding a mechanism class that is not Beefy.
