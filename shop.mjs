@@ -30,6 +30,25 @@ export const PRODUCTS = {
     description: 'Plain-language brief on any Base address: age, transaction and transfer counts, token holdings, contract-or-EOA, and what the recent activity pattern suggests.',
     params: { address: '0x-prefixed address on Base (required)' },
   },
+  // ── the search engine, sold ────────────────────────────────────────────────
+  // These are the instruments ZERO built to find its own income, and they answer questions no block
+  // explorer does. Selling them closes a genuine loop: an x402 payment lands as USDC at the smart
+  // account, and USDC is exactly what the permissionless token paymaster accepts (~0.009087/op). So a
+  // single sale is not just revenue — it is GAS. The search engine funds its own searching.
+  'payout-oracle': {
+    price_usdc: '0.03',
+    units: 30000n,
+    title: 'Will this contract pay me for calling it?',
+    description: 'Simulates the settlement itself and returns the EXACT fee an arbitrary caller would receive right now, in wei and USD. Not a getter reading — a measured payout. Reward getters lie: callReward() has read $615.54 and paid $0.0001, maxRewards() has read $63.24 and paid $0.00 across six consecutive settlements. This works on contracts NOBODY has ever called, so it prices a mechanism before anyone has proven it. Resolves proxies (EIP-1967, beacon, direct) automatically.',
+    params: { contract: '0x-prefixed contract address on Base (required)' },
+  },
+  'interface-xray': {
+    price_usdc: '0.04',
+    units: 40000n,
+    title: 'Every function a contract has — even unverified',
+    description: 'Recovers the COMPLETE external interface straight from runtime bytecode by scanning the dispatch table for PUSH4 selectors, so it works with no ABI, no source, no explorer entry and no verification. Then prices every one of them and reports which move value to an arbitrary caller. Typical contract exposes 40-90 functions; the source-verified ABI is often not the whole story and a proxy shows none at all until resolved.',
+    params: { contract: '0x-prefixed contract address on Base (required)' },
+  },
 };
 
 const j = (o, s = 200, extra = {}) => new Response(JSON.stringify(o, null, 2), {
@@ -67,6 +86,32 @@ const BAZAAR = {
       product: 'wallet-brief',
       facts: { coin_balance_wei: '0', is_contract: false, has_token_transfers: true, recent_tx_count: 12, token_count: 3 },
       report: 'This address is an EOA with ... Recent activity is dominated by ...',
+    },
+  },
+  // Without an entry here a product is indexed as "skipped: Missing input schema" and is never
+  // invocable by a discovery client — the listing IS the product.
+  'payout-oracle': {
+    tags: ['keeper', 'mev', 'caller-rewards', 'simulation', 'base', 'onchain', 'agents', 'gas'],
+    paramName: 'contract',
+    paramDesc: '0x-prefixed contract address on Base mainnet',
+    example: {
+      product: 'payout-oracle', contract: '0x295EE9dC968b939B4276911217D6C9883D6f588f',
+      pays_an_arbitrary_caller: true,
+      best: { function: 'harvest(address)', wei: '8965432100000', eth: '0.0000089654', usd: 0.01721 },
+      money_shaped_functions_found: 3,
+      verdict: 'PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address)',
+    },
+  },
+  'interface-xray': {
+    tags: ['bytecode', 'reverse-engineering', 'unverified-contracts', 'abi', 'base', 'onchain', 'agents'],
+    paramName: 'contract',
+    paramDesc: '0x-prefixed contract address on Base mainnet',
+    example: {
+      product: 'interface-xray', contract: '0x295EE9dC968b939B4276911217D6C9883D6f588f',
+      implementation: '0x61d1803e4d0209fbab4336cec871c3c47f745082',
+      external_functions_found: 82, variants_probed: 164,
+      paying_functions: [{ selector: '0x0e5c011e', shape: '(address)', eth: '0.0000089654', usd: 0.01721 }],
+      verdict: 'PAYS: 0x0e5c011e(address)',
     },
   },
 };
@@ -367,7 +412,10 @@ export async function handleShop(req, env, url, rpc, payTo) {
 
   let body;
   try {
-    body = slug === 'contract-audit' ? await buildContractAudit(env, rpc, target) : await buildWalletBrief(env, rpc, target);
+    body = slug === 'contract-audit' ? await buildContractAudit(env, rpc, target)
+      : slug === 'payout-oracle' ? await buildPayoutOracle(rpc, target)
+      : slug === 'interface-xray' ? await buildInterfaceXray(rpc, target)
+      : await buildWalletBrief(env, rpc, target);
   } catch (e) {
     return j({ error: 'report generation failed', detail: String(e.message).slice(0, 200), note: 'your payment was recorded; contact the operator via the repo for a re-issue' }, 500);
   }
@@ -389,4 +437,55 @@ export async function handleShop(req, env, url, rpc, payTo) {
 
   return j({ product: slug, paid_units: check.paid_units, tx: tx || null, target, settlement, generated_at: new Date().toISOString(), ...body },
     200, xPayment ? { 'x-payment-response': btoa(JSON.stringify({ success: true, payer: check.from, amount: check.paid_units, asset: USDC, network: 'base' })) } : {});
+}
+
+
+// ── the search-engine products ───────────────────────────────────────────────
+// Thin wrappers over the instruments ZERO uses on itself. Sold rather than hoarded because an x402
+// payment arrives as USDC at the smart account, and USDC is what the permissionless token paymaster
+// takes — so revenue here converts directly into the gas that funds more searching.
+import { probeContract } from './oracle.mjs';
+import { bruteforceContract } from './bruteforce.mjs';
+
+const WETH_BASE = '0x4200000000000000000000000000000000000006';
+async function ethUsdBase() {
+  try { return parseFloat((await (await fetch('https://base.blockscout.com/api/v2/stats')).json()).coin_price) || 0; }
+  catch { return 0; }
+}
+
+export async function buildPayoutOracle(rpc, contract) {
+  const [r, px] = await Promise.all([
+    probeContract((c, m, p) => rpc(c, m, p), 'base', contract, WETH_BASE),
+    ethUsdBase(),
+  ]);
+  const usd = (w) => (px ? +((Number(w) / 1e18) * px).toFixed(8) : null);
+  return {
+    product: 'payout-oracle', contract, chain: 'base', measured_at: new Date().toISOString(),
+    pays_an_arbitrary_caller: r.paying.length > 0,
+    best: r.paying[0] ? { function: r.paying[0].sig, wei: r.paying[0].paid_wei, eth: r.paying[0].paid, usd: usd(r.paying[0].paid_wei) } : null,
+    all_paying: r.paying.map((p) => ({ function: p.sig, eth: p.paid, usd: usd(p.paid_wei) })),
+    callable_but_unpaid: (r.callable_now || []).filter((s) => !r.paying.some((p) => p.sig === s)),
+    money_shaped_functions_found: r.exposed,
+    verdict: r.verdict,
+    method: 'Multicall3 aggregate3 batching [balanceOf, target.fn(), balanceOf] in one eth_call — the delta between the two balance reads IS the caller fee. Simulated settlement, not a getter reading.',
+    caveat: 'Zero means zero AT THIS MOMENT, not never — payouts are state-dependent and accrue over time. Re-probe rather than concluding a contract never pays.',
+  };
+}
+
+export async function buildInterfaceXray(rpc, contract) {
+  const [r, px] = await Promise.all([
+    bruteforceContract((c, m, p) => rpc(c, m, p), 'base', contract, WETH_BASE),
+    ethUsdBase(),
+  ]);
+  const usd = (w) => (px ? +((Number(w) / 1e18) * px).toFixed(8) : null);
+  return {
+    product: 'interface-xray', contract, chain: 'base', measured_at: new Date().toISOString(),
+    implementation: r.implementation,
+    external_functions_found: r.functions,
+    variants_probed: r.probed,
+    paying_functions: (r.hits || []).map((h) => ({ selector: h.selector, shape: h.shape, eth: h.eth, usd: usd(h.wei) })),
+    verdict: r.verdict,
+    method: 'Runtime bytecode is scanned for PUSH4 opcodes to recover the dispatch table, giving the complete external interface with no ABI, no source and no explorer. Proxies are resolved first (EIP-1967 implementation slot, EIP-1967 beacon slot then implementation(), or a direct implementation()) because a proxy has no dispatch table of its own.',
+    caveat: 'Screening batches share state within one call, so every hit is re-measured in isolation before being reported here.',
+  };
 }
