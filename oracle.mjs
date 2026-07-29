@@ -135,6 +135,46 @@ export async function probePayout(rpc, chain, contract, sig, token) {
 }
 
 /**
+ * Price MANY CONTRACTS in ONE eth_call. The batch is
+ *     [ bal, c1.fn, bal, c2.fn, bal, c3.fn, bal, ... ]
+ * so each contract's payout is the delta across its own pair of balance reads. This is what makes
+ * "probe everything before spending" affordable inside a Worker: 241 contracts price out in ~10
+ * requests instead of ~1000, and the whole thing still costs nothing.
+ *
+ * Shares state across the batch like any aggregate3, so treat the numbers as a RANKING and re-measure
+ * the winner alone (probePayout) before acting on the amount.
+ */
+export async function probeMany(rpc, chain, contracts, token, sig = 'harvest(address)', per = 30) {
+  const iface = new ethers.Interface([`function ${sig}`]);
+  const data = sig.includes('address')
+    ? iface.encodeFunctionData(sig.split('(')[0], [MULTICALL3])
+    : sel(sig);
+  const out = [];
+  for (let i = 0; i < contracts.length; i += per) {
+    const slice = contracts.slice(i, i + per);
+    const calls = [{ target: token, allowFailure: true, callData: balOf(MULTICALL3) }];
+    for (const c of slice) {
+      calls.push({ target: c, allowFailure: true, callData: data });
+      calls.push({ target: token, allowFailure: true, callData: balOf(MULTICALL3) });
+    }
+    let rows;
+    try {
+      const ret = await rpc(chain, 'eth_call', [{ to: MULTICALL3, data: AGG.encodeFunctionData('aggregate3', [calls]) }, 'latest']);
+      [rows] = AGG.decodeFunctionResult('aggregate3', ret);
+    } catch { continue; }
+    for (let k = 0; k < slice.length; k++) {
+      const before = rows[k * 2], call = rows[1 + k * 2], after = rows[2 + k * 2];
+      if (!call?.success || !before?.success || !after?.success) continue;
+      try {
+        const d = BigInt(after.returnData) - BigInt(before.returnData);
+        if (d > 0n) out.push({ contract: slice[k], wei: d.toString(), sig });
+      } catch { /* skip undecodable */ }
+    }
+  }
+  return out.sort((a, b) => (BigInt(b.wei) > BigInt(a.wei) ? 1 : -1));
+}
+
+/**
  * Sweep every money-shaped function a contract exposes and return whichever actually pay.
  * Entirely free. This is the thing to run across thousands of contracts, forever.
  */

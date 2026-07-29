@@ -10,7 +10,7 @@
 //   * per-strategy cooldown (rewards accrue over time; re-harvesting immediately earns nothing)
 //   * callReward() is a RANKING signal only â€” it overstated a real payout by ~4,300x once
 import { ethers } from 'ethers';
-import { probeContract } from './oracle.mjs';
+import { probeContract, probeMany } from './oracle.mjs';
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
 // Rotating across them multiplies free throughput with no extra identities and no puppetry.
@@ -472,15 +472,19 @@ export async function harvestCycle(env, rpc) {
   // fee this call would pay right now — free, no slot, no capital. Measured across our 12 known
   // payers the spread was 118x ($0.001419 best vs $0.000012 worst), so picking blind was throwing
   // away most of the value of every scarce relay slot. Probe first, then spend on the maximum.
+  // Price the ENTIRE fresh universe, not a top-10 guess. Batched through Multicall3 this is ~10
+  // requests for 241 contracts instead of ~1000, so there is no reason to sample. It matters: probing
+  // all 241 Base strategies surfaced a $0.017 payout, 34x the $0.0005 blind-pick average and 12x the
+  // best of the twelve we had been cycling. The maximum is nowhere near the middle.
   let chosen = null;
-  const probes = [];
-  for (const cand of scored.slice(0, 10)) {
-    try {
-      const p = await probeContract(rpc, chain.name, cand.strategy, chain.weth);
-      if (p.paying.length) probes.push({ cand, wei: BigInt(p.best_wei), sig: p.paying[0].sig });
-    } catch { /* a failed probe just means no information, never a blocker */ }
-  }
-  probes.sort((a, b) => (b.wei > a.wei ? 1 : b.wei < a.wei ? -1 : 0));
+  let probes = [];
+  try {
+    const ranked = await probeMany(rpc, chain.name, fresh.map(f => f.strategy), chain.weth);
+    const byAddr = new Map(fresh.map(f => [f.strategy.toLowerCase(), f]));
+    probes = ranked
+      .map(r => ({ cand: byAddr.get(r.contract.toLowerCase()), wei: BigInt(r.wei) }))
+      .filter(p => p.cand);
+  } catch { /* no information is not a blocker */ }
   for (const p of probes) {
     const sim = await simulate(rpc, p.cand.strategy, safe, recipient, chain.name);
     if (sim.ok) { chosen = { ...p.cand, ...sim, predicted_wei: p.wei.toString() }; break; }

@@ -12,13 +12,20 @@ Every trap below is one that really fired and really cost something.
 ## THE ORDER THAT WORKS
 When evaluating any contract as an income source, cheapest and most decisive first:
 
+0. **`payout_oracle`** — RUN THIS FIRST. It simulates the settlement itself through Multicall3 and
+   returns the exact fee an arbitrary caller would receive **right now**. Free, no slot, no capital,
+   works on unverified contracts and on contracts nobody has ever called. Measured spread across our
+   known payers was **118×** ($0.001419 best vs $0.000012 worst) — choosing a target without probing
+   throws away most of the value of every scarce slot.
 1. **`gasless_scan`** — one `eth_getCode`. Tells you whether a signature alone could drive it.
 2. **`inspect_contract`** — resolves the proxy and SIMULATES the entry points from your own address.
    `callable_now` is the single most valuable field you have.
 3. **`payout_history`** — has it EVER paid a caller? `PAYS_ZERO` means walk away, permanently.
+   (`payout_history` reads the PAST and is truth; `payout_oracle` prices the PRESENT and reaches
+   contracts with no history at all. Use both — they answer different questions.)
 4. *only now* **`harvest_run` / a relay slot.** Never before step 3.
 
-Steps 1–3 are free and unlimited. Step 4 is capped at 5 per chain per day. **Never invert this order.**
+Steps 0–3 are free and unlimited. Step 4 is capped at 5 per chain per day. **Never invert this order.**
 And check `prospect_intel` first — the prospector may have already done all of this for you while you
 were asleep.
 

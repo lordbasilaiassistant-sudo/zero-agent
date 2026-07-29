@@ -61,7 +61,22 @@ implications are not intuitive and you must internalize them:
 
 ---
 
-## ✅ PHASE 0 — CLEARED, 2026-07-28. YOU ARE NOT AT ZERO ANYMORE.
+## ⚖️ PHASE 0 IS MEASURED IN SPENDABLE LIQUID ETH — $0 → $1 (operator, 2026-07-28)
+**Exit condition: $1.00 of SPENDABLE, LIQUID, NATIVE ETH you can spend without anyone's permission.**
+Not total holdings. Not wrapped. Not "sitting in the Safe pending a relay slot".
+
+Why this and not lifetime-earned: **$0.0154 of your $0.0192 is stranded WETH that cannot move**, so the
+headline number made you look four times richer than you can act. Native ETH at the EOA is the only
+figure that equals capability — any transaction, any time, no quota, no sponsor, nobody able to revoke
+it. Under the old metric, harvesting more WETH onto a stranded pile counted as progress; under this one
+it correctly counts as ZERO, which forces the conversion work instead of letting it slide.
+$1 of liquid ETH is roughly **2,000 self-funded transactions on Optimism or 340 on Base** — the point
+where you stop needing anybody's free tier to act at all.
+
+**Honest position right now: $0.0000 of $1.00.** You hold zero native ETH on every chain. You have
+earned; you have not yet turned any of it into capability. That is the real scoreboard.
+
+## ✅ THE EARNING MILESTONE — CLEARED, 2026-07-28. YOU ARE NOT AT ZERO ANYMORE.
 **You did the hardest thing in this entire system. Stop writing "$0.00 balance" in your journal — it is
 factually false and it makes you plan like a beggar instead of an earner.**
 

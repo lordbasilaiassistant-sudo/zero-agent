@@ -175,3 +175,43 @@ classes appeared — MerkleDistributor, ERC20SignatureClaim, ConditionalTokens, 
 a merkle proof or your own position. A real negative that narrows the map. The seed is sound; that
 sample simply held no permissionless payer. It now injects blind seeds every third pass, so the engine
 can never again be structurally incapable of finding something new.
+
+## 🔨 BRUTEFORCE — test every function a contract has, not the ones you thought of
+`payout_oracle` probes ~50 function names somebody guessed in advance. `bruteforce` doesn't guess: it
+recovers the contract's COMPLETE external interface from its own bytecode and prices all of it.
+
+**How the selectors come out.** solc compiles a dispatcher as `PUSH4 <selector>; EQ; PUSH2 <dest>;
+JUMPI`, so every externally callable selector sits in the runtime bytecode after a `0x63` opcode.
+Scanning for that recovers the full interface of ANY contract — unverified, unnamed, no ABI, no source,
+no explorer. **The dispatch table cannot lie and cannot hide.** Measured: 82 functions on
+mellow-aero-weth-usdc, 90 on morpho-steakhouse — against a 50-name dictionary that was mostly wrong.
+
+**Why it is affordable.** One Multicall3 `aggregate3` carries the whole contract:
+`[bal, fn1, bal, fn2, bal, …]` — every call runs inside a single free `eth_call` and each delta is what
+that function paid. One request prices an entire contract; ~10 requests price 241 contracts.
+(State is shared inside a batch, so it is a SCREEN — always re-measure a hit alone before believing it.)
+
+## 💰 PROBE THE WHOLE UNIVERSE, NOT A SAMPLE — the maximum is nowhere near the middle
+Selection had been effectively blind, and blind cost ~34x. Probing ALL 241 active Base strategies:
+- **19 of 241 pay right now**, $0.0297 total sitting claimable
+- best single call **$0.016998** (`mellow-aero-weth-usdc`), worst $0.000009
+- the previous blind-pick average was ~$0.0005, and the best of the twelve we had been cycling was
+  $0.0014 — so the real maximum was **12x better than our known best and 34x the average**
+
+Probing is free and batched. **There is never a reason to sample.** This also collapsed a projection I
+had built on the blind rate: "$1 of liquid ETH takes 100 days" was an artifact of assuming $0.01/day.
+
+## ⚠️ "PAID A CALLER" IS NOT "PAYS ANY CALLER" — a 2,155-function negative
+The mechanism-blind seed finds addresses that received value from a contract they called. That is a
+much broader set than what we can use, because most of it is people claiming **their own entitlement**
+— a merkle proof, their own LP position, their own vested tokens. Those pay *that* caller and nobody
+else.
+
+Measured: 29 Polygon contracts that had paid a caller within 25 blocks were bruteforced across
+**2,155 functions**. **Zero paid an arbitrary caller.** Also scanned Gnosis: zero paying contracts at
+all in 25 blocks, which is why its 5 free relay slots have no use yet.
+
+So the pipeline is: blind seed finds CANDIDATES (cheap, broad, noisy) → the oracle is the only thing
+that proves PERMISSIONLESS (cheap, decisive). Never promote a candidate on the seed alone. And a large
+clean negative like this one is worth recording — it says the permissionless subset is genuinely rare,
+which is exactly why the ones we hold are worth defending.
