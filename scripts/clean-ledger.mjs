@@ -29,9 +29,9 @@ const routes = db.routes || {};
 // under-reported lifetime earnings by ~7%.
 const measured = (await (await fetch(BASE + '/harvest')).json()).MEASURED_ON_CHAIN;
 if (!measured || measured.error) throw new Error('could not read on-chain reconciliation: ' + (measured?.error || 'missing'));
-const totalWei = BigInt(measured.lifetime_earned_wei);
+const totalWei = null; // wei is meaningless across chains now; USD is the only comparable figure
 const measuredUsd = measured.lifetime_earned_usd;
-const price = measured.eth_usd;
+const price = null;
 
 // ARCHIVE, never delete. These entries are wrong as *routes* but they are real things the agent
 // learned and paid rounds to learn. Moving them to `housekeeping` takes them out of the route list

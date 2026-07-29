@@ -37,6 +37,18 @@ const CHAINS = {
     rpcs: ['https://arbitrum-one-rpc.publicnode.com', 'https://arbitrum.drpc.org', 'https://arb1.arbitrum.io/rpc'],
     scout: 'https://arbitrum.blockscout.com', label: 'Arbitrum One (REAL money)',
   },
+  // Added after measuring that these two sat at a full 5/5 relay budget while the other three were
+  // exhausted — ten free transactions a day we had never claimed.
+  gnosis: {
+    chainId: 100,
+    rpcs: ['https://gnosis-rpc.publicnode.com', 'https://rpc.gnosischain.com', 'https://gnosis.drpc.org'],
+    scout: 'https://gnosis.blockscout.com', label: 'Gnosis (REAL money)',
+  },
+  polygon: {
+    chainId: 137,
+    rpcs: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon.drpc.org', 'https://polygon-rpc.com'],
+    scout: 'https://polygon.blockscout.com', label: 'Polygon (REAL money)',
+  },
 };
 
 // Shared by the tool layer and the public status endpoint.
@@ -204,7 +216,7 @@ function makeTools(ctx) {
       if (earned && earnedUsd > 0) {
         out.earnings = {
           lifetime_usd: earnedUsd,
-          lifetime_weth: earned.lifetime_earned_eth,
+          per_chain_priced: earned.per_chain,
           spendable_usd: earned.spendable_usd,
           stranded_on_eoa_usd: earned.stranded_on_eoa_usd,
           per_chain: earned.per_chain,
@@ -1170,7 +1182,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         // just Base understated its real net worth by ~7%. Every chain, or it isn't net worth.
         try {
           const m = await reconcileEarnings(env, (ch, mm, p) => rpcCall(ch, mm, p), address, payTo);
-          balances.all_chains_weth = m.lifetime_earned_eth;
+          balances.all_chains_priced = m.per_chain;
           balances.all_chains_usd = m.lifetime_earned_usd;
           balances.spendable_usd = m.spendable_usd;
           balances.stranded_on_eoa_usd = m.stranded_on_eoa_usd;

@@ -23,6 +23,8 @@ const SCOUT = {
   base: 'https://base.blockscout.com',
   optimism: 'https://optimism.blockscout.com',
   arbitrum: 'https://arbitrum.blockscout.com',
+  gnosis: 'https://gnosis.blockscout.com',
+  polygon: 'https://polygon.blockscout.com',
   'base-sepolia': 'https://base-sepolia.blockscout.com',
 };
 

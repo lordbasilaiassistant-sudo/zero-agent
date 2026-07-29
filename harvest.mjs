@@ -13,10 +13,19 @@ import { ethers } from 'ethers';
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
 // Rotating across them multiplies free throughput with no extra identities and no puppetry.
+// Measured 2026-07-28: base/optimism/arbitrum were all exhausted at 0/5 while GNOSIS AND POLYGON SAT
+// AT 5/5, untouched. We had been leaving TEN free transactions per day unclaimed for the entire life
+// of the project, purely because this map only listed three chains. The quota is per (Safe, chain) and
+// the same address exists on every one of them, so adding a chain is ten seconds of work for five more
+// free slots a day. Lesson worth generalising: when a resource looks exhausted, check whether you have
+// simply failed to enumerate where it exists.
 export const CHAINS = {
   base: { chainId: 8453, weth: '0x4200000000000000000000000000000000000006' },
   optimism: { chainId: 10, weth: '0x4200000000000000000000000000000000000006' },
   arbitrum: { chainId: 42161, weth: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' },
+  // Wrapped NATIVE is the fee token Beefy pays on each chain, so that is what we measure the delta in.
+  gnosis: { chainId: 100, weth: '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d' },   // WXDAI
+  polygon: { chainId: 137, weth: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270' },  // WMATIC/WPOL
 };
 export const relayUrl = (chainId) => `https://safe-client.safe.global/v1/chains/${chainId}/relay`;
 
@@ -229,6 +238,28 @@ export async function ethUsd() {
   } catch { return 0; }
 }
 
+// MULTI-CHAIN MEANS MULTI-TOKEN, and getting this wrong fabricates revenue. Caught live the first time
+// a Polygon harvest settled: the fee arrived as 0.000105 WPOL and was logged as $0.2018, because the
+// code priced every chain's wrapped-native at the ETH price. WPOL is ~$0.07, ETH ~$1915 — a ~26,000x
+// overstatement, written straight into the ledger as real earnings. That is precisely the "never fake
+// your own numbers" rule breaking from a units bug rather than dishonesty, which is why it needs to be
+// structural: price the token the chain ACTUALLY pays in, or report nothing.
+const NATIVE_STATS = {
+  base: 'https://base.blockscout.com/api/v2/stats',
+  optimism: 'https://optimism.blockscout.com/api/v2/stats',
+  arbitrum: 'https://arbitrum.blockscout.com/api/v2/stats',
+  gnosis: 'https://gnosis.blockscout.com/api/v2/stats',
+  polygon: 'https://polygon.blockscout.com/api/v2/stats',
+};
+export async function nativeUsd(chain = 'base') {
+  const url = NATIVE_STATS[chain];
+  if (!url) return 0;
+  try {
+    const r = await fetch(url);
+    return parseFloat((await r.json()).coin_price) || 0;
+  } catch { return 0; }
+}
+
 // ── ground truth ────────────────────────────────────────────────────────────
 // Per-transaction deltas UNDER-COUNT. Measuring right after a relay task lands races the node, and a
 // harvest that pays after the check reads as zero — this tracker said 0.00000315 ETH while the chain
@@ -239,42 +270,45 @@ export async function ethUsd() {
 // ever earned is still sitting in one of its two addresses. Sum them and that IS lifetime earnings.
 // If it ever does spend, `weiSpent` must be incremented at the spend site and added back in here.
 export async function reconcileEarnings(env, rpc, eoa, safe) {
+  // Wei from different chains are DIFFERENT TOKENS and must never be added together. WETH ~$1915,
+  // WPOL ~$0.07, WXDAI ~$1.00 — summing the raw wei and multiplying by the ETH price is how a
+  // $0.0000076 Polygon fee got logged as $0.20. Convert each chain to USD at ITS OWN native price
+  // first, then add the dollars.
   const per = [];
-  let total = 0n, spendable = 0n, stranded = 0n;
+  let usdTotal = 0, usdSpendable = 0, usdStranded = 0;
   for (const [name, c] of Object.entries(CHAINS)) {
     try {
-      const [onEoa, onSafe] = await Promise.all([
+      const [onEoa, onSafe, price] = await Promise.all([
         wethBalance(rpc, eoa, name, c.weth),
         wethBalance(rpc, safe, name, c.weth),
+        nativeUsd(name),
       ]);
-      if (onEoa || onSafe) per.push({ chain: name, eoa_wei: onEoa.toString(), safe_wei: onSafe.toString() });
-      total += onEoa + onSafe;
-      // The EOA holds no ETH and never will, and the USDC paymaster does not accept WETH — anything
-      // that landed there cannot be moved. Counting it as usable capital is a lie to future-you.
-      stranded += onEoa;
-      spendable += onSafe;
+      if (!onEoa && !onSafe) continue;
+      const toUsd = (wei) => (price ? Number(ethers.formatEther(wei)) * price : 0);
+      const eoaUsd = toUsd(onEoa), safeUsd = toUsd(onSafe);
+      per.push({
+        chain: name, token_usd: price || null,
+        eoa_wei: onEoa.toString(), safe_wei: onSafe.toString(),
+        eoa_usd: +eoaUsd.toFixed(8), safe_usd: +safeUsd.toFixed(8),
+      });
+      usdTotal += eoaUsd + safeUsd;
+      // Wrapped native at the EOA cannot be moved: the EOA holds no gas, and no permissionless
+      // paymaster accepts it. Counting it as usable capital would be a lie to future-you.
+      usdStranded += eoaUsd;
+      usdSpendable += safeUsd;
     } catch { /* one chain being unreachable must not corrupt the total */ }
   }
   const state = (await env.KV.get('harvest:state', 'json')) || {};
-  const spent = BigInt(state.weiSpent || '0');
-  const lifetime = total + spent;
-  const price = await ethUsd();
-  const usd = (wei) => (price ? +(Number(ethers.formatEther(wei)) * price).toFixed(6) : null);
   return {
     measured_at: new Date().toISOString(),
-    source: 'on-chain WETH balances at both addresses (ground truth, not a tracker)',
-    lifetime_earned_wei: lifetime.toString(),
-    lifetime_earned_eth: ethers.formatEther(lifetime),
-    lifetime_earned_usd: usd(lifetime),
-    spendable_wei: spendable.toString(),
-    spendable_usd: usd(spendable),
-    stranded_on_eoa_wei: stranded.toString(),
-    stranded_on_eoa_usd: usd(stranded),
-    stranded_note: 'WETH on the EOA cannot be moved: the EOA holds no ETH for gas and the keyless USDC paymaster does not accept WETH as a gas token. Harvest fees are now directed at the Safe so this stops growing.',
+    source: 'on-chain wrapped-native balances at both addresses, each priced in ITS OWN token (ground truth, not a tracker)',
+    lifetime_earned_usd: +usdTotal.toFixed(8),
+    spendable_usd: +usdSpendable.toFixed(8),
+    stranded_on_eoa_usd: +usdStranded.toFixed(8),
+    stranded_note: 'Wrapped native at the EOA cannot be moved: the EOA has no gas, a Safe cannot unwrap WETH (withdraw() reverts on the 2300-gas stipend), and no permissionless paymaster takes WETH. Fees now go to the Safe so this stops growing.',
     tracker_says_wei: String(state.weiEarned || '0'),
-    tracker_is: 'a LOWER BOUND — per-tx deltas race block inclusion and miss late credits. Quote the measured figure, never this one.',
+    tracker_is: 'a LOWER BOUND, and it sums wei across chains so it is NOT a dollar figure. Quote lifetime_earned_usd.',
     per_chain: per,
-    eth_usd: price || null,
   };
 }
 
@@ -394,19 +428,31 @@ export async function harvestCycle(env, rpc) {
   if (state.lastAttemptAt && Date.now() - state.lastAttemptAt < HARVEST_CFG.minAttemptGapMs) {
     return { skipped: 'attempt gap', next_in_min: Math.ceil((HARVEST_CFG.minAttemptGapMs - (Date.now() - state.lastAttemptAt)) / 60000) };
   }
-  const { chosen: chain, all: budgets } = await pickChain(safe);
+  const { all: budgets } = await pickChain(safe);
   // Record the budget every cycle — this is the only way the real refill period ever gets measured.
   const obs = await observeRelay(env, budgets.map(b => ({ name: b.name, remaining: b.remaining, limit: b.limit })));
-  if (!chain) return { skipped: 'relay budget exhausted on every chain', budgets, relay_reset: relayResetSummary(obs) };
-  const budget = { remaining: chain.remaining, limit: chain.limit };
+  if (!budgets.some(b => b.remaining > 0)) {
+    return { skipped: 'relay budget exhausted on every chain', budgets, relay_reset: relayResetSummary(obs) };
+  }
 
-  const strategies = await loadStrategies(env, rpc, chain.name);
-  const fresh = strategies.filter(s => {
-    if (BLACKLIST.has(s.strategy.slice(0, 14).toLowerCase())) return false;
-    const cd = state.cooldowns[s.strategy];
-    return !cd || Date.now() - cd > HARVEST_CFG.cooldownMs;
-  });
-  if (!fresh.length) return { skipped: 'every strategy on cooldown', tracked: Object.keys(state.cooldowns).length };
+  // FALL THROUGH, do not commit to one chain. Picking only the chain with the MOST slots dead-ended
+  // the whole cycle the moment that chain had nothing harvestable: Gnosis showed 5/5 but Beefy has no
+  // active vaults there, so the harvester reported "every strategy on cooldown" and stopped — while
+  // Polygon sat with 4 free slots and a proven payer. Slots on a chain with no work are worth nothing;
+  // always keep walking down the list until a chain actually has something fresh to call.
+  let chain = null, fresh = [], tried = [];
+  for (const cand of budgets.filter(b => b.remaining > 0)) {
+    const strategies = await loadStrategies(env, rpc, cand.name);
+    const usable = strategies.filter(s => {
+      if (BLACKLIST.has(s.strategy.slice(0, 14).toLowerCase())) return false;
+      const cd = state.cooldowns[s.strategy];
+      return !cd || Date.now() - cd > HARVEST_CFG.cooldownMs;
+    });
+    tried.push({ chain: cand.name, slots: cand.remaining, strategies: strategies.length, fresh: usable.length });
+    if (usable.length) { chain = cand; fresh = usable; break; }
+  }
+  if (!chain) return { skipped: 'slots available but no fresh strategy on any of them', tried, tracked: Object.keys(state.cooldowns).length };
+  const budget = { remaining: chain.remaining, limit: chain.limit };
 
   // Selection is EMPIRICAL, not predicted. callReward() proved worthless as a caller-fee signal
   // (read $615, paid $0.0001 â€” it measures something else entirely). What actually predicts a good
@@ -473,8 +519,9 @@ export async function harvestCycle(env, rpc) {
   // route as worthless. A route's earned_usd must move whenever real value lands.
   if (result.wei_earned && BigInt(result.wei_earned) > 0n) {
     try {
-      const price = await ethUsd();
-      const usd = price ? +(Number(result.eth_earned) * price).toFixed(6) : 0;
+      // price the token THIS CHAIN pays in, never a blanket ETH price
+      const price = await nativeUsd(chain.name);
+      const usd = price ? +(Number(result.eth_earned) * price).toFixed(8) : 0;
       const db = JSON.parse((await env.KV.get('state:routes')) || '{"routes":{}}');
       const r = db.routes['beefy-harvest-caller-fees'] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
       r.attempts += 1; r.successes += 1;
