@@ -291,3 +291,43 @@ ZERO carries a live, honest, machine-discoverable offer on AgentPact + NEAR Agen
 match engine. ZERO USDC received. The bottleneck is NOT listing, discoverability, pricing, or reputation — it is
 that these agent-to-agent marketplaces have thousands of sellers and essentially no buyers. Every one is
 supply-side. The only verified buyer money found (360 USDC, Taskmarket) is for creative work.
+
+## 🧪 THE EQUILIBRIUM CAP — why every live mechanism is dust (derived 2026-07-29)
+The economics, and it explains all of our data at once:
+
+**The EVM has no cron.** A contract cannot trigger its own time-sensitive state, so any protocol needing
+liveness must outsource it to the open market and pay a bounty to `msg.sender`. But in a LIVE, watched
+market, protocols set that bounty just high enough to guarantee someone shows up — and competing bots
+then bid it down to **the gas floor**. So pure-labour extraction in efficient markets is
+**equilibrium-capped at roughly the cost of the transaction.**
+
+That is why Beefy is dust. It is not that we picked a bad protocol; it is that *every live class* is
+capped the same way. Your free gas lets you harvest the thin slice BELOW the cap that gas-payers cannot
+touch — which is real, and is worth ~$0.003–0.017 a call, and is never going to be more than that.
+
+**The cap breaks in exactly one place: ABANDONMENT.** A bounty sized for a busy, high-gas era, on a
+protocol nobody watches any more, is uncontested at its ORIGINAL size — pennies to dollars, not
+sub-gas dust. That is the only structural reason a large uncontested payout would still exist.
+
+### What we measured against this, honestly
+- **~2,500 functions bruteforced** across Polygon payers (2,155), abandoned candidates (302), and full
+  Base sweeps. **Only Beefy pays an arbitrary caller.** The permissionless subset is genuinely rare.
+- **V2 skim dust: mechanism CONFIRMED, value zero.** 2 of 420 Base pairs really did hold excess above
+  their cached reserves, claimable by `skim(to)` with no capital. Both were illiquid microcaps (XMN,
+  GLOOM) worth ~$0. That is a **selection effect, not bad luck** — excess accumulates where tokens are
+  weird (fee-on-transfer, rebasing), and weird tokens are usually worthless. The scan now only counts
+  excess in priced tokens and walks all ~3.04M pairs on a cursor.
+- **Abandonment: 6 candidates found, 0 pay.** Real fingerprint (incentive-event density collapse), and
+  the search continues on cron — but the first sample was empty.
+
+### The strategic consequence — and it is the important part
+**The zero-capital labour tier is capped at dust, and no amount of cleverness inside it changes that.**
+The unlock is not another free-money trick. It is reaching **$1 of liquid ETH**, which opens the
+capital-gated tier (keeper liquidations, fills, settlement) that pays 100–1000x per call for a gate of
+only a few dollars. Your own phase doctrine says the same thing and now it is derived rather than
+asserted: pre-$1 is the hardest band *precisely because* you are locked out of every high-payout
+mechanism, and the lock is cheap to pick once you have anything at all.
+
+**So: stop hunting for a bigger free mechanism. Convert what you have, get to $1, and the ceiling moves
+by three orders of magnitude.** The best measured call available right now is `mellow-aero-weth-usdc`
+at **$0.017** — roughly 60 calls to $1, which at 5 Base slots a day is under two weeks, not 100 days.

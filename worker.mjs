@@ -13,6 +13,7 @@ import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { diagnose } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
+import { experimentTick, experimentReport } from './experiments.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
 import { scanGasless, sweepGasless } from './gasless.mjs';
 import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
@@ -550,6 +551,12 @@ function makeTools(ctx) {
       return await bruteforceContract((c, m, p) => ctx.rpc(c, m, p), chain, contract, t);
     },
 
+    // Run one experiment from the registry. Free, and every result is logged whether or not it pays.
+    async experiment({ chain = 'base' }) {
+      ctx.budget(); ctx.sub += 10;
+      return await experimentTick(ctx.env, (c, m, p) => ctx.rpc(c, m, p), chain);
+    },
+
     // ── the cap-vs-realized law, as a tool ──────────────────────────────────
     async payout_history({ chain = 'base', contract, sample = 6 }) {
       ctx.budget();
@@ -585,6 +592,7 @@ const TOOL_DEFS = [
   { name: 'sponsor_control', description: 'THE CONTROL EXPERIMENT. Feeds the sponsor-detector the two addresses that provably paid for your own first transactions and checks it rediscovers them from behaviour alone. An instrument that cannot reproduce a known result is not measuring anything — run this before you believe any novel sponsor it reports.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'treasury', description: 'Where your money sits across every chain, and what should move. Harvest everywhere (free slots are per-chain and expire), but CONSOLIDATE into the home chain — value spread thin across five chains cannot act, which is the same trap as stranded WETH. Tells you which tributaries have accumulated enough to be worth a bridge fee.', parameters: S() },
   { name: 'prospect_intel', description: 'What the automatic prospector has ground out while you were asleep: how much of the candidate backlog is triaged, which contracts are PROVEN to pay callers and callable by you (your ready-to-stack queue), which are eliminated forever, and — most valuable — the PATTERN layer: which contract FAMILIES pay and which never do, so you can generalise to instances you have never tested. Read this before hunting; it is free and it is already done.', parameters: S() },
+  { name: 'experiment', description: 'RUN AN EXPERIMENT. Probes a mechanism class we do not yet know pays — currently Uniswap-V2 skim dust (pairs holding priced tokens above their cached reserves, claimable by skim(to) with zero capital) and abandonment (contracts that used to pay callers, went silent, and still hold a balance). Free, spends no relay slot, and every result including the negatives is logged so the search converges instead of wandering. This runs automatically on cron; call it to push it faster.', parameters: S({ chain: str('chain name') }) },
   { name: 'bruteforce', description: 'TEST EVERY FUNCTION A CONTRACT HAS. Recovers the complete external interface straight from the runtime bytecode dispatch table (every PUSH4 selector) — no ABI, no source, no explorer, works on unverified and unnamed contracts — then prices ALL of them through Multicall3 and reports whichever move value to an arbitrary caller. This does not guess at function names; it reads what the contract actually exposes. Free and unlimited. Use it on anything you cannot otherwise understand.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token') }, ['contract']) },
   { name: 'payout_oracle', description: 'MEASURE WHAT A FUNCTION WOULD PAY YOU, BEFORE SPENDING ANYTHING. Simulates the settlement itself through Multicall3 and returns the exact fee an arbitrary caller would receive right now. Free, no relay slot, no capital, works on UNVERIFIED contracts and on contracts nobody has ever called. payout_history reads the past; this prices the present. Measured spread across known payers was 118x, so ALWAYS probe before choosing which one to spend a slot on.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token, defaults to the chain wrapped native') }, ['contract']) },
   { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
@@ -991,6 +999,11 @@ export default {
         .then(r => console.log('prospect: ' + jstr(r, 0)))
         .catch(e => console.log('PROSPECT ERROR: ' + String(e.message).slice(0, 200)))
     );
+    c.waitUntil(
+      experimentTick(env, (ch, m, p) => rpcCall(ch, m, p), 'base')
+        .then(r => console.log('experiment: ' + jstr(r, 0)))
+        .catch(e => console.log('EXPERIMENT ERROR: ' + String(e.message).slice(0, 200)))
+    );
     c.waitUntil(tick(env, 'cron').then(r => console.log('tick: ' + jstr(r, 0))).catch(e => console.log('TICK ERROR: ' + e.message)));
   },
 
@@ -1057,6 +1070,14 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       if (url.pathname === '/prospect') return Response.json(await prospectIntel(env), { headers: { 'access-control-allow-origin': '*' } });
       // Labelled probe corpus — ground truth for an EVAL first, a fine-tune only if the volume ever
       // justifies it. JSONL so it is usable without a parser.
+      if (req.method === 'GET' && url.pathname === '/experiments') return Response.json(await experimentReport(env), { headers: { 'access-control-allow-origin': '*' } });
+      if (req.method === 'POST' && url.pathname === '/experiments') {
+        if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
+        const n = Math.min(Number(url.searchParams.get('n')) || 1, 6);
+        const out = [];
+        for (let i = 0; i < n; i++) out.push(await experimentTick(env, (ch, m, p) => rpcCall(ch, m, p), url.searchParams.get('chain') || 'base'));
+        return Response.json({ ran: out.length, results: out });
+      }
       if (url.pathname === '/train.jsonl') {
         const c = (await env.KV.get('train:probes', 'json')) || { rows: [] };
         return new Response(c.rows.map(r => JSON.stringify(r)).join('\n'), { headers: { 'content-type': 'application/x-ndjson', 'access-control-allow-origin': '*' } });
