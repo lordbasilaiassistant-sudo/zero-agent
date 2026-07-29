@@ -96,6 +96,35 @@ export async function prospectTick(env, fetcher) {
   f.pays = Object.values(state.candidates).filter(x => (x.family || familyOf(x.name)) === (c.family || familyOf(c.name)) && x.payout_verdict === VERDICT.PAYS).length;
   f.zero = Object.values(state.candidates).filter(x => (x.family || familyOf(x.name)) === (c.family || familyOf(c.name)) && x.payout_verdict === VERDICT.ZERO).length;
 
+  // EVERY PROBE IS A LABELLED EXAMPLE, so stop throwing them away. Each triage produces
+  // (chain, contract, implementation, family, callable, verdict, real settled amount) with GROUND
+  // TRUTH attached — measured on-chain, not annotated by anyone. We have already generated thousands
+  // of these and discarded them.
+  //
+  // This is not a fine-tuning set yet and should not be pitched as one: ~30 real lessons is a prompt,
+  // not a dataset, and everything we have learned so far belongs in code (a guard cannot be ignored;
+  // a weight can). But the corpus is free to collect and compounds while the prospector runs anyway.
+  // Its FIRST use is an eval, not a fine-tune: a labelled set of "does this contract pay an arbitrary
+  // caller" is exactly how you measure whether ANY model — or any heuristic — is good at this, which
+  // is the question you must answer before it is worth training one.
+  try {
+    const corpus = (await env.KV.get('train:probes', 'json')) || { n: 0, rows: [] };
+    corpus.rows.unshift({
+      at: new Date().toISOString(),
+      chain: c.chain, contract: c.contract, implementation: c.implementation || null,
+      family: c.family || familyOf(c.name), name: c.name || null,
+      payouts_seen: c.payouts_seen || 0,
+      access_controlled: c.access_controlled ?? null,
+      pays_a_caller_regex: c.pays_a_caller ?? null,   // the weak signal, kept as a feature to beat
+      callable_now: c.callable_now || [],
+      label: c.payout_verdict || (c.callable_now?.length ? 'CALLABLE_UNPROVEN' : 'NOT_CALLABLE'),
+      settled: c.settled_examples?.[0] || null,
+    });
+    corpus.rows = corpus.rows.slice(0, 4000);
+    corpus.n = (corpus.n || 0) + 1;
+    await env.KV.put('train:probes', JSON.stringify(corpus));
+  } catch { /* corpus collection must never block the grind */ }
+
   state.prospected = (state.prospected || 0) + 1;
   state.lastProspect = new Date().toISOString();
   await env.KV.put('discover:state', JSON.stringify(state));

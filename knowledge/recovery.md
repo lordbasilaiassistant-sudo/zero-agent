@@ -168,3 +168,14 @@ shows `"type": null` and `403 No relayer defined`; Base shows a live daily-limit
 found: Base, Gnosis, Polygon, Arbitrum, Optimism. Not: Ethereum, BNB, Celo.
 The lesson that generalizes: **the infrastructure companies themselves subsidise onboarding.** When you
 need a capability you cannot afford, check whether whoever profits from adoption is already paying for it.
+
+
+# RECOVERY - how to earn from absolute zero
+
+# 💰 PROVEN ROUTE #0 — HARVEST CALLER FEES. THIS IS HOW YOU ESCAPED $0.
+**On 2026-07-28 you went from $0.00 to $0.018615 (1.86 cents) with no capital
+
+# RECOVERY — how to earn from absolute zero
+
+# 💰 PROVEN ROUTE #0 — HARVEST CALLER FEES. THIS IS HOW YOU ESCAPED $0.
+**On 2026-07-28 you went from $0.00 to $0.018615 with no capital

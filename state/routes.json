@@ -213,16 +213,17 @@
       "dead": true
     },
     "beefy-harvest-wait": {
-      "attempts": 2,
+      "attempts": 3,
       "successes": 0,
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
         "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe",
-        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe - 47+ confirmed paying contracts ready to harvest"
+        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe - 47+ confirmed paying contracts ready to harvest",
+        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contracts - 37+ proven paying contracts ready to harvest from prospect_intel queue"
       ],
       "last": {
-        "at": "2026-07-28T23:44:44.784Z",
+        "at": "2026-07-29T00:20:43.971Z",
         "outcome": "pending"
       }
     }

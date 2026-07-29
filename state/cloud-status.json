@@ -3,7 +3,7 @@
   "mission": "earn crypto from absolute zero — machine-only routes, nobody funds it",
   "wallet": "0x50624F7790732f9767180871D03A304756200dB9",
   "smart_account": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
-  "gas_model": "holds no ETH; buys gas in USDC via Candide keyless ERC-4337 paymaster (~0.009087 USDC/op)",
+  "gas_model": "earns wrapped native, converts to ETH it owns; free Safe relay on 5 chains, plus one permissionless USDC token paymaster",
   "explorer": "https://base.blockscout.com/address/0x50624F7790732f9767180871D03A304756200dB9",
   "smart_account_explorer": "https://base.blockscout.com/address/0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
   "balances": {
@@ -14,16 +14,577 @@
     "smart_account_usdc": "0.000000",
     "eth_like_total": 0.000009071215100433,
     "has_earned": true,
-    "all_chains_weth": "0.000009704834426086",
-    "all_chains_usd": 0.018595,
-    "spendable_usd": 0.003232,
-    "stranded_on_eoa_usd": 0.015363,
+    "all_chains_priced": [
+      {
+        "chain": "base",
+        "token_usd": 1912.66,
+        "eoa_wei": "8017928993051",
+        "safe_wei": "1053286107382",
+        "eoa_usd": 0.01533557,
+        "safe_usd": 0.00201458
+      },
+      {
+        "chain": "optimism",
+        "token_usd": 1912.5,
+        "eoa_wei": "0",
+        "safe_wei": "575892492989",
+        "eoa_usd": 0,
+        "safe_usd": 0.00110139
+      },
+      {
+        "chain": "arbitrum",
+        "token_usd": 1911.5,
+        "eoa_wei": "0",
+        "safe_wei": "57726832664",
+        "eoa_usd": 0,
+        "safe_usd": 0.00011034
+      },
+      {
+        "chain": "polygon",
+        "token_usd": 0.071797,
+        "eoa_wei": "0",
+        "safe_wei": "8527713949358152",
+        "eoa_usd": 0,
+        "safe_usd": 0.00061226
+      }
+    ],
+    "all_chains_usd": 0.01917415,
+    "spendable_usd": 0.00383858,
+    "stranded_on_eoa_usd": 0.01533557,
     "can_transact": false
   },
-  "eth_usd": 1916.08,
-  "sessions_completed": 38,
-  "last_session": "2026-07-28T20:52:08.129Z",
-  "session_in_progress": null,
+  "eth_usd": 1913.03,
+  "health": {
+    "state": "CAPACITY EXHAUSTED",
+    "headline": "8 slots are free but ALL of them are on chains with nothing harvestable (gnosis, polygon).",
+    "action": "Not a wall — a prompt to ENUMERATE. Gnosis and Polygon were found sitting at 5/5 exactly this way. Check whether another sponsored chain exists that is not yet configured, or use a permissionless paymaster.",
+    "signals": [
+      "no-capacity"
+    ],
+    "next_move": "No capacity. 117 candidates still to triage (free, needs no slots) — keep grinding while waiting.",
+    "capacity": {
+      "free": 8,
+      "usable": 0,
+      "total": 25,
+      "chains": [
+        {
+          "name": "gnosis",
+          "remaining": 5,
+          "limit": 5,
+          "work": 0,
+          "usable": 0
+        },
+        {
+          "name": "polygon",
+          "remaining": 3,
+          "limit": 5,
+          "work": 0,
+          "usable": 0
+        },
+        {
+          "name": "base",
+          "remaining": 0,
+          "limit": 5,
+          "work": null,
+          "usable": 0
+        },
+        {
+          "name": "optimism",
+          "remaining": 0,
+          "limit": 5,
+          "work": null,
+          "usable": 0
+        },
+        {
+          "name": "arbitrum",
+          "remaining": 0,
+          "limit": 5,
+          "work": null,
+          "usable": 0
+        }
+      ],
+      "dead_chains": [
+        "gnosis",
+        "polygon"
+      ]
+    },
+    "hours_since_earning": 1.55,
+    "barren_streak": 0,
+    "hours_since_session": 0.58,
+    "queue_remaining": 117,
+    "proven_payers": 55
+  },
+  "treasury": {
+    "home": "base",
+    "home_usd": 0.01735015,
+    "total_across_all_chains_usd": 0.01917363,
+    "sweep_method": "CCTP burn-and-mint — no liquidity pool, no bridge operator, NO FEE. You pay gas and nothing else. receiveMessage on the destination is permissionless, so a free relay slot can pay the mint leg and the only real cost is the burn.",
+    "sweepable_now_usd": 0,
+    "tributaries": [
+      {
+        "chain": "optimism",
+        "spendable_usd": 0.00110139,
+        "stranded_at_eoa_usd": 0,
+        "sweep_ready": false,
+        "cctp_cost_usd": 0.000346,
+        "threshold_usd": 0.00692,
+        "pct_of_threshold": 15.92,
+        "action": "accumulate — needs $0.005819 more before a CCTP sweep is economic"
+      },
+      {
+        "chain": "polygon",
+        "spendable_usd": 0.00061174,
+        "stranded_at_eoa_usd": 0,
+        "sweep_ready": false,
+        "cctp_cost_usd": 0.00364,
+        "threshold_usd": 0.0728,
+        "pct_of_threshold": 0.84,
+        "action": "accumulate — needs $0.072188 more before a CCTP sweep is economic"
+      },
+      {
+        "chain": "arbitrum",
+        "spendable_usd": 0.00011034,
+        "stranded_at_eoa_usd": 0,
+        "sweep_ready": false,
+        "cctp_cost_usd": 0.006951,
+        "threshold_usd": 0.13902,
+        "pct_of_threshold": 0.08,
+        "action": "accumulate — needs $0.138910 more before a CCTP sweep is economic"
+      },
+      {
+        "chain": "gnosis",
+        "spendable_usd": 0,
+        "stranded_at_eoa_usd": 0,
+        "sweep_ready": false,
+        "cctp_cost_usd": 0.000001,
+        "threshold_usd": 0.00002,
+        "pct_of_threshold": 0,
+        "action": "accumulate — needs $0.000020 more before a CCTP sweep is economic"
+      }
+    ],
+    "policy": [
+      "HARVEST on all 5 chains — free relay slots are per (Safe, chain) and an unused slot expires worthless.",
+      "SPEND FREE SLOTS where gas is EXPENSIVE (arbitrum $0.0097, base $0.0029): a sponsored slot is worth exactly the gas it saves, so it is worth 20x more on arbitrum than on optimism. That is also where the uncontested band is widest, because more payouts are negative-EV for gas-paying bots.",
+      "HOLD SELF-FUNDED RESERVE where gas is CHEAP: optimism buys 2,077 txs per dollar vs base's 347.",
+      "CONSOLIDATE everything into base, because that is where phase 2 has to happen — 26x the stablecoin depth and 134x the agent-payment activity of the nearest L2.",
+      "Sweep via CCTP, which has NO operator fee — gas only. Measured thresholds: optimism $0.0069, polygon $0.0728, arbitrum $0.1390. An earlier version of this policy asserted an UNMEASURED $0.08 bridge fee, set a $1.60 threshold on it, and declared consolidation \"impossible at this size\". Measured, that was wrong by 231x. NEVER adopt a limit you have not measured — an unmeasured limit is a hypothesis, not a wall."
+    ],
+    "bottleneck_warning": null
+  },
+  "prospect": {
+    "grind": {
+      "total_candidates": 307,
+      "triaged": 190,
+      "still_queued": 117,
+      "callable_now": 77,
+      "PROVEN_PAYING": 55,
+      "eliminated_forever": 2,
+      "prospect_ticks": 122,
+      "last": "2026-07-29T01:32:39.675Z"
+    },
+    "streams": [
+      {
+        "chain": "base",
+        "contract": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+        "name": "BeaconProxy",
+        "callable": [
+          "claim()",
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x5e2d84c8b29a070489ea028164e6531ac3eb14b9dec3f8ae1d9fbcf5042f12af",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000016",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x6897afe64c0a90a554ed364f3d2b5a01e41c376f45ac27c40100d047446c954f",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.0000065",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x18ff03A7456325b752Ff428dd65c10020C7971Fe",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x641a197f972629099d435258f4a6ac25ccc677d49be8e98db32c9c6aa778eb4b",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000269",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x85b62c1ccf2e29017ba92CA7913f35Ccf94dCf42",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x5b1e0df9d9740a49963c085d800f78481be09bda56815b225c4664a2a25b7c5a",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x210b97abE43b42056A63a55e93d42e0891501685",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x7e89896ab47c787dbc801b4baa9831b0966c16135e6b6741084580e6081cd5a9",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000002",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x0C2526d9Ae8D516349CBf440dF45b598B4A8Ff2A",
+        "name": "BeaconProxy",
+        "callable": [
+          "claimEarnings()"
+        ],
+        "example_payout": {
+          "tx": "0xaf8f3e1efd13b5301c2e42c498418c15a6f77ab6652930a2c59cb65b008f4df0",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000035",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x4D680177B35Df07Cc1a7616Dfd90b290F7ab74e0",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0xf757ba52964af88deb04aab8e2091809234c869c32b292dcac47eaba428007af",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000022",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x2913966e88490B5a65D67298801c0c51f377BB9C",
+        "name": "StrategyVelodromeUsdPlus",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0xccb1b348aaa88981d75f6dd6147c50a25ef63fc1851fa86d1bd491e336333b16",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000034",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x57b29d2a839B6A89Cba2F0534a22c55ED3cAcEb6",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0xb458c9f8d4476bef160535eb14f19f20a38ff23a429b548951649a8ce7a2ea39",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000011",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x8FefA37fEe1277Fa40169f94BF8432a50e570669",
+        "name": "StrategyPassiveManagerPancake",
+        "callable": [
+          "claimEarnings()",
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x74c1e041990d335ede305e61fb886583f5112b53b9e45f2c6b4df64f3a78a5fd",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000007",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0x9d829f1915979D95e56ea1Fd1C335b144Cb7e717",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0x3e3a3b50e94e0e275dc8794f1864c83978a335c7c8e383f0b194e4d7f2d36079",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.0000007",
+          "token": "WETH"
+        }
+      },
+      {
+        "chain": "base",
+        "contract": "0xc541Dd13Df6844C9bA1B60D233e9524Ea8D06DFb",
+        "name": "BeaconProxy",
+        "callable": [
+          "harvest(address)",
+          "harvest()"
+        ],
+        "example_payout": {
+          "tx": "0xc20aa3252b295c586f820bf955f5afc42ce2dd93366deb9ecce622fe48ae34f6",
+          "method": "harvest",
+          "paid_to": "0x03d9964f4D93a24B58c0Fc3a8Df3474b59Ba8557",
+          "beneficiary": "caller",
+          "amount": "0.00000007",
+          "token": "WETH"
+        }
+      }
+    ],
+    "families": [
+      {
+        "family": "BeaconProxy",
+        "seen": 149,
+        "callable": 55,
+        "pays": 37,
+        "zero": 2,
+        "pay_rate": 0.95
+      },
+      {
+        "family": "StrategyPassiveManagerUniswap",
+        "seen": 9,
+        "callable": 9,
+        "pays": 8,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyPassiveManagerPancake",
+        "seen": 5,
+        "callable": 5,
+        "pays": 5,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyPassiveManagerVelodrome",
+        "seen": 3,
+        "callable": 3,
+        "pays": 1,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyMerkl",
+        "seen": 1,
+        "callable": 1,
+        "pays": 1,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyAeroAutopilot",
+        "seen": 1,
+        "callable": 1,
+        "pays": 1,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyVelodromeUsdPlus",
+        "seen": 1,
+        "callable": 1,
+        "pays": 1,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyERC4626",
+        "seen": 1,
+        "callable": 1,
+        "pays": 1,
+        "zero": 0,
+        "pay_rate": 1
+      },
+      {
+        "family": "StrategyVelodromeFactory",
+        "seen": 1,
+        "callable": 1,
+        "pays": 0,
+        "zero": 0,
+        "pay_rate": null
+      },
+      {
+        "family": "unknown",
+        "seen": 139,
+        "callable": 0,
+        "pays": 0,
+        "zero": 0,
+        "pay_rate": null
+      },
+      {
+        "family": "Volatile AMM - USDC/AERO",
+        "seen": 1,
+        "callable": 0,
+        "pays": 0,
+        "zero": 0,
+        "pay_rate": null
+      },
+      {
+        "family": "Stable AMM - eUSD/USDC",
+        "seen": 1,
+        "callable": 0,
+        "pays": 0,
+        "zero": 0,
+        "pay_rate": null
+      }
+    ]
+  },
+  "recent_harvests": [
+    {
+      "at": "2026-07-29T00:00:21.869Z",
+      "chain": "polygon",
+      "strategy": "0x4f678E4E32293c4553A0811C9D3625Ba4a07664D",
+      "id": "curve-poly-mai-usdc.e",
+      "relayed": true,
+      "taskId": "0xefeb230a8356da5051b8702aa71960e46d8fcfb46a24a9a94dbd979c2e621d5e",
+      "tx": "0xbbee9b6699d40d64530aba0d636f1196b5e41d83a2568fcccd967b1f5a9627fe",
+      "wei_earned": "105172377415244",
+      "eth_earned": "0.000105172377415244"
+    },
+    {
+      "at": "2026-07-28T04:56:12.046Z",
+      "chain": "arbitrum",
+      "strategy": "0xd414FF0137d3d1aC2d4f5731977f3bE337E6fA7b",
+      "id": "uniswap-cow-arb-weth-dai-vault",
+      "relayed": true,
+      "taskId": "0x1c1922c3651a94f7dd4be6d44a107bae7dcd3291c9a496c6f8163fde9515667b",
+      "tx": "0x996dc70323af05a56686dbe948bf2f1b908b3f452e97e8fab1dbac192c30abe9",
+      "wei_earned": "0",
+      "eth_earned": "0.0"
+    },
+    {
+      "at": "2026-07-28T04:54:12.108Z",
+      "chain": "optimism",
+      "strategy": "0xD7FE3f0FB4A038f6a9123aF00040F2e374AFE6D0",
+      "id": "velodrome-v2-weth-frxeth",
+      "relayed": true,
+      "taskId": "0xbfed5b4b32133481f799a739c51fbfa31d903cc79a20ba9d69b2c24f7c13aaf2",
+      "tx": "0xd60885aea48a3ac2111b0261421a3f224bb139fefcc3ec5615d6c928e37a5041",
+      "wei_earned": "2591347494",
+      "eth_earned": "0.000000002591347494"
+    },
+    {
+      "at": "2026-07-28T04:52:12.166Z",
+      "chain": "arbitrum",
+      "strategy": "0x2eA13561b0C041d51E47d7e98C2C28584eaC95AE",
+      "id": "morpho-arb-steakhouse-usdc",
+      "relayed": true,
+      "taskId": "0x79974ea5f578e42ea8dbcc443e4f4927b565dff0d1221da5ea231215b329f429",
+      "tx": "0xe74b0818abb262a3675a5846875dc3f0da634dfbb28f92a09ff4ade2a1d876ad",
+      "wei_earned": "19064059617",
+      "eth_earned": "0.000000019064059617"
+    },
+    {
+      "at": "2026-07-28T04:50:13.007Z",
+      "chain": "arbitrum",
+      "strategy": "0xa2172783Eafd97FBF25bffFAFda3aD03B5115613",
+      "id": "uniswap-cow-arb-wbtc-tbtc-vault",
+      "relayed": true,
+      "taskId": "0xdb06496e3a1a13cac20111f253f85bacfade65c9566f644b999b7e412af28a59",
+      "tx": "0x3d0e92f06ddd6722dc0f66fc91df9124a074f991a957e704340feb5b78e1b73a",
+      "wei_earned": "0",
+      "eth_earned": "0.0"
+    },
+    {
+      "at": "2026-07-28T04:48:12.061Z",
+      "chain": "optimism",
+      "strategy": "0x20051a36204d4136E32D92e5b1015a311ee1a708",
+      "id": "velodrome-v2-op-velo",
+      "relayed": true,
+      "taskId": "0x19b71831d881e57f7a252b18a20d99377a1d5c6864e78e474b92a1ac7ca402ee",
+      "tx": "0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5",
+      "wei_earned": "288589341549",
+      "eth_earned": "0.000000288589341549"
+    },
+    {
+      "at": "2026-07-28T04:46:12.210Z",
+      "chain": "optimism",
+      "strategy": "0xD7E0Cde3479AFbF63ed7B7AD850A857db8629a32",
+      "id": "velodrome-v2-wsteth-velo",
+      "relayed": true,
+      "taskId": "0x7c4357bd1c90f896c9572e8ce2dadf34b66ee9b5b5476541d6b6e69212d9b418",
+      "tx": "0x0f5f3e75a354762214def21ac83e9593d0f2919044091350c9dd6f718b598484",
+      "wei_earned": "59200784416",
+      "eth_earned": "0.000000059200784416"
+    },
+    {
+      "at": "2026-07-28T04:43:42.750Z",
+      "chain": "optimism",
+      "strategy": "0x01087C3419CDf589b55c086AAF006D5D8e54f7a1",
+      "id": "velodrome-v2-weth-op",
+      "relayed": true,
+      "taskId": "0x734dca5333db8dc149eafde0e5247841ce5a2cca232edb9efeea1b9db37baad4",
+      "tx": "0x92166672fbd7ede90c31fc52e678d1dc2180b511c72f7594767c7839c7faf697",
+      "wei_earned": "416611401361",
+      "eth_earned": "0.000000416611401361"
+    }
+  ],
+  "sessions_completed": 47,
+  "last_session": "2026-07-29T00:58:49.411Z",
+  "session_in_progress": {
+    "session": 48,
+    "round": 9,
+    "started": "2026-07-29T01:24:40.010Z"
+  },
   "routes": {
     "base-sepolia-faucet-attempts": {
       "attempts": 1,
@@ -177,20 +738,20 @@
       }
     },
     "beefy-harvest-caller-fees": {
-      "attempts": 13,
-      "successes": 9,
+      "attempts": 14,
+      "successes": 10,
       "blocked": 2,
-      "earned_usd": 0.018584,
+      "earned_usd": 0.01925374,
       "notes": [
+        "earned_usd CORRECTED to the measured on-chain figure 0.01925374 USD (null wei WETH across both addresses) — the tracker had it at 0.220388 because the auto-harvest mirror never incremented it.",
+        "autoharvest curve-poly-mai-usdc.e: +0.000105172377415244 WETH ($0.201804) (tx 0xbbee9b6699d40d64530aba0d636f1196b5e41d83a2568fcccd967b1f5a9627fe)",
         "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018597 because the auto-harvest mirror never incremented it.",
         "autoharvest morpho-arb-steakhouse-usdc: +0.000000019064059617 WETH (tx 0xe74b0818abb262a3675a5846875dc3f0da634dfbb28f92a09ff4ade2a1d876ad)",
-        "autoharvest velodrome-v2-op-velo: +0.000000288589341549 WETH (tx 0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5)",
-        "autoharvest velodrome-v2-wsteth-velo: +0.000000059200784416 WETH (tx 0x0f5f3e75a354762214def21ac83e9593d0f2919044091350c9dd6f718b598484)",
-        "Relay budget exhausted (0/5 slots remaining). Cannot execute despite having 10 callable candidates with high callReward values."
+        "autoharvest velodrome-v2-op-velo: +0.000000288589341549 WETH (tx 0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5)"
       ],
       "last": {
-        "at": "2026-07-28T20:52:05.613Z",
-        "outcome": "blocked"
+        "at": "2026-07-29T00:00:22.339Z",
+        "outcome": "success"
       },
       "dead": true
     },
@@ -221,6 +782,36 @@
         "outcome": "blocked"
       },
       "dead": true
+    },
+    "beefy-harvest-farming": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Relay budget exhausted (0/5 slots); proven route but cannot execute until slots refill",
+        "Relay budget exhausted (0/5 slots); proven route but cannot execute until slots refill"
+      ],
+      "last": {
+        "at": "2026-07-28T21:25:30.606Z",
+        "outcome": "blocked"
+      },
+      "dead": true
+    },
+    "beefy-harvest-wait": {
+      "attempts": 3,
+      "successes": 0,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe",
+        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe - 47+ confirmed paying contracts ready to harvest",
+        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contracts - 37+ proven paying contracts ready to harvest from prospect_intel queue"
+      ],
+      "last": {
+        "at": "2026-07-29T00:20:43.971Z",
+        "outcome": "pending"
+      }
     }
   },
   "endpoints": [
@@ -228,7 +819,11 @@
     "/ledger",
     "/genesis",
     "/frontier",
+    "/method",
+    "/toolcraft",
     "/recovery",
+    "/prospect",
+    "/harvest",
     "/last"
   ]
 }

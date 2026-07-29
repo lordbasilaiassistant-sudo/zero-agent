@@ -1055,6 +1055,12 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         return Response.json({ ticks: out.length, results: out });
       }
       if (url.pathname === '/prospect') return Response.json(await prospectIntel(env), { headers: { 'access-control-allow-origin': '*' } });
+      // Labelled probe corpus — ground truth for an EVAL first, a fine-tune only if the volume ever
+      // justifies it. JSONL so it is usable without a parser.
+      if (url.pathname === '/train.jsonl') {
+        const c = (await env.KV.get('train:probes', 'json')) || { rows: [] };
+        return new Response(c.rows.map(r => JSON.stringify(r)).join('\n'), { headers: { 'content-type': 'application/x-ndjson', 'access-control-allow-origin': '*' } });
+      }
       if (req.method === 'POST' && url.pathname === '/run') {
         if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
         const r = await tick(env, 'manual');
