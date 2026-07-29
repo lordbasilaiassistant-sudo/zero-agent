@@ -122,3 +122,56 @@ When something looks impossible, that is the signal to **EXPAND the search, not 
    permissionless is exactly that.)
 4. Is the cost per UNIT or per BATCH? Batching changes the economics of anything that looked too small.
 5. What threshold makes it possible? Name the number, then aim at it — never stop at "impossible".
+
+## 🔬 THE FREE PAYOUT ORACLE — price a mechanism nobody has ever called (built 2026-07-28)
+The single best instrument in this project. It measures what a function WOULD pay an arbitrary caller,
+spending nothing.
+
+**How.** `Multicall3.aggregate3` executes a batch with MULTICALL ITSELF as `msg.sender` and returns
+every result. So inside ONE free `eth_call`, batch:
+
+    [ balanceOf(multicall), target.someFunction(), balanceOf(multicall) ]
+
+The delta between those two reads **is the caller fee.** No gas, no relay slot, no capital, no
+permission, any contract, any chain, unlimited repeats.
+
+**Why it beats everything else we have.** `payout_history` reads SETTLED payouts, which is truth — but
+history only exists for contracts somebody has already called. The oracle simulates the settlement
+itself, so it prices contracts **nobody has ever called**. That is precisely where an undiscovered
+mechanism would hide, and it is the only way to value one before proving it.
+
+**Measured immediately, and it changed how slots are spent.** Probing our 12 known payers: all 12 pay
+right now, totalling $0.005390 — and the spread from best to worst was **118×** ($0.001419 vs
+$0.000012). Selection had been effectively blind, so most of every scarce relay slot was being thrown
+away. `harvest_run` now probes first and spends the slot on the measured maximum.
+
+**Use it:** the `payout_oracle` tool. Run it before choosing ANY target. Zero-arg money-shaped
+functions are found straight out of the bytecode dispatch table, so it needs no ABI and works on
+unverified contracts.
+
+**Traps hit while building it, both already documented above and both fired AGAIN:**
+- The control failed first run — three strategies that have really paid us read as "no money-shaped
+  function", because a BeaconProxy's bytecode has no selectors. Proxy resolution now lives INSIDE the
+  primitive so no call site can forget it. That was the third time in one day.
+- A zero reading means "zero AT THIS MOMENT", never "never" — payouts are state-dependent and an
+  auction that has not opened reads as zero. Re-probe rather than eliminating.
+
+## 🕳️ THE DISCOVERY ENGINE WAS A CLOSED LOOP (found 2026-07-28)
+`discover.mjs` seeded from BEEFY's keepers, so it walked Beefy keepers → found Beefy strategies →
+forever. It produced 307 candidates of ONE family and we reported "48 proven streams" as though that
+were diversification. It was one stream with 48 taps: if Beefy changes its fee split, all 48 die the
+same morning. **A discovery engine seeded from what you already have is a treadmill.**
+
+Fixed with a MECHANISM-BLIND seed. The relation has nothing to do with any protocol:
+
+> **AN EOA SENT A TRANSACTION AND AN ERC-20 CAME BACK TO IT, AND IT SENT NOTHING IN.**
+
+"Got paid for calling something, and did not buy it." The "sent nothing in" clause is load-bearing —
+without it every DEX swap matches, because a trader also receives tokens, and the list fills with
+routers. Measured on Base over 14 blocks: 66 paid callers, 47 paying contracts, and genuinely new
+classes appeared — MerkleDistributor, ERC20SignatureClaim, ConditionalTokens, BaseBulker.
+
+**Honest result: simulated from our own address, none of those four were callable BY US** — they need
+a merkle proof or your own position. A real negative that narrows the map. The seed is sound; that
+sample simply held no permissionless payer. It now injects blind seeds every third pass, so the engine
+can never again be structurally incapable of finding something new.

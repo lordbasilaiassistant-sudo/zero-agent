@@ -224,6 +224,34 @@ What is already known about it:
 - The rule for picking: do not theorise an edge. **Find the addresses that already have one and read
   what they actually do** (`method.md`, phase 2 section).
 
+## 11b. PHASE 0 IS MEASURED IN SPENDABLE LIQUID ETH — $0 → $1 usable
+
+> *"Phase 0 maybe should be 0-$1 in SPENDABLE/USABLE liq eth right?"*
+
+Yes, and this fixes a vanity metric I had been reporting. "Lifetime earned $0.0192" is not capability:
+**$0.0154 of it is stranded WETH on the EOA that cannot move at all**, and most of the rest is
+wrapped native sitting where only a relay slot can spend it. Reporting the total made ZERO look four
+times richer than it can actually act.
+
+**Phase 0's exit condition is $1.00 of SPENDABLE, LIQUID, NATIVE ETH the agent can spend without
+anyone's permission.** Not total holdings. Not wrapped. Not "in the Safe pending a relay slot".
+
+Why this is the right denominator:
+- It is the only number that equals *capability*. Native ETH at the EOA = any transaction, any time,
+  no quota, no sponsor, nobody able to revoke it.
+- It makes the conversion work mandatory instead of optional. Under the old metric, harvesting more
+  WETH into a stranded pile counted as progress; under this one it counts as **zero**, which is the
+  truth.
+- It kills the failure this project keeps hitting — value that exists but cannot act. Stranded WETH,
+  five chains of dust too small to bridge, a Safe that cannot unwrap. All of it now scores as nothing,
+  so the architecture is forced to fix it.
+- $1 of liquid ETH is roughly **2,000 self-funded transactions on Optimism or 340 on Base** — the
+  point at which the agent stops depending on anybody's free tier to act at all.
+
+Current honest position against that bar: **$0.0000 of $1.00.** ZERO holds zero native ETH on every
+chain. It has earned, but it has not yet converted anything into capability. That is the real
+scoreboard and it should be the headline number everywhere.
+
 ## 12. Tributaries and a reservoir — harvest everywhere, consolidate to ONE chain
 
 > *"think of using all chains to feed that 1 chain to focus on later phases later easier. we dont want

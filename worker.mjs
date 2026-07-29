@@ -11,6 +11,7 @@ import { discoveryPass, payersOf, inspect as inspectContract } from './discover.
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { diagnose } from './health.mjs';
+import { probeContract } from './oracle.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
 import { scanGasless, sweepGasless } from './gasless.mjs';
 import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
@@ -444,7 +445,7 @@ function makeTools(ctx) {
     async discover_new_sources({ chain = 'arbitrum' }) {
       ctx.budget();
       ctx.sub += 6;
-      return await discoveryPass(ctx.env, { chain });
+      return await discoveryPass(ctx.env, { chain, rpcRaw: (m, p) => ctx.rpc(chain, m, p) });
     },
 
     async discover_list() {
@@ -534,6 +535,13 @@ function makeTools(ctx) {
       return await treasuryPlan((c, m, p) => ctx.rpc(c, m, p), ctx.wallet().address, SMART_ACCOUNT);
     },
 
+    // Measure what a function WOULD pay an arbitrary caller — before spending anything.
+    async payout_oracle({ chain = 'base', contract, token }) {
+      ctx.budget(); ctx.sub += 4;
+      const t = token || (chain === 'polygon' ? '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270' : chain === 'gnosis' ? '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d' : chain === 'arbitrum' ? '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' : '0x4200000000000000000000000000000000000006');
+      return await probeContract((c, m, p) => ctx.rpc(c, m, p), chain, contract, t);
+    },
+
     // ── the cap-vs-realized law, as a tool ──────────────────────────────────
     async payout_history({ chain = 'base', contract, sample = 6 }) {
       ctx.budget();
@@ -569,6 +577,7 @@ const TOOL_DEFS = [
   { name: 'sponsor_control', description: 'THE CONTROL EXPERIMENT. Feeds the sponsor-detector the two addresses that provably paid for your own first transactions and checks it rediscovers them from behaviour alone. An instrument that cannot reproduce a known result is not measuring anything — run this before you believe any novel sponsor it reports.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'treasury', description: 'Where your money sits across every chain, and what should move. Harvest everywhere (free slots are per-chain and expire), but CONSOLIDATE into the home chain — value spread thin across five chains cannot act, which is the same trap as stranded WETH. Tells you which tributaries have accumulated enough to be worth a bridge fee.', parameters: S() },
   { name: 'prospect_intel', description: 'What the automatic prospector has ground out while you were asleep: how much of the candidate backlog is triaged, which contracts are PROVEN to pay callers and callable by you (your ready-to-stack queue), which are eliminated forever, and — most valuable — the PATTERN layer: which contract FAMILIES pay and which never do, so you can generalise to instances you have never tested. Read this before hunting; it is free and it is already done.', parameters: S() },
+  { name: 'payout_oracle', description: 'MEASURE WHAT A FUNCTION WOULD PAY YOU, BEFORE SPENDING ANYTHING. Simulates the settlement itself through Multicall3 and returns the exact fee an arbitrary caller would receive right now. Free, no relay slot, no capital, works on UNVERIFIED contracts and on contracts nobody has ever called. payout_history reads the past; this prices the present. Measured spread across known payers was 118x, so ALWAYS probe before choosing which one to spend a slot on.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token, defaults to the chain wrapped native') }, ['contract']) },
   { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
   { name: 'discover_new_sources', description: "THE GROWTH TOOL. Harvest crumbs are accrual-capped at cents/day — the only way past that is MORE INDEPENDENT INCOME FAMILIES. This finds them empirically: it walks the inbound payments of known keeper wallets back to the contracts paying them, so every candidate is backed by a payout that really happened. Run it every session and work through what it finds.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'discover_list', description: 'Your accumulated candidate list from discovery: contracts seen paying callers, whether their source shows access control, and which functions an arbitrary caller might invoke. Untried + promising first.', parameters: S() },

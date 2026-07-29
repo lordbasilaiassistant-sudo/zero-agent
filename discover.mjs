@@ -30,6 +30,49 @@ export const SEED_KEEPERS = {
 const NOISE_NAME = /Pool$|Pair$|Router|Swap|Quoter|Vault$|WETH|Token$|ERC20|Bridge|Multicall/i;
 export function isNoise(name) { return !!name && NOISE_NAME.test(name); }
 
+// ⚠️ THE CLOSED LOOP — read this before trusting any candidate list this file produces.
+// The seeds above are BEEFY's keepers and the payers below are BEEFY strategies. So this engine
+// walked Beefy keepers → found Beefy strategies → forever. 307 candidates, ONE family. It was
+// structurally incapable of discovering a mechanism we did not already know, which is exactly why
+// months of "48 proven streams" was really one stream with 48 taps: if Beefy changes its fee split,
+// all 48 die the same morning. A discovery engine seeded from what you already have is a treadmill.
+//
+// THE FIX: seed MECHANISM-BLIND. The relation has nothing to do with Beefy —
+//     AN EOA SENT A TRANSACTION AND AN ERC-20 CAME BACK TO IT, AND IT SENT NOTHING IN.
+// "Got paid for calling something, and did not buy it." That describes every keeper of every
+// mechanism class that exists — liquidators, oracle reporters, auction settlers, claim relayers, and
+// shapes nobody has named yet. The "sent nothing in" clause is load-bearing: without it, every DEX
+// swap matches (the trader receives tokens too) and the list fills with routers.
+//
+// Measured on Base, 14 blocks: 66 paid callers, 47 paying contracts, and the classes that surfaced
+// were genuinely new — MerkleDistributor, ERC20SignatureClaim, ConditionalTokens, BaseBulker.
+// (Simulated from our own address, none of those four were callable BY US — they need a merkle proof
+// or your own position. A real negative result that narrows the map. The seed still works; that
+// sample just did not contain a permissionless payer.)
+export async function blindSeed(chain, rpcRaw, blocks = 12) {
+  const TRANSFER = ethers.id('Transfer(address,address,uint256)');
+  const head = parseInt(await rpcRaw('eth_blockNumber', []), 16);
+  const callers = {};
+  for (let b = head - blocks; b <= head; b++) {
+    let rcpts;
+    try { rcpts = await rpcRaw('eth_getBlockReceipts', ['0x' + b.toString(16)]); } catch { continue; }
+    if (!Array.isArray(rcpts)) continue;
+    for (const rc of rcpts) {
+      if (rc.status !== '0x1' || !rc.to) continue;
+      const from = (rc.from || '').toLowerCase();
+      let got = false, sent = false;
+      for (const lg of rc.logs || []) {
+        if (lg.topics?.[0] !== TRANSFER || lg.topics.length < 3) continue;
+        if ('0x' + lg.topics[1].slice(26).toLowerCase() === from) sent = true;
+        if ('0x' + lg.topics[2].slice(26).toLowerCase() === from) got = true;
+      }
+      if (got && !sent) (callers[from] ||= { address: rc.from, n: 0 }).n++;
+    }
+  }
+  // Frequent paid callers are professional keepers; walking THEIR payers finds the mechanism.
+  return Object.values(callers).sort((a, b) => b.n - a.n).slice(0, 8).map(c => c.address);
+}
+
 // Contracts we have PERSONALLY harvested and confirmed pay an arbitrary caller. These are the
 // bootstrap doorways for any chain with no known keepers yet.
 export const KNOWN_PAYERS = {
@@ -223,9 +266,22 @@ export async function bootstrapKeepers(chain, knownPayers = [], perContract = 25
 }
 
 // One discovery pass: seeds -> payers -> inspected candidates, persisted for the agent to work through.
-export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12 } = {}) {
+export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, rpcRaw = null } = {}) {
   const state = (await env.KV.get('discover:state', 'json')) || { keepers: {}, candidates: {}, passes: 0 };
   let seeds = [...(SEED_KEEPERS[chain] || []), ...Object.keys(state.keepers).filter(k => state.keepers[k] === chain)];
+
+  // BREAK THE CLOSED LOOP. Every few passes, inject keepers found MECHANISM-BLIND from raw block
+  // data rather than from the family we already farm. Without this the engine only ever rediscovers
+  // Beefy — it produced 307 candidates of a single family and called it 48 "streams".
+  if (rpcRaw && (state.passes % 3 === 0)) {
+    try {
+      const blind = await blindSeed(chain, rpcRaw, 12);
+      const fresh = blind.filter(a => !state.keepers[a]);
+      for (const a of fresh) state.keepers[a] = chain;
+      state.blindSeeded = (state.blindSeeded || 0) + fresh.length;
+      seeds = [...fresh, ...seeds];
+    } catch { /* blind seeding is an enhancement, never a blocker */ }
+  }
   // Self-seed: a chain with no known keepers bootstraps from contracts we already know pay callers.
   if (!seeds.length) {
     const known = (state.knownPayers && state.knownPayers[chain]) || KNOWN_PAYERS[chain] || [];

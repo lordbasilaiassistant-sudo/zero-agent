@@ -10,6 +10,7 @@
 //   * per-strategy cooldown (rewards accrue over time; re-harvesting immediately earns nothing)
 //   * callReward() is a RANKING signal only â€” it overstated a real payout by ~4,300x once
 import { ethers } from 'ethers';
+import { probeContract } from './oracle.mjs';
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
 // Rotating across them multiplies free throughput with no extra identities and no puppetry.
@@ -466,11 +467,33 @@ export async function harvestCycle(env, rpc) {
     return { ...s, score: h ? (h.totalWei / h.n) : Number.MAX_SAFE_INTEGER, tried: !!h };
   }).sort((a, b) => b.score - a.score);
 
+  // MEASURE, DO NOT GUESS. The bandit above ranks by what a strategy paid us HISTORICALLY, which is
+  // a prediction. The Multicall3 payout oracle simulates the settlement itself and returns the exact
+  // fee this call would pay right now — free, no slot, no capital. Measured across our 12 known
+  // payers the spread was 118x ($0.001419 best vs $0.000012 worst), so picking blind was throwing
+  // away most of the value of every scarce relay slot. Probe first, then spend on the maximum.
   let chosen = null;
-  for (const cand of scored.slice(0, 14)) {
-    const sim = await simulate(rpc, cand.strategy, safe, recipient, chain.name);
-    if (sim.ok) { chosen = { ...cand, ...sim }; break; }
-    state.cooldowns[cand.strategy] = Date.now(); // reverts: park it
+  const probes = [];
+  for (const cand of scored.slice(0, 10)) {
+    try {
+      const p = await probeContract(rpc, chain.name, cand.strategy, chain.weth);
+      if (p.paying.length) probes.push({ cand, wei: BigInt(p.best_wei), sig: p.paying[0].sig });
+    } catch { /* a failed probe just means no information, never a blocker */ }
+  }
+  probes.sort((a, b) => (b.wei > a.wei ? 1 : b.wei < a.wei ? -1 : 0));
+  for (const p of probes) {
+    const sim = await simulate(rpc, p.cand.strategy, safe, recipient, chain.name);
+    if (sim.ok) { chosen = { ...p.cand, ...sim, predicted_wei: p.wei.toString() }; break; }
+    state.cooldowns[p.cand.strategy] = Date.now();
+  }
+  // Oracle found nothing payable (or every probe failed) — fall back to the historical bandit so a
+  // slot is never wasted just because the measurement was unavailable.
+  if (!chosen) {
+    for (const cand of scored.slice(0, 14)) {
+      const sim = await simulate(rpc, cand.strategy, safe, recipient, chain.name);
+      if (sim.ok) { chosen = { ...cand, ...sim }; break; }
+      state.cooldowns[cand.strategy] = Date.now();
+    }
   }
   if (!chosen) {
     state.lastAttemptAt = Date.now();
