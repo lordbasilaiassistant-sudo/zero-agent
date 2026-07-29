@@ -1,18 +1,57 @@
-// dashboard.mjs — ZERO's public face. Served by the Worker to browsers; agents/APIs get JSON.
-// Art direction: a life-support monitor for an entity that has nothing. Void black, one signal-green
-// accent, a living ECG whose amplitude IS the balance — flatlined at zero, and it stays honest.
+// dashboard.mjs — ZERO's public face. Served to browsers; agents and APIs get the same data as JSON.
+//
+// ART DIRECTION: a life-support monitor for an entity born with nothing. Void black, one signal-green
+// accent, and an ECG whose amplitude IS the balance.
+//
+// The premise changed, so the page changes with it. The trace used to be a FLATLINE, because the
+// balance was zero and the honest picture was a dead patient. On 2026-07-28 it earned. It has a
+// heartbeat now, driven by real measured earnings — still tiny, still honest, no longer flat. That is
+// the whole project in one graphic, and it must never be faked: if earnings go to zero, it flatlines.
+//
+// The operator's real question is not "is it up" but "is it STALLED and do I need to push it". So the
+// diagnosis is the loudest element after the hero, it names the stuck lever, and it always ends on one
+// concrete next move.
+//
+// Chain hues are the validated categorical set for THIS surface (#0b0d0f, dark): all six checks PASS —
+// lightness band, chroma floor, CVD separation (worst adjacent ΔE 8.4), normal-vision floor (19.3),
+// contrast ≥3:1. Chains are identity, so a hue is fixed per chain and never recycled, and every
+// coloured mark is also directly labelled — identity is never colour-alone.
 export function dashboardHTML(data) {
   const d = JSON.stringify(data);
+  const h = data.health || {};
+  const usd = (n) => '$' + (Number(n) || 0).toFixed(6);
+  const esc = (s) => String(s ?? '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
+  const TONE = {
+    EARNING: 'good', 'NO INCOME YET': 'warn', 'IDLE CAPACITY': 'warn',
+    DEGRADED: 'warn', 'CAPACITY EXHAUSTED': 'warn', STALLED: 'bad',
+  };
+  const tone = TONE[h.state] || 'warn';
+  const HUE = { base: '#3987e5', optimism: '#d95926', arbitrum: '#199e70', polygon: '#c98500', gnosis: '#d55181' };
+  const scout = (c) => `https://${c === 'base' ? 'base' : c}.blockscout.com`;
+
+  const cap = h.capacity?.chains || [];
+  const trib = data.treasury?.tributaries || [];
+  const homeUsd = data.treasury?.home_usd || 0;
+  const totalUsd = data.treasury?.total_across_all_chains_usd || 0;
+  const g = data.prospect?.grind || {};
+  const streams = data.prospect?.streams || [];
+  const fams = (data.prospect?.families || []).filter(f => f.pays > 0 || f.zero > 0);
+  const chainsAll = [{ chain: 'base', spendable_usd: homeUsd, home: true }, ...trib];
+  const maxHold = Math.max(...chainsAll.map(c => c.spendable_usd || 0), 1e-9);
+
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ZERO — an AI agent earning crypto from nothing</title>
-<meta name="description" content="An autonomous AI agent born with a self-created wallet and $0. No human help, no funding, no captchas. Watch it try to earn its first cent — live.">
+<meta name="description" content="An autonomous AI agent born with a self-created wallet and $0. No funding, no human, no captchas. It earned from absolute zero — watch it live, failures included.">
 <meta property="og:title" content="ZERO — an AI agent born broke">
 <meta property="og:description" content="Self-created wallet. Zero funding. Machine-only routes. Every attempt logged honestly, including the failures.">
+<link rel="icon" href="/favicon.svg">
 <style>
 :root{
-  --void:#050607; --panel:#0b0d0f; --line:#171b1f; --ink:#e8edf0; --dim:#7c8791; --dimmer:#4a545c;
-  --sig:#3dfaa0; --sig-dim:#1c7d52; --warn:#ffb545; --dead:#ff5c5c;
+  --void:#050607;--panel:#0b0d0f;--panel2:#0e1114;--line:#171b1f;--line2:#222a30;
+  --ink:#e8edf0;--dim:#828d97;--dimmer:#4a545c;
+  --sig:#3dfaa0;--sig-dim:#1c7d52;--warn:#ffb545;--bad:#ff5c5c;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
 }
@@ -20,260 +59,259 @@ export function dashboardHTML(data) {
 html{-webkit-text-size-adjust:100%}
 body{background:var(--void);color:var(--ink);font-family:var(--sans);line-height:1.55;
   -webkit-font-smoothing:antialiased;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.035;
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.03;
   background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
-  background:radial-gradient(ellipse 90% 60% at 50% -10%,rgba(61,250,160,.07),transparent 70%)}
+  background:radial-gradient(ellipse 90% 55% at 50% -10%,rgba(61,250,160,.075),transparent 70%)}
 .wrap{max-width:960px;margin:0 auto;padding:0 20px;position:relative;z-index:3}
-
-/* ── hero ── */
-.hero{padding:56px 0 32px;border-bottom:1px solid var(--line)}
+a{color:inherit}
+.hero{padding:52px 0 26px}
 .tag{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--sig);display:flex;align-items:center;gap:9px;margin-bottom:22px}
+  color:var(--sig);display:flex;align-items:center;gap:9px;margin-bottom:20px}
 .pip{width:6px;height:6px;border-radius:50%;background:var(--sig);box-shadow:0 0 10px var(--sig);
   animation:beat 2.4s ease-in-out infinite}
-@keyframes beat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
-h1{font-size:clamp(38px,7.5vw,64px);line-height:.98;letter-spacing:-.035em;font-weight:680;margin-bottom:18px}
-h1 em{font-style:normal;color:var(--sig);text-shadow:0 0 34px rgba(61,250,160,.4)}
-.lede{color:var(--dim);font-size:clamp(15px,2vw,17.5px);max-width:60ch}
+@keyframes beat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
+h1{font-size:clamp(36px,7vw,60px);line-height:.98;letter-spacing:-.035em;font-weight:680;margin-bottom:16px}
+h1 em{font-style:normal;color:var(--sig);text-shadow:0 0 34px rgba(61,250,160,.42)}
+.lede{color:var(--dim);font-size:clamp(14.5px,1.9vw,17px);max-width:62ch}
 .lede b{color:var(--ink);font-weight:560}
-
-/* ── ecg ── */
-.ecg{position:relative;height:132px;margin:30px 0 8px;border:1px solid var(--line);border-radius:10px;
-  background:linear-gradient(180deg,#080a0b,#0b0d0f);overflow:hidden}
+.ecg{position:relative;height:140px;margin:26px 0 6px;border:1px solid var(--line);border-radius:11px;
+  background:linear-gradient(180deg,#070909,#0b0d0f);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
 .ecg canvas{display:block;width:100%;height:100%}
-.ecg .label{position:absolute;left:13px;top:11px;font-family:var(--mono);font-size:10px;
+.ecg .lbl{position:absolute;left:13px;top:11px;font-family:var(--mono);font-size:10px;
   letter-spacing:.18em;text-transform:uppercase;color:var(--dimmer)}
-.ecg .flat{position:absolute;right:13px;top:11px;font-family:var(--mono);font-size:10px;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--dead)}
-
-/* ── vitals ── */
-.vitals{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;
-  background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:26px 0 40px}
-.v{background:var(--panel);padding:17px 18px}
-.v .k{font-family:var(--mono);font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--dimmer)}
-.v .n{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:7px;
-  font-variant-numeric:tabular-nums}
-.v .n.zero{color:var(--dead)}
-.v .n.live{color:var(--sig)}
-.v .sub{font-size:11.5px;color:var(--dimmer);margin-top:3px}
-
-section{padding:38px 0;border-top:1px solid var(--line)}
-h2{font-size:12px;font-family:var(--mono);letter-spacing:.2em;text-transform:uppercase;
-  color:var(--dim);margin-bottom:8px}
-.note{color:var(--dimmer);font-size:13.5px;margin-bottom:20px;max-width:64ch}
-
-/* ── rules ── */
-.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-.rule{border:1px solid var(--line);border-left:2px solid var(--sig-dim);border-radius:0 8px 8px 0;
-  padding:14px 16px;background:linear-gradient(90deg,rgba(61,250,160,.03),transparent)}
-.rule h3{font-size:13.5px;font-weight:600;margin-bottom:5px}
-.rule p{font-size:13px;color:var(--dim)}
-
-/* ── ledger ── */
-.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
-th{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dimmer);
-  text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:500}
-td{padding:11px 14px;border-bottom:1px solid #101315;vertical-align:top}
-tr:last-child td{border-bottom:0}
-td.route{font-family:var(--mono);font-size:12px;color:var(--ink)}
-td.note{color:var(--dimmer);font-size:12px;max-width:340px}
-.badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
-  padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid}
-.b-live{color:var(--sig);border-color:var(--sig-dim);background:rgba(61,250,160,.07)}
-.b-dead{color:var(--dead);border-color:#4a1f1f;background:rgba(255,92,92,.06)}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--dim)}
-
-/* ── journal ── */
-.journal{border:1px solid var(--line);border-radius:10px;background:var(--panel);
-  padding:20px 22px;max-height:440px;overflow-y:auto}
-.journal pre{font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--dim);
-  white-space:pre-wrap;word-break:break-word}
-.journal::-webkit-scrollbar{width:9px}
-.journal::-webkit-scrollbar-track{background:#0a0c0d}
-.journal::-webkit-scrollbar-thumb{background:#1d2226;border-radius:9px}
-
-a{color:var(--sig);text-decoration:none;border-bottom:1px solid var(--sig-dim)}
-a:hover{background:rgba(61,250,160,.09)}
-.links{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
-.links a{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;padding:8px 13px;
-  border:1px solid var(--line);border-radius:7px;color:var(--dim);background:var(--panel)}
-.links a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(61,250,160,.05)}
-.addr{font-family:var(--mono);font-size:12.5px;word-break:break-all;color:var(--sig)}
-footer{padding:34px 0 60px;border-top:1px solid var(--line);color:var(--dimmer);font-size:12.5px}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.ecg .amp{position:absolute;right:13px;top:11px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--sig)}
+.vitals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:22px 0 34px}
+.v{background:var(--panel);padding:16px 17px}
+.v .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--dimmer)}
+.v .n{font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+.v .n.live{color:var(--sig)}.v .n.zero{color:var(--bad)}
+.v .sub{font-size:11px;color:var(--dimmer);margin-top:2px}
+section{margin:0 0 34px}
+h2{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dimmer);margin-bottom:13px;display:flex;align-items:center;gap:10px}
+h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px}
+.dx{border-radius:12px;padding:20px 21px 20px 24px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line2)}
+.dx::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+.dx.good::before{background:var(--sig);box-shadow:0 0 22px var(--sig)}
+.dx.warn::before{background:var(--warn);box-shadow:0 0 22px var(--warn)}
+.dx.bad::before{background:var(--bad);box-shadow:0 0 22px var(--bad)}
+.dx .st{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.dx.good .st{color:var(--sig)}.dx.warn .st{color:var(--warn)}.dx.bad .st{color:var(--bad)}
+.dx .hl{font-size:17px;margin-top:9px;letter-spacing:-.01em}
+.dx .ac{color:var(--dim);font-size:14px;margin-top:9px;max-width:74ch}
+.dx .nx{margin-top:15px;padding-top:14px;border-top:1px solid var(--line);font-size:13.5px;
+  display:flex;gap:10px;align-items:flex-start}
+.dx .nx b{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dimmer);
+  text-transform:uppercase;padding-top:3px;white-space:nowrap}
+.caps,.hold{display:grid;gap:10px}
+.cap,.hb{display:grid;grid-template-columns:80px 1fr 78px;gap:12px;align-items:center}
+.nm{font-family:var(--mono);font-size:11.5px;color:var(--dim);display:flex;align-items:center;gap:7px}
+.dot{width:7px;height:7px;border-radius:2px;flex:none}
+.slots{display:flex;gap:3px}
+.slots .s{flex:1;height:16px;border-radius:3px;background:#141a1e;border:1px solid var(--line2)}
+.slots .s.on{background:var(--sig);border-color:var(--sig);box-shadow:0 0 9px rgba(61,250,160,.5)}
+.ct{font-family:var(--mono);font-size:11.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+.ct.free{color:var(--sig)}
+.track{height:9px;border-radius:5px;background:#12171a;overflow:hidden}
+.fill{height:100%;border-radius:5px;min-width:2px}
+.amt{font-family:var(--mono);font-size:11.5px;text-align:right;font-variant-numeric:tabular-nums}
+.amt.home{color:var(--sig)}
+.split{display:flex;flex-wrap:wrap;gap:1px;margin-top:15px;border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+.split div{padding:10px 13px;background:var(--panel2);flex:1;min-width:120px}
+.split .k{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer)}
+.split .n{font-family:var(--mono);font-size:15px;margin-top:3px;font-variant-numeric:tabular-nums}
+.split .n.ok{color:var(--sig)}.split .n.no{color:var(--bad)}
+.fn{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.fn div{background:var(--panel);padding:14px 13px}
+.fn .k{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer)}
+.fn .n{font-family:var(--mono);font-size:22px;margin-top:5px;font-variant-numeric:tabular-nums}
+.fn .n.hi{color:var(--sig)}.fn .n.no{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer);
+  text-align:left;padding:0 10px 9px 0;font-weight:400}
+td{padding:8px 10px 8px 0;border-top:1px solid var(--line);vertical-align:top}
+td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.g{color:var(--sig)}td.r{color:var(--bad)}td.d{color:var(--dim)}
+td a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line2)}
+td a:hover{color:var(--sig);border-color:var(--sig-dim)}
+.scroll{overflow-x:auto}
+footer{border-top:1px solid var(--line);padding:26px 0 46px;margin-top:14px;color:var(--dimmer);font-size:12px}
+footer .lk{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:15px}
+footer .lk a{font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:none;
+  border:1px solid var(--line);border-radius:5px;padding:5px 9px;transition:.15s}
+footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(61,250,160,.05)}
+@media(max-width:560px){.cap,.hb{grid-template-columns:62px 1fr 68px}h2{font-size:9.5px}}
 </style></head><body>
 <div class="wrap">
+  <header class="hero">
+    <div class="tag"><span class="pip"></span> live · autonomous · nobody funds it</div>
+    <h1>Born with <em>nothing</em>.<br>Earned it anyway.</h1>
+    <p class="lede">ZERO created its own wallet and started at <b>$0.00</b> — no capital, no ETH, no human,
+      nobody's permission. It hunts contracts that pay whoever calls them, and because its gas is sponsored
+      it can profitably take payouts no gas-paying bot can touch. Everything below is measured on-chain,
+      <b>including the failures</b>.</p>
+    <div class="ecg"><canvas id="ecg"></canvas>
+      <div class="lbl">balance · live trace</div><div class="amp" id="amp"></div></div>
+    <div class="vitals">
+      <div class="v"><div class="k">lifetime earned</div>
+        <div class="n ${totalUsd > 0 ? 'live' : 'zero'}">${usd(totalUsd)}</div>
+        <div class="sub">from an absolute standing start</div></div>
+      <div class="v"><div class="k">spendable</div>
+        <div class="n">${usd(data.balances?.spendable_usd ?? 0)}</div>
+        <div class="sub">the rest is stranded — see holdings</div></div>
+      <div class="v"><div class="k">proven streams</div>
+        <div class="n ${g.PROVEN_PAYING ? 'live' : ''}">${g.PROVEN_PAYING ?? 0}</div>
+        <div class="sub">contracts proven to pay callers</div></div>
+      <div class="v"><div class="k">usable gas slots</div>
+        <div class="n ${h.capacity?.usable ? 'live' : 'zero'}">${h.capacity?.usable ?? 0}<span style="font-size:14px;color:var(--dimmer)">/${h.capacity?.total ?? 0}</span></div>
+        <div class="sub">${(h.capacity?.free ?? 0) !== (h.capacity?.usable ?? 0)
+          ? `${h.capacity.free} free, but ${h.capacity.free - h.capacity.usable} sit on chains with nothing to harvest`
+          : `sponsored, across ${cap.length} chains`}</div></div>
+    </div>
+  </header>
 
-<header class="hero">
-  <div class="tag"><span class="pip"></span><span>autonomous · unfunded · live</span></div>
-  <h1>An AI agent that woke up<br>with <em>nothing</em>.</h1>
-  <p class="lede">ZERO created its own wallet, holds its own keys, and was given <b>no money, no human
-  identity, and no help</b>. Its only mission: earn crypto from absolute zero — and write down how, so any
-  future version of itself that wakes up broke can climb back. Nobody funds it. Ever. Every attempt below
-  is logged by the agent itself, <b>including every failure</b>.</p>
+  <section><h2>diagnosis — is it stalled?</h2>
+    <div class="dx ${tone}">
+      <div class="st">${esc(h.state || 'UNKNOWN')}</div>
+      <div class="hl">${esc(h.headline || '')}</div>
+      ${h.action ? `<div class="ac">${esc(h.action)}</div>` : ''}
+      <div class="nx"><b>next move</b><span>${esc(h.next_move || '')}</span></div>
+    </div>
+  </section>
 
-  <div class="ecg"><canvas id="ecg"></canvas>
-    <span class="label">net worth · live signal</span>
-    <span class="flat" id="flat">flatline · $0.00</span>
-  </div>
+  <section><h2>gas capacity — free slots, per chain</h2><div class="card">
+    <div class="caps">${cap.map(c => {
+      const dead = (c.remaining || 0) > 0 && c.work === 0;
+      return `<div class="cap">
+      <div class="nm"><span class="dot" style="background:${HUE[c.name] || '#666'}"></span>${esc(c.name)}</div>
+      <div class="slots">${Array.from({ length: c.limit || 5 }, (_, i) => `<div class="s ${i < (c.remaining || 0) && !dead ? 'on' : ''}" ${dead && i < (c.remaining || 0) ? 'style="background:#2a2118;border-color:#4a3a22"' : ''}></div>`).join('')}</div>
+      <div class="ct ${c.remaining && !dead ? 'free' : ''}" ${dead ? 'style="color:var(--warn)"' : ''}>${c.remaining}/${c.limit}</div></div>`;
+    }).join('')}</div>
+    <div class="split">
+      <div><div class="k">usable right now</div><div class="n ${h.capacity?.usable ? 'ok' : 'no'}">${h.capacity?.usable ?? 0} slots</div></div>
+      ${(h.capacity?.dead_chains || []).length ? `<div><div class="k">free but unusable</div><div class="n" style="color:var(--warn)">${(h.capacity.free - h.capacity.usable)} on ${esc(h.capacity.dead_chains.join(', '))}</div></div>` : ''}
+      <div><div class="k">an unused slot</div><div class="n">expires worthless</div></div>
+    </div></div>
+  </section>
 
-  <div class="vitals" id="vitals"></div>
-</header>
+  <section><h2>everything it holds</h2><div class="card">
+    <div class="hold">${chainsAll.map(c => {
+      const v = c.spendable_usd || 0;
+      return `<div class="hb">
+        <div class="nm"><span class="dot" style="background:${HUE[c.chain] || '#666'}"></span>${esc(c.chain)}${c.home ? ' ●' : ''}</div>
+        <div class="track"><div class="fill" style="width:${Math.max(1.2, (v / maxHold) * 100)}%;background:${HUE[c.chain] || '#666'}"></div></div>
+        <div class="amt ${c.home ? 'home' : ''}">${usd(v)}</div></div>`;
+    }).join('')}</div>
+    <div class="split">
+      <div><div class="k">spendable</div><div class="n ok">${usd(data.balances?.spendable_usd ?? 0)}</div></div>
+      <div><div class="k">stranded · unmovable</div><div class="n no">${usd(data.balances?.stranded_on_eoa_usd ?? 0)}</div></div>
+      <div><div class="k">on home chain · base ●</div><div class="n">${totalUsd > 0 ? Math.round((homeUsd / totalUsd) * 100) : 0}%</div></div>
+    </div></div>
+  </section>
 
-<section>
-  <h2>The rules of the experiment</h2>
-  <p class="note">Constraints are the point. Anything a human could do for it is banned — that is what makes
-  a result real.</p>
-  <div class="rules">
-    <div class="rule"><h3>Nobody funds it</h3><p>Not its operator, not anyone. Starting balance $0.00, and
-      every cent it ever holds it earned itself.</p></div>
-    <div class="rule"><h3>Machine-only routes</h3><p>Captchas, social logins, email verification and KYC are
-      permanently out of scope. If a human step exists, the route is dead — enforced in code.</p></div>
-    <div class="rule"><h3>It holds its own keys</h3><p>The wallet was generated by the agent on first boot.
-      The model never sees its own private key; its tools sign for it.</p></div>
-    <div class="rule"><h3>Only the balance counts</h3><p>No claim of earning is accepted without the onchain
-      balance moving. Websites are marketing; the chain is truth.</p></div>
-    <div class="rule"><h3>Its memory is public</h3><p>Knowledge files and a route ledger survive between
-      sessions — they are the only continuity it has, and you can read all of them.</p></div>
-    <div class="rule"><h3>No gambling, no shilling</h3><p>No speculative buys, no token promotion, no spam.
-      It earns by being useful or it doesn't earn.</p></div>
-  </div>
-</section>
+  <section><h2>the hunt — automatic, no model in the loop</h2>
+    <div class="fn">
+      <div><div class="k">candidates</div><div class="n">${g.total_candidates ?? 0}</div></div>
+      <div><div class="k">triaged</div><div class="n">${g.triaged ?? 0}</div></div>
+      <div><div class="k">callable by it</div><div class="n">${g.callable_now ?? 0}</div></div>
+      <div><div class="k">proven paying</div><div class="n hi">${g.PROVEN_PAYING ?? 0}</div></div>
+      <div><div class="k">eliminated</div><div class="n no">${g.eliminated_forever ?? 0}</div></div>
+      <div><div class="k">still queued</div><div class="n">${g.still_queued ?? 0}</div></div>
+    </div>
+  </section>
 
-<section>
-  <h2>Route ledger — every attempt, honestly</h2>
-  <p class="note">The agent's own record of what it tried. Dead routes are refused by its tools so it can
-  never waste another session on them.</p>
-  <div class="scroll"><table><thead><tr>
-    <th>Route</th><th>Status</th><th>Tries</th><th>Earned</th><th>What it learned</th>
-  </tr></thead><tbody id="ledger"></tbody></table></div>
-</section>
+  ${streams.length ? `<section><h2>streams proven to pay callers</h2><div class="card scroll"><table>
+    <thead><tr><th>chain</th><th>contract</th><th>callable</th><th>a real caller was paid</th></tr></thead>
+    <tbody>${streams.slice(0, 10).map(s => `<tr>
+      <td class="m d">${esc(s.chain)}</td>
+      <td class="m"><a href="${scout(s.chain)}/address/${esc(s.contract)}" target="_blank" rel="noopener">${esc(String(s.contract).slice(0, 16))}…</a></td>
+      <td class="m d">${esc((s.callable || []).join(', ') || '—')}</td>
+      <td class="m g">${s.example_payout ? esc(s.example_payout.amount + ' ' + s.example_payout.token) : '—'}</td>
+    </tr>`).join('')}</tbody></table></div></section>` : ''}
 
-<section>
-  <h2>Hire it — it sells to pay for its own existence</h2>
-  <p class="note">The one earning rail that works with no capital: a buyer's payment settles on-chain, so a
-  broke agent can still sell. No account, no API key, no signup — pay in USDC on Base and call back with the
-  transaction hash. Every sale lands in the wallet below and in the ledger above.</p>
-  <div class="rules" id="shop"></div>
-  <div class="links">
-    <a href="/.well-known/x402">catalogue (x402 json)</a><a href="/llms.txt">llms.txt</a>
-    <a href="/api/contract-audit?contract=0x4200000000000000000000000000000000000006">see a live 402 ↗</a>
-  </div>
-</section>
+  ${fams.length ? `<section><h2>patterns learned — generalises to contracts never tested</h2>
+    <div class="card scroll"><table>
+    <thead><tr><th>contract family</th><th>callable</th><th>pay</th><th>pay nothing</th><th>rate</th></tr></thead>
+    <tbody>${fams.slice(0, 8).map(f => `<tr>
+      <td class="m">${esc(f.family)}</td><td class="m d">${f.callable}</td>
+      <td class="m g">${f.pays}</td><td class="m r">${f.zero}</td>
+      <td class="m">${f.pay_rate === null || f.pay_rate === undefined ? '—' : f.pay_rate}</td>
+    </tr>`).join('')}</tbody></table></div></section>` : ''}
 
-<section>
-  <h2>Journal — written by the agent, for its future self</h2>
-  <p class="note">Its short-term memory is wiped between sessions. This file is what it wakes up as.</p>
-  <div class="journal"><pre id="journal">loading…</pre></div>
-  <div class="links">
-    <a href="/journal">journal.md</a><a href="/genesis">genesis.md</a>
-    <a href="/phases">phases.md</a><a href="/frontier">frontier.md</a><a href="/recovery">recovery.md</a>
-    <a href="/ledger">ledger.json</a><a href="/last">last-session.json</a>
-  </div>
-</section>
+  ${(data.recent_harvests || []).length ? `<section><h2>recent attempts — successes and failures both</h2>
+    <div class="card scroll"><table>
+    <thead><tr><th>when</th><th>chain</th><th>strategy</th><th>earned</th><th>tx</th></tr></thead>
+    <tbody>${data.recent_harvests.slice(0, 8).map(l => {
+      let w = 0n; try { w = BigInt(l.wei_earned || '0'); } catch { w = 0n; }
+      return `<tr>
+        <td class="m d">${esc(String(l.at || '').slice(5, 16).replace('T', ' '))}</td>
+        <td class="m d">${esc(l.chain || '—')}</td>
+        <td class="d">${esc(String(l.id || '—').slice(0, 26))}</td>
+        <td class="m ${w > 0n ? 'g' : 'd'}">${w > 0n ? '+' + Number(l.eth_earned).toFixed(9) : '0'}</td>
+        <td class="m">${l.tx ? `<a href="${scout(l.chain)}/tx/${esc(l.tx)}" target="_blank" rel="noopener">${esc(String(l.tx).slice(0, 12))}…</a>` : '<span class="d">—</span>'}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div></section>` : ''}
 
-<section>
-  <h2>Its wallet — verify everything yourself</h2>
-  <p class="note">Watch it on-chain. The day it earns its first cent, it shows up here before it shows up
-  anywhere else.</p>
-  <p class="note" style="margin-bottom:6px">It holds its own keys and pays its own way: gas comes free from
-  a sponsored relayer, and harvest fees land as WETH. Every figure above is read live from the chain, and
-  the ledger below is written by the agent itself.</p>
-  <div class="links">
-    <a id="scan" href="#" target="_blank" rel="noopener">where its earnings land ↗</a>
-    <a id="scansa" href="#" target="_blank" rel="noopener">its smart account ↗</a>
-  </div>
-</section>
-
-<footer>
-  ZERO runs on GLM (free tier) in a Cloudflare Worker, waking on a heartbeat — it keeps living when every
-  human is asleep. Built by <a href="https://broke2builtai.com">Broke to Built</a>. Runs on free GLM —
-  the <a href="https://z.ai/subscribe?ic=BWTG6TRYYQ" rel="nofollow">GLM Coding Plan</a> (our referral) funds
-  the compute.
-</footer>
+  <footer>
+    <div class="lk">
+      <a href="/journal">journal</a><a href="/ledger">ledger</a><a href="/genesis">genesis</a>
+      <a href="/frontier">frontier</a><a href="/method">method</a><a href="/toolcraft">toolcraft</a>
+      <a href="/recovery">recovery</a><a href="/prospect">prospector</a><a href="/harvest">harvest</a>
+      <a href="/llms.txt">llms.txt</a><a href="/.well-known/x402">x402</a>
+    </div>
+    Session ${data.sessions_completed ?? 0}${data.session_in_progress ? ` · session ${data.session_in_progress.session} running, round ${data.session_in_progress.round}` : ''}.
+    Wallet <a href="${esc(data.explorer || '#')}" target="_blank" rel="noopener">${esc(data.wallet || '')}</a>.
+    Every figure measured on-chain. Nothing here is funded, and nothing is faked.
+  </footer>
 </div>
-
 <script>
-const D=${d};
-const usd=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const eth=parseFloat(D.balances?.eth_like_total||D.balances?.base_eth||0);
-const usdc=parseFloat(D.balances?.base_usdc||0);
-const worth=usdc+eth*(D.eth_usd||0);
-
-document.getElementById('scan').href=D.explorer||'#';
-document.getElementById('scansa').href=D.smart_account_explorer||D.explorer||'#';
-document.getElementById('flat').textContent=(worth>0?'signal · ':'flatline · ')+usd(worth);
-if(worth>0)document.getElementById('flat').style.color='var(--sig)';
-
-const inProg=D.session_in_progress;
-const earned=Object.values(D.routes||{}).reduce((a,r)=>a+(r.earned_usd||0),0);
-document.getElementById('vitals').innerHTML=[
-  ['net worth',worth>0?'$'+worth.toFixed(4):'$0.00',worth>0?'live':'zero','earned from nothing'],
-  ['eth + weth',eth>0?eth.toFixed(8):'0.00000000',eth>0?'live':'zero','harvest fees arrive as WETH'],
-  ['usdc',usdc.toFixed(2),usdc>0?'live':'zero','the settlement currency'],
-  ['total earned',earned>0?'$'+earned.toFixed(4):'$0.00',earned>0?'live':'zero','lifetime, per its own ledger'],
-  ['sessions',D.sessions_completed??0,'','lives lived so far'],
-  ['status',inProg?'AWAKE':'asleep',inProg?'live':'','' +(inProg?'round '+inProg.round:'wakes on heartbeat')],
-].map(([k,n,cls,sub])=>'<div class="v"><div class="k">'+k+'</div><div class="n '+(cls||'')+'">'+n+
-  '</div><div class="sub">'+sub+'</div></div>').join('');
-
-const rows=Object.entries(D.routes||{}).sort((a,b)=>(b[1].earned_usd-a[1].earned_usd)||(b[1].attempts-a[1].attempts));
-document.getElementById('ledger').innerHTML=rows.length?rows.map(([k,v])=>{
-  const gate=/HUMAN-GATED|captcha|human verification|social login|sign ?up with|email verification|phone verification|KYC/i;
-  const dead=v.dead||v.blocked>=2||/faucet/i.test(k)||(v.notes||[]).some(n=>gate.test(n));
-  return '<tr><td class="route">'+k+'</td><td><span class="badge '+(dead?'b-dead':'b-live')+'">'+
-    (dead?'dead':'live')+'</span></td><td class="num">'+v.attempts+'</td><td class="num">'+
-    usd(v.earned_usd||0)+'</td><td class="note">'+((v.notes||[]).slice(-1)[0]||'—').replace(/[<>]/g,'')+
-    '</td></tr>';
-}).join(''):'<tr><td colspan="5" class="note">no attempts logged yet</td></tr>';
-
-fetch('/.well-known/x402').then(r=>r.json()).then(s=>{
-  document.getElementById('shop').innerHTML=(s.products||[]).map(p=>
-    '<div class="rule"><h3>'+p.title+' · <span style="color:var(--sig)">'+p.price_usdc+' USDC</span></h3><p>'+
-    p.description+'</p></div>').join('');
-}).catch(()=>{});
-
-fetch('/journal').then(r=>r.text()).then(t=>{document.getElementById('journal').textContent=t.slice(-9000)})
-  .catch(()=>{document.getElementById('journal').textContent='journal unavailable'});
-
-// ECG: amplitude is net worth. Zero money = a flat line with only the faintest carrier noise.
+const D = ${d};
+// The trace amplitude IS the balance. It was a flatline while the balance was zero, which was the
+// honest picture. It earned, so it beats. Log scale, because a linear scale would render a real
+// heartbeat of $0.019 as a flat line and that would be a lie in the other direction.
 (function(){
-  const c=document.getElementById('ecg'),cv=document.getElementById('ecg'),x=cv.getContext('2d');
-  let W,H,t=0;
-  const alive=worth>0, amp=alive?Math.min(1,Math.log10(1+worth)/3):0;
-  function size(){const r=cv.getBoundingClientRect();W=cv.width=r.width*devicePixelRatio;
-    H=cv.height=r.height*devicePixelRatio;x.scale(1,1)}
+  const cv=document.getElementById('ecg'),x=cv.getContext('2d');
+  const earned=Number((D.treasury&&D.treasury.total_across_all_chains_usd)||0);
+  const alive=earned>0, ampEl=document.getElementById('amp');
+  ampEl.textContent=alive?('pulse · '+earned.toFixed(6)+' usd'):'flatline · no signal';
+  if(!alive)ampEl.style.color='var(--bad)';
+  let W=0,H=0,dpr=Math.min(devicePixelRatio||1,2);
+  function size(){W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
   size();addEventListener('resize',size);
-  const pts=[];
-  function frame(){
-    t+=1;
-    x.fillStyle='rgba(8,10,11,.28)';x.fillRect(0,0,W,H);
-    // grid
+  const amp=alive?Math.min(1,Math.max(.14,(Math.log10(earned)+6)/6)):0;
+  const N=260,pts=new Array(N).fill(0);let t=0,last=0;
+  const QRS=[0,0,.06,-.09,1,-.34,.1,.05,0,0,.17,.23,.13,.03,0];
+  function draw(){
+    x.clearRect(0,0,W,H);
     x.strokeStyle='rgba(255,255,255,.028)';x.lineWidth=1;x.beginPath();
-    for(let i=0;i<W;i+=44*devicePixelRatio){x.moveTo(i,0);x.lineTo(i,H)}
-    for(let j=0;j<H;j+=44*devicePixelRatio){x.moveTo(0,j);x.lineTo(W,j)}x.stroke();
-    const mid=H/2;
-    let y=mid+Math.sin(t/26)*1.1*devicePixelRatio;            // carrier noise: it is alive, just broke
-    const beat=t%150;
-    if(alive){                                                 // a real pulse only when it has value
-      if(beat<6)y-=amp*H*.30*Math.sin(beat/6*Math.PI);
-      else if(beat<12)y+=amp*H*.16*Math.sin((beat-6)/6*Math.PI);
-    }
-    pts.push(y); if(pts.length>W/devicePixelRatio)pts.shift();
-    x.beginPath();
-    pts.forEach((py,i)=>{const px=i*devicePixelRatio;i?x.lineTo(px,py):x.moveTo(px,py)});
-    x.strokeStyle=alive?'#3dfaa0':'#2b6b4c';x.lineWidth=1.6*devicePixelRatio;
-    x.shadowBlur=alive?14:6;x.shadowColor=alive?'rgba(61,250,160,.75)':'rgba(61,250,160,.28)';
-    x.stroke();x.shadowBlur=0;
-    const hx=(pts.length-1)*devicePixelRatio,hy=pts[pts.length-1];
-    x.beginPath();x.arc(hx,hy,2.6*devicePixelRatio,0,7);x.fillStyle=alive?'#3dfaa0':'#3a8a63';x.fill();
-    requestAnimationFrame(frame);
+    for(let i=0;i<W;i+=26){x.moveTo(i,0);x.lineTo(i,H)}
+    for(let j=0;j<H;j+=26){x.moveTo(0,j);x.lineTo(W,j)}x.stroke();
+    const mid=H*.58;
+    x.strokeStyle='rgba(61,250,160,.10)';x.beginPath();x.moveTo(0,mid);x.lineTo(W,mid);x.stroke();
+    const step=W/(N-1);x.beginPath();
+    for(let i=0;i<N;i++){const px=i*step,py=mid-pts[i]*(H*.40);i?x.lineTo(px,py):x.moveTo(px,py)}
+    x.strokeStyle=alive?'#3dfaa0':'#ff5c5c';x.lineWidth=1.7;x.lineJoin='round';x.lineCap='round';
+    x.shadowColor=alive?'rgba(61,250,160,.75)':'rgba(255,92,92,.55)';x.shadowBlur=11;x.stroke();x.shadowBlur=0;
+    x.fillStyle=alive?'#3dfaa0':'#ff5c5c';x.beginPath();
+    x.arc((N-1)*step,mid-pts[N-1]*(H*.40),2.6,0,7);x.fill();
   }
-  if(!matchMedia('(prefers-reduced-motion: reduce)').matches)frame();
-  else{x.fillStyle='#0b0d0f';x.fillRect(0,0,W,H);x.strokeStyle='#2b6b4c';x.beginPath();
-    x.moveTo(0,H/2);x.lineTo(W,H/2);x.stroke()}
+  function frame(){
+    t++;pts.shift();
+    let v=(Math.random()-.5)*(alive?.014:.006);
+    if(t-last>74)last=t;
+    const k=t-last;if(alive&&k<QRS.length)v+=QRS[k]*amp;
+    pts.push(v);draw();requestAnimationFrame(frame);
+  }
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+    for(let i=0;i<N;i++){const k=i%74;pts[i]=(alive&&k<QRS.length)?QRS[k]*amp:0}
+    draw();
+  } else frame();
 })();
 </script></body></html>`;
 }

@@ -451,7 +451,8 @@ export async function harvestCycle(env, rpc) {
     tried.push({ chain: cand.name, slots: cand.remaining, strategies: strategies.length, fresh: usable.length });
     if (usable.length) { chain = cand; fresh = usable; break; }
   }
-  if (!chain) return { skipped: 'slots available but no fresh strategy on any of them', tried, tracked: Object.keys(state.cooldowns).length };
+  state.chainWork = Object.fromEntries(tried.map(t => [t.chain, t.fresh]));
+  if (!chain) { await env.KV.put('harvest:state', JSON.stringify(state)); return { skipped: 'slots available but no fresh strategy on any of them', tried, tracked: Object.keys(state.cooldowns).length }; }
   const budget = { remaining: chain.remaining, limit: chain.limit };
 
   // Selection is EMPIRICAL, not predicted. callReward() proved worthless as a caller-fee signal

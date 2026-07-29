@@ -10,6 +10,7 @@ import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, 
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
+import { diagnose } from './health.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
 import { scanGasless, sweepGasless } from './gasless.mjs';
 import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
@@ -1204,20 +1205,40 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         eth_usd = parseFloat((await s.json()).coin_price) || null;
       } catch { /* nicety */ }
 
+      // Everything it holds, everything it is doing, and — the part that actually matters
+      // operationally — whether it has quietly stopped. All of it computed here so the page and the
+      // JSON tell the same story.
+      const rpcFn = (ch, m, p) => rpcCall(ch, m, p);
+      const [treasury, prospect, relayAll, harvestState] = await Promise.all([
+        treasuryPlan(rpcFn, address, payTo).catch(() => null),
+        prospectIntel(env).catch(() => null),
+        pickChain(payTo).then(r => r.all).catch(() => []),
+        env.KV.get('harvest:state', 'json').catch(() => null),
+      ]);
+      const health = diagnose({
+        earnings: balances,
+        relay: { chains: relayAll.map(c => ({ name: c.name, remaining: c.remaining, limit: c.limit })) },
+        prospect, meta, harvest: harvestState,
+      });
+
       const payload = {
         agent: 'ZERO',
         mission: 'earn crypto from absolute zero — machine-only routes, nobody funds it',
         wallet: address,
         smart_account: payTo,
-        gas_model: 'holds no ETH; buys gas in USDC via Candide keyless ERC-4337 paymaster (~0.009087 USDC/op)',
+        gas_model: 'earns wrapped native, converts to ETH it owns; free Safe relay on 5 chains, plus one permissionless USDC token paymaster',
         explorer: `https://base.blockscout.com/address/${address}`,
         smart_account_explorer: `https://base.blockscout.com/address/${payTo}`,
         balances, eth_usd,
+        health,
+        treasury,
+        prospect: prospect ? { grind: prospect.grind, streams: prospect.streams_ready_to_stack, families: prospect.families_by_evidence } : null,
+        recent_harvests: (harvestState?.log || []).slice(0, 8),
         sessions_completed: meta.sessions,
         last_session: meta.lastSession || null,
         session_in_progress: cur ? { session: cur.session, round: cur.round, started: new Date(cur.startedAt).toISOString() } : null,
         routes,
-        endpoints: ['/journal', '/ledger', '/genesis', '/frontier', '/recovery', '/last'],
+        endpoints: ['/journal', '/ledger', '/genesis', '/frontier', '/method', '/toolcraft', '/recovery', '/prospect', '/harvest', '/last'],
       };
       const wantsHtml = (req.headers.get('accept') || '').includes('text/html');
       if (wantsHtml && url.pathname === '/') {
