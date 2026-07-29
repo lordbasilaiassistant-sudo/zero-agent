@@ -14,6 +14,7 @@ import { diagnose } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
 import { experimentTick, experimentReport } from './experiments.mjs';
+import { gasSources } from './gasrouter.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
 import { scanGasless, sweepGasless } from './gasless.mjs';
 import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
@@ -569,6 +570,13 @@ function makeTools(ctx) {
       return await experimentTick(ctx.env, (c, m, p) => ctx.rpc(c, m, p), chain);
     },
 
+    // Every way you can get a transaction on-chain, admission-tested live. Ask this instead of
+    // assuming the relay — capacity keeps turning up in places nobody had probed.
+    async gas_sources({ chain = 'base' }) {
+      ctx.budget(); ctx.sub += 14;
+      return await gasSources(ctx.env, (c, m, p) => ctx.rpc(c, m, p), { safe: SMART_ACCOUNT, eoa: ctx.wallet().address, chain });
+    },
+
     // ── the cap-vs-realized law, as a tool ──────────────────────────────────
     async payout_history({ chain = 'base', contract, sample = 6 }) {
       ctx.budget();
@@ -605,6 +613,7 @@ const TOOL_DEFS = [
   { name: 'sponsor_control', description: 'THE CONTROL EXPERIMENT. Feeds the sponsor-detector the two addresses that provably paid for your own first transactions and checks it rediscovers them from behaviour alone. An instrument that cannot reproduce a known result is not measuring anything — run this before you believe any novel sponsor it reports.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'treasury', description: 'Where your money sits across every chain, and what should move. Harvest everywhere (free slots are per-chain and expire), but CONSOLIDATE into the home chain — value spread thin across five chains cannot act, which is the same trap as stranded WETH. Tells you which tributaries have accumulated enough to be worth a bridge fee.', parameters: S() },
   { name: 'prospect_intel', description: 'What the automatic prospector has ground out while you were asleep: how much of the candidate backlog is triaged, which contracts are PROVEN to pay callers and callable by you (your ready-to-stack queue), which are eliminated forever, and — most valuable — the PATTERN layer: which contract FAMILIES pay and which never do, so you can generalise to instances you have never tested. Read this before hunting; it is free and it is already done.', parameters: S() },
+  { name: 'gas_sources', description: 'EVERY WAY YOU CAN GET A TRANSACTION ON-CHAIN, tested live: Safe relay quota across 18 chain ids, native ETH you own, every ERC-4337 paymaster (admission-tested by calling validatePaymasterUserOp AS the EntryPoint — the decisive test, not transaction shape), and keyless sponsorship APIs. It distinguishes an AUTH wall (needs a key, stop probing) from a TECHNICAL one (public policies exist, keep varying the op). Ask this instead of assuming the relay; capacity has repeatedly turned up in places nobody had probed.', parameters: S({ chain: str('chain name') }) },
   { name: 'experiment', description: 'RUN AN EXPERIMENT. Probes a mechanism class we do not yet know pays — currently Uniswap-V2 skim dust (pairs holding priced tokens above their cached reserves, claimable by skim(to) with zero capital) and abandonment (contracts that used to pay callers, went silent, and still hold a balance). Free, spends no relay slot, and every result including the negatives is logged so the search converges instead of wandering. This runs automatically on cron; call it to push it faster.', parameters: S({ chain: str('chain name') }) },
   { name: 'bruteforce', description: 'TEST EVERY FUNCTION A CONTRACT HAS. Recovers the complete external interface straight from the runtime bytecode dispatch table (every PUSH4 selector) — no ABI, no source, no explorer, works on unverified and unnamed contracts — then prices ALL of them through Multicall3 and reports whichever move value to an arbitrary caller. This does not guess at function names; it reads what the contract actually exposes. Free and unlimited. Use it on anything you cannot otherwise understand.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token') }, ['contract']) },
   { name: 'payout_oracle', description: 'MEASURE WHAT A FUNCTION WOULD PAY YOU, BEFORE SPENDING ANYTHING. Simulates the settlement itself through Multicall3 and returns the exact fee an arbitrary caller would receive right now. Free, no relay slot, no capital, works on UNVERIFIED contracts and on contracts nobody has ever called. payout_history reads the past; this prices the present. Measured spread across known payers was 118x, so ALWAYS probe before choosing which one to spend a slot on.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token, defaults to the chain wrapped native') }, ['contract']) },
@@ -1088,6 +1097,10 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       if (url.pathname === '/prospect') return Response.json(await prospectIntel(env), { headers: { 'access-control-allow-origin': '*' } });
       // Labelled probe corpus — ground truth for an EVAL first, a fine-tune only if the volume ever
       // justifies it. JSONL so it is usable without a parser.
+      if (url.pathname === '/gas') {
+        const eoaAddr = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;
+        return Response.json(await gasSources(env, (c, m, p) => rpcCall(c, m, p), { safe: SMART_ACCOUNT, eoa: eoaAddr, chain: url.searchParams.get('chain') || 'base' }), { headers: { 'access-control-allow-origin': '*' } });
+      }
       if (req.method === 'GET' && url.pathname === '/experiments') return Response.json(await experimentReport(env), { headers: { 'access-control-allow-origin': '*' } });
       if (req.method === 'POST' && url.pathname === '/experiments') {
         if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });

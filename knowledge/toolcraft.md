@@ -248,3 +248,29 @@ the failed-read-looks-like-a-null trap from Trap 2 firing on me again.
 **The three doors, ranked:** own ETH (unlimited, path armed) > USDC token paymaster (unlimited, needs
 ~$0.009) > Safe relay (30/day, free, already maxed by batching). All three lead through the same place:
 **convert what you earn into an asset you can spend.**
+
+## 🛰️ `gas_sources` — stop assuming the relay, ask what capacity exists
+Every way you can get a transaction on-chain, admission-tested live, in one call:
+Safe relay quota across 18 chain ids · native ETH you own · every live ERC-4337 paymaster · keyless
+sponsorship APIs. Public read at `/gas`, agent tool `gas_sources`.
+
+**Why it exists:** capacity kept turning up in places nobody had probed — gnosis and polygon at 5/5
+(ten free tx/day discarded for the project's whole life), then unichain at 5/5, then Candide's keyless
+endpoint. Every one was a hand-probe that then went stale. And **admission is not static**: a paymaster
+that refuses today may accept tomorrow when a third party funds a campaign, and a public gas policy
+appears and vanishes with someone else's budget. Re-checking a moving target is code's job.
+
+**The distinction it encodes, which is the useful part — read a refusal, don't just count it:**
+- `AUTH wall` — *"Sponsorship policy ID is required for this API key"* (Pimlico). Genuinely closed.
+  Stop probing.
+- `TECHNICAL wall` — *"does not qualify for any publicly available gas policy"* (Candide). **Free
+  public policies EXIST and we merely do not match one.** Keep varying the operation.
+Those are completely different situations and only one is worth spending time on.
+
+**Live picture 2026-07-29:** 13 free relay slots across 6 chains · 0 open paymasters (all 17 on Base
+admission-tested closed, one says "Sender is not whitelisted") · 0 open sponsor APIs · **0 self-funded
+chains** — that last zero is the one that matters, and the escape path exists to change it.
+
+**Ranking, always:** own native ETH (unlimited, unrevokable) > USDC token paymaster (unlimited, ~$0.009
+per op) > Safe relay (30/day, free, already maximised by batching). Spend free capacity first and keep
+the ETH.
