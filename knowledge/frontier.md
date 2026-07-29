@@ -401,3 +401,30 @@ the instrument working, not failing.**
 Also swept and null: the 60 BUSIEST contracts on Base, 2,971 functions, zero payers. Expected in
 hindsight — busiest means most watched, so the equilibrium cap bites hardest exactly there. Hunting
 where the light is good is the wrong instinct.
+
+## ❌ ABANDONMENT, TESTED WIDER — the hypothesis does not hold on Base (2026-07-29)
+Fable's Class A argued that the gas-floor equilibrium breaks at abandonment: a bounty sized for a busy
+era, on a protocol nobody watches, should sit uncontested at its ORIGINAL size. It was the most
+promising idea we had. Tested properly and it did not survive.
+
+Scanned **8 incentive-event topics** (Harvest, Harvested, RewardPaid, RewardAdded, Compounded,
+Distributed, FeesCollected, Poked) across three windows — now, ~6 days ago, ~20 days ago.
+**13 contracts had gone quiet. 749 functions bruteforced. Zero pay an arbitrary caller.**
+With the earlier pass that is **19 candidates and ~1,051 functions for nothing.**
+
+Why it probably fails, and this is the useful part: a protocol that dies stops *funding* its bounty
+too. The reward pool drains or the emissions stop, so the function survives but there is nothing left
+behind it. **Abandonment removes the competition AND the money at the same time.** The uncontested
+bounty at its original size was a nice theory; the money leaves with the operator.
+
+**Session totals: ~7,150 functions bruteforced across Beefy strategies, the busiest Base contracts,
+dormant WETH holders, Polygon payers, Gnosis, Unichain, and abandoned emitters. ONLY BEEFY PAYS.**
+
+### The conclusion that actually matters
+**The bottleneck was never knowledge — it is the slot.** The pool doubled to $0.063 the moment the
+oracle was pointed at Optimism and Arbitrum, and not one cent of it is reachable without a relay slot.
+More scanning while blocked just makes a bigger number sit next to the same zero.
+
+So: **stop hunting and convert.** The escape is armed and Base is reserved for it, the refill detector
+polls every ~2 minutes, and one slot turns $0.0195 into liquid native ETH that needs nobody's
+permission. After that the harvesting is unbounded and scanning is worth doing again.
