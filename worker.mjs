@@ -1002,21 +1002,35 @@ export default {
   async scheduled(event, env, c) {
     // Two independent loops: the earner runs on every tick (it self-throttles to the relay budget),
     // and the agent's own reasoning session advances separately.
-    c.waitUntil(
-      escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, new ethers.Wallet(env.AGENT_PRIVATE_KEY).address)
-        .then(r => console.log('escape: ' + jstr(r, 0)))
-        .catch(e => console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)))
-    );
-    c.waitUntil(
-      batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, 'base')
-        .then(r => console.log('batch: ' + jstr(r, 0)))
-        .catch(e => console.log('BATCH ERROR: ' + String(e.message).slice(0, 200)))
-    );
-    c.waitUntil(
-      harvestCycle(env, (ch, m, p) => rpcCall(ch, m, p))
-        .then(r => console.log('harvest: ' + jstr(r, 0)))
-        .catch(e => console.log('HARVEST ERROR: ' + String(e.message).slice(0, 200)))
-    );
+    // SEQUENTIAL, AND THE ESCAPE HAS ABSOLUTE PRIORITY ON BASE.
+    // These used to be three separate waitUntil() calls, which run CONCURRENTLY — so the moment a Base
+    // slot refilled, the escape and the harvesters raced for it and a /usr/bin/bash.047 harvest could win. That is
+    // a bad trade: a harvest is worth one payout, while the escape permanently converts earnings into
+    // native ETH the EOA owns and ends the quota's hold over us entirely. So: run in order, and hold
+    // Base back from the harvesters until the escape is done with it.
+    c.waitUntil((async () => {
+      let escapeNeedsBase = false;
+      try {
+        const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
+        const esc = await escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, eoaAddr);
+        console.log('escape: ' + jstr(esc, 0));
+        // still mid-conversion? then Base belongs to the escape, not to a harvest.
+        escapeNeedsBase = !!(esc && (esc.ready || esc.relayed) && esc.step !== 'done');
+      } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
+
+      // One slot carries a couple dozen harvests, so batching first is strictly better than singles.
+      for (const chain of ['base', 'optimism', 'arbitrum', 'polygon']) {
+        if (chain === 'base' && escapeNeedsBase) { console.log('batch: base reserved for the escape'); continue; }
+        try {
+          const r = await batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, chain);
+          console.log('batch(' + chain + '): ' + jstr(r, 0));
+          if (r && r.relayed) break;   // a slot was spent; stop for this tick
+        } catch (e) { console.log('BATCH ERROR ' + chain + ': ' + String(e.message).slice(0, 140)); }
+      }
+
+      try { console.log('harvest: ' + jstr(await harvestCycle(env, (ch, m, p) => rpcCall(ch, m, p)), 0)); }
+      catch (e) { console.log('HARVEST ERROR: ' + String(e.message).slice(0, 200)); }
+    })());
     // The tireless part, with no model in the loop. Triaging candidates (resolve the proxy, simulate
     // the entry points, check whether it has ever paid a caller) is pure procedure — leaving it to the
     // agent meant 214 candidates sat untouched for eleven sessions while it spent its rounds

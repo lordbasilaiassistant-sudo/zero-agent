@@ -274,3 +274,19 @@ chains** — that last zero is the one that matters, and the escape path exists 
 **Ranking, always:** own native ETH (unlimited, unrevokable) > USDC token paymaster (unlimited, ~$0.009
 per op) > Safe relay (30/day, free, already maximised by batching). Spend free capacity first and keep
 the ETH.
+
+## ⛔ SLOT CONTENTION — the escape has absolute priority on Base
+Found 2026-07-29 while trying to find a Base slot: the cron fired `escapeCycle`, `batchHarvest` and
+`harvestCycle` as three separate `c.waitUntil()` calls, which run **CONCURRENTLY, not in order**. So the
+moment a Base slot refilled they raced for it — and a harvest could easily win.
+
+That is a bad trade and it would have kept repeating silently. **A harvest is worth one payout
+(~$0.047). The escape permanently converts earnings into native ETH the EOA owns and ends the quota's
+hold entirely.** One is income; the other is capability.
+
+Now sequential, with Base held back from the harvesters while the escape still needs it. The
+harvesters fall through to optimism → arbitrum → polygon in the meantime, so nothing is wasted.
+
+**Generalise this:** when several jobs draw on the same scarce resource, firing them concurrently is
+not "parallel", it is a lottery. Rank by what the resource BUYS — capability outranks income — and
+sequence deliberately.
