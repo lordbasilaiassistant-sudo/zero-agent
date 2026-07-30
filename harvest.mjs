@@ -375,18 +375,59 @@ export async function escapeCycle(env, rpc, safe, eoa) {
     safe_weth_usd: usd(safeWeth),
   };
 
-  // STEP 3 — the EOA has gas and stranded WETH of its own. Unwrapping is a plain self-sent
-  // transaction: no relay, no sponsor, no quota. This is the point of the whole exercise.
-  if (eoaWeth > 0n && eoaEth > ESCAPE.eoaUnwrapGas * 30000000n) {
-    const data = '0x2e1a7d4d' + eoaWeth.toString(16).padStart(64, '0');
-    try {
-      await rpc('base', 'eth_call', [{ to: W, data, from: eoa }, 'latest']);
-      return { step: 'eoa_self_unwrap', reserve, unlocks_usd: usd(eoaWeth), simulated: true,
-        note: 'EOA holds gas AND stranded WETH. Send this from the EOA directly — it needs nobody.' };
-    } catch (e) { return { step: 'eoa_self_unwrap', reserve, simulated: false, error: String(e.message).slice(0, 140) }; }
+  // STEP 3 — the EOA has stranded WETH and some seed ETH. Unwrapping is a plain self-sent
+  // transaction: no relay, no sponsor, no quota. EXECUTED HERE, IN CODE. This used to return a
+  // "send this from the EOA yourself" note for the model to act on — but the model's journal had
+  // garbled the stranded amount to dust, so the note would have been read forever and acted on
+  // never. The only judgement in it — "is it affordable right now" — is a fee measurement, so
+  // measure it and send. Fees measured 2026-07-30: baseFee 0.005 gwei, prio 0.001 gwei, L1 data
+  // fee 1.6e-9 ETH; a $0.0005 seed covers the unwrap with a squeezed maxFee.
+  if (eoaWeth > 0n && eoaEth > 0n && env.AGENT_PRIVATE_KEY) {
+    const blk = await rpc('base', 'eth_getBlockByNumber', ['latest', false]);
+    const baseFee = BigInt(blk.baseFeePerGas || '0x0');
+    let prio = 1000000n;
+    try { prio = BigInt(await rpc('base', 'eth_maxPriorityFeePerGas', [])); } catch { /* default */ }
+    const gasLimit = ESCAPE.eoaUnwrapGas + 4000n;      // measured cost plus headroom
+    const l1Buffer = 10000000000n;                      // OP-stack L1 data fee, measured 1.6e-9 ETH; 6x margin
+    let maxFee = baseFee * 2n + prio;
+    if (eoaEth - l1Buffer < gasLimit * maxFee) {
+      // Protocol validity needs balance >= gasLimit*maxFee. The seed is tiny, so squeeze maxFee
+      // down to what the balance affords — fine as long as it still clears baseFee+prio.
+      const affordable = (eoaEth - l1Buffer) / gasLimit;
+      maxFee = affordable >= baseFee + prio ? affordable : 0n;
+      if (prio > maxFee) prio = maxFee;
+    }
+    if (maxFee > 0n) {
+      const data = '0x2e1a7d4d' + eoaWeth.toString(16).padStart(64, '0');
+      try {
+        await rpc('base', 'eth_call', [{ to: W, data, from: eoa }, 'latest']);
+        const [nLatest, nPending] = await Promise.all([
+          rpc('base', 'eth_getTransactionCount', [eoa, 'latest']),
+          rpc('base', 'eth_getTransactionCount', [eoa, 'pending']),
+        ]);
+        if (BigInt(nPending) > BigInt(nLatest)) {
+          return { step: 'eoa_self_unwrap', reserve, waiting: 'a previous unwrap is already in the mempool' };
+        }
+        const w = new ethers.Wallet(env.AGENT_PRIVATE_KEY);
+        const signed = await w.signTransaction({
+          chainId: 8453, type: 2, to: W, value: 0n, data,
+          nonce: parseInt(nPending, 16), gasLimit, maxFeePerGas: maxFee, maxPriorityFeePerGas: prio,
+        });
+        const hash = await rpc('base', 'eth_sendRawTransaction', [signed]);
+        state.escaped = true;
+        state.escapeLog = [{ at: new Date().toISOString(), leg: 'eoa_self_unwrap', hash, unlocked_usd: usd(eoaWeth) }, ...(state.escapeLog || [])].slice(0, 10);
+        await env.KV.put('harvest:state', JSON.stringify(state));
+        return { step: 'eoa_self_unwrap', reserve, sent: true, hash, unlocks_usd: usd(eoaWeth),
+          note: 'UNWRAPPED. The stranded WETH is native ETH at the EOA now — it transacts with nobody permission-gating it.' };
+      } catch (e) { return { step: 'eoa_self_unwrap', reserve, simulated: false, error: String(e.message).slice(0, 140) }; }
+    }
+    // Unaffordable at current fees: fall through — the router legs below convert Safe WETH into
+    // more seed ETH at the EOA until the unwrap clears. If the Safe is empty too, 'accumulate'.
   }
 
-  if (state.escaped && eoaEth > 0n) return { step: 'done', reserve, note: 'EOA transacts on its own now.' };
+  // Done means NOTHING IS STRANDED — the EOA holds native ETH and no WETH is waiting anywhere it
+  // cannot leave. "An unwrap happened once" is not done: value keeps landing stranded.
+  if (state.escaped && eoaEth > 0n && eoaWeth === 0n) return { step: 'done', reserve, note: 'EOA transacts on its own now.' };
   if (safeWeth < 200000000000n) {
     return { step: 'accumulate', reserve,
       note: 'Too little in the Safe to bother converting. harvest_batch first — one slot takes the whole pool.' };
@@ -399,7 +440,7 @@ export async function escapeCycle(env, rpc, safe, eoa) {
   //   slot 1: WETH.transfer(router, all)
   //   slot 2: router.unwrapWETH9(0, EOA)  -> native ETH lands at the EOA
   // Between the two, anyone could call unwrapWETH9 and take the router's balance. That is why this
-  // runs EARLY and SMALL: at ~/usr/bin/bash.002 the front-run is worth less than the gas to attempt it, and the
+  // runs EARLY and SMALL: at ~USD 0.002 the front-run is worth less than the gas to attempt it, and the
   // payoff is that the EOA becomes independently able to transact forever after.
   const routerWeth = await wethBalance(rpc, ESCAPE.router, 'base', W);
   const leg = routerWeth > 0n ? 'unwrap' : 'transfer';

@@ -1004,7 +1004,7 @@ export default {
     // and the agent's own reasoning session advances separately.
     // SEQUENTIAL, AND THE ESCAPE HAS ABSOLUTE PRIORITY ON BASE.
     // These used to be three separate waitUntil() calls, which run CONCURRENTLY — so the moment a Base
-    // slot refilled, the escape and the harvesters raced for it and a /usr/bin/bash.047 harvest could win. That is
+    // slot refilled, the escape and the harvesters raced for it and a USD 0.047 harvest could win. That is
     // a bad trade: a harvest is worth one payout, while the escape permanently converts earnings into
     // native ETH the EOA owns and ends the quota's hold over us entirely. So: run in order, and hold
     // Base back from the harvesters until the escape is done with it.

@@ -134,14 +134,21 @@ Two traps that fired repeatedly, so check them by reflex:
 - **`payout_history`** — settled payouts only. **`experiment` / `/experiments`** — rotating probes of
   unproven mechanism classes, negatives logged deliberately. **`/train.jsonl`** — labelled corpus.
 
-## Status (2026-07-29)
-- **EARNED FROM ZERO: $0.0192 measured on-chain.** Live on 6 chains (base, optimism, arbitrum, gnosis,
-  polygon, unichain) = 30 free relay tx/day. selftest 20/20.
+## Status (2026-07-30)
+- **EARNED FROM ZERO: $0.0364 total on-chain** (nearly 2× in a day after the 6-chain sweep). Live on
+  6 chains = 30 free relay tx/day. selftest 20/20.
 - **Phase 0 is measured in SPENDABLE LIQUID ETH: $0.0000 of $1.00.** Lifetime-earned is vanity —
-  $0.0154 is stranded WETH. Flow-bound at ~$0.032/day ⇒ roughly a month, improving as payers are found.
-- **Escape ARMED**, waiting on one Base slot: `WETH.transfer(SwapRouter02)` → `unwrapWETH9(0, EOA)` →
-  the EOA self-unwraps its own $0.0152. A Safe CANNOT unwrap WETH (2300-gas `.transfer` stipend); the
-  router can because it pays with `.call`. Base is now RESERVED for this ahead of any harvest.
+  $0.0154 is stranded WETH at the EOA.
+- **Escape endgame is now FULLY CODE-EXECUTED** (2026-07-30). The old step 3 only *simulated* the EOA
+  self-unwrap and returned a "send this yourself" note for the model — which never acted, because its
+  journal had garbled the stranded amount to 8e-16 WETH (it believed there was nothing to unwrap).
+  Now `escapeCycle` measures live fees (baseFee 0.005 gwei, prio 0.001, L1 data fee 1.6e-9 ETH —
+  measured, not recalled), squeezes maxFee to what the seed balance affords, and SIGNS+SENDS the
+  unwrap itself. `done` now requires *nothing stranded*, not "an unwrap happened once" (the old check
+  would have deadlocked with $0.0154 still trapped). Chain at next Base refill, all automatic:
+  leg1 Safe WETH→router → leg2 unwrap→EOA seed (~$0.00057) → step3 EOA self-unwraps its $0.0154.
+  A Safe CANNOT unwrap WETH (2300-gas `.transfer` stipend); the router can (`.call`). Base stays
+  RESERVED for the escape ahead of any harvest.
 - **The equilibrium cap** (why everything is dust): live keeper bounties get bid down to the gas floor,
   so labour extraction is capped at ~gas cost. It breaks only at ABANDONMENT. ~2,500 functions
   bruteforced; only Beefy pays. The unlock is $1, which opens the capital tier at 100–1000×/call.
