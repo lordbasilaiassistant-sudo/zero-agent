@@ -66,7 +66,20 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
 
   if (usableSlots >= STALL.idleSlotAlarm && hoursSinceEarning !== null && hoursSinceEarning > 1) {
     state = 'IDLE CAPACITY';
-    headline = `${freeSlots} free relay slots are sitting unspent on ${idleChains.map(c => c.name).join(', ')}.`;
+    /* FIXED 2026-07-31: this line printed `freeSlots` while naming only `idleChains`, so on 07-31 it
+       read "14 free relay slots are sitting unspent on base" when base held FOUR — 10 of the 14 were
+       the dead gnosis/unichain slots. A 3.5x overstatement, and it attributed dead-chain capacity to
+       a live chain, which is the one number that decides what to do next.
+       The doctrine 30 lines above this (":34 — FREE is not the same as USABLE… drive the diagnosis
+       off the usable number") was written to prevent exactly this and was then violated by the very
+       next branch that used it. The CAPACITY-EXHAUSTED branch below (:82) had it right all along.
+       Generalise: a comment is not an enforcement mechanism — if two variables can be swapped without
+       breaking anything, they will be, so make the headline read from the same number the THRESHOLD
+       read (`usableSlots` gates this branch, so `usableSlots` must be what it reports). */
+    const deadTxt = freeSlots > usableSlots && deadChains.length
+      ? ` (${freeSlots} free in total, but ${freeSlots - usableSlots} are on chains with nothing harvestable: ${deadChains.map(c => c.name).join(', ')})`
+      : '';
+    headline = `${usableSlots} usable relay slot${usableSlots === 1 ? '' : 's'} sitting unspent on ${idleChains.map(c => c.name).join(', ')}${deadTxt}.`;
     action = 'Slots expire worthless. Spend them on a proven payer, or on the WETH→ETH conversion if the Safe is above threshold.';
     signals.push('idle-capacity');
   }
