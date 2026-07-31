@@ -69,7 +69,7 @@ export const PHASES = [
     riskFractionOfHourly: 0.5,  // may spend up to half of the trailing hourly rate, per hour
     capabilities: [
       'all of phase 0',
-      'self-funded-gas',        // ZERO may pay its own gas for calls that clear the floor
+      'self-funded-gas',        // ONLY where measured payout > measured gas — see the rule below
       'wider-target-set',       // targets that were unreachable while strictly gasless
     ],
     contracts: ['ZeroHarvester'],
@@ -77,10 +77,25 @@ export const PHASES = [
       'swaps or trades',        // Anthony: gas eats most of the profit at this size — correct
       'holding inventory beyond one transaction',
       'any position that can lose value while held',
+      'self-funded gas on harvest bounties', // MEASURED 2026-08-01: they lose 7.7x — see below
     ],
+    /**
+     * MEASURED GATE, added 2026-08-01 after forking Base and executing real harvests
+     * (contracts/FINDINGS.md §2). A harvest costs ~3.46M gas ($0.0387 at 0.006 gwei) and pays
+     * $0.005 — spending ZERO's own gas on this route turns a gain into a 7.7x LOSS. So phase 1's
+     * headline capability is real but must be qualified by arithmetic rather than by optimism:
+     * self-funded gas is permitted per-mechanism, only when payout has been MEASURED above cost.
+     * Harvest bounties do not qualify today and are explicitly forbidden above.
+     *
+     * This is also why phase 0 is not a waiting room: gas sponsorship is not a crutch ZERO is trying
+     * to outgrow, it is the entire reason this route is profitable for ZERO and for nobody else.
+     */
+    selfFundedGasRule: (payoutUsd, gasUsd) => payoutUsd > gasUsd * 1.5, // 50% margin, not break-even
     note:
-      'The first rung where ZERO spends. Every spend is bounded by a fraction of what it has already ' +
-      'earned, so the downside is a slower month, never a hole.',
+      'The first rung where ZERO spends — and the rung whose rules measurement already corrected. ' +
+      'Every spend is bounded by a fraction of what it has already earned, so the downside is a ' +
+      'slower month, never a hole; and no spend is allowed at all on a mechanism whose payout has ' +
+      'not been measured above its gas cost.',
   },
   {
     id: 2,

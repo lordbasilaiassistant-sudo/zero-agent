@@ -1,0 +1,166 @@
+{
+  "measuredAt": "2026-07-31T23:46:08.593Z",
+  "block": 49376114,
+  "ethUsd": 1861.935,
+  "vaultsScanned": 120,
+  "strategiesResolved": 120,
+  "exposingCallReward": 120,
+  "withPendingFee": 111,
+  "totalClaimableEth": "0.040891443046325915",
+  "totalClaimableUsd": 76.137209,
+  "unpausedCount": 111,
+  "unpausedClaimableUsd": 76.137209,
+  "gasPriceGwei": "0.006",
+  "top": [
+    {
+      "strategy": "0x8B45D51e015Dac924EeAEa754e6f768943206F05",
+      "vault": "aerodrome-cow-base-cbbtc-usdc-vault",
+      "usd": 22.42205,
+      "paused": false
+    },
+    {
+      "strategy": "0xa0dBaE6a747BF5deB0254B62bb2557489d6b837D",
+      "vault": "aerodrome-cow-base-cbltc-cbbtc-vault",
+      "usd": 13.848487,
+      "paused": false
+    },
+    {
+      "strategy": "0xc664C800bC54229034A629335A231f279320a605",
+      "vault": "aerodrome-cow-base-weth-eurc-vault",
+      "usd": 6.205598,
+      "paused": false
+    },
+    {
+      "strategy": "0x5de40568045aa537E032450563687Ef48EB9eef6",
+      "vault": "aerodrome-cow-base-weth-cbltc-vault",
+      "usd": 3.673262,
+      "paused": false
+    },
+    {
+      "strategy": "0xf17D24db671E13eFcAc012ba4249E31455aC0848",
+      "vault": "aerodrome-cow-base-weth-vvv-v2-vault",
+      "usd": 2.958136,
+      "paused": false
+    },
+    {
+      "strategy": "0x51d47A27E71fEB3b75402EA8e5DdF8e4E381F0C8",
+      "vault": "aerodrome-cow-base-weth-aero-vault",
+      "usd": 1.899218,
+      "paused": false
+    },
+    {
+      "strategy": "0x6b631742C03FfE552aC7C918D226056336d0779c",
+      "vault": "aero-cow-weth-cbbtc-vault",
+      "usd": 1.856033,
+      "paused": false
+    },
+    {
+      "strategy": "0x7b0ef57cCa2031fcc073445C48Db75f46F91deb2",
+      "vault": "aerodrome-cow-base-lfi-usdc-vault",
+      "usd": 1.829732,
+      "paused": false
+    },
+    {
+      "strategy": "0xa50696b9D58da273C33413bD778007Bc9cC53669",
+      "vault": "aerodrome-cow-base-weth-usdc-v2-vault",
+      "usd": 1.73926,
+      "paused": false
+    },
+    {
+      "strategy": "0xb120677bDd4e9211E2a218a625Aa5432927e1C7e",
+      "vault": "aerodrome-cow-base-weth-cbxrp-v2-vault",
+      "usd": 1.389875,
+      "paused": false
+    },
+    {
+      "strategy": "0xd72eA03E43BcB05924DFEc2431Cf7806B96D8677",
+      "vault": "aerodrome-cow-base-weth-aave-vault",
+      "usd": 1.363295,
+      "paused": false
+    },
+    {
+      "strategy": "0x59A91B989C09EB3ff05629abfC6Bd759Dfa1C27F",
+      "vault": "aerodrome-cow-base-mamo-usdc-vault",
+      "usd": 1.255907,
+      "paused": false
+    },
+    {
+      "strategy": "0x7a60321dcf2e2066dF73E6beD4F58f9d3Cb1Cd20",
+      "vault": "aerodrome-cow-base-uxrp-weth-vault",
+      "usd": 1.244622,
+      "paused": false
+    },
+    {
+      "strategy": "0xe72Ab78CE1c366874307A8a329a25848701960Ba",
+      "vault": "aerodrome-cow-base-synd-weth-vault",
+      "usd": 1.196269,
+      "paused": false
+    },
+    {
+      "strategy": "0x321197Dcc90fAD24E3B211D3A2B400df9e9fEEe8",
+      "vault": "aerodrome-cow-base-cbxrp-cbbtc-v2-vault",
+      "usd": 1.182201,
+      "paused": false
+    },
+    {
+      "strategy": "0x839bF2dB6D715d1E1e3DA365f73f026A8d47Fd4c",
+      "vault": "aerodrome-cow-wblt-usdc-vault",
+      "usd": 0.9806,
+      "paused": false
+    },
+    {
+      "strategy": "0x63c5c1A89b3dd83bcd6cab6aaB695EeFaA83D7d0",
+      "vault": "aerodrome-cow-base-weth-kta-vault",
+      "usd": 0.943736,
+      "paused": false
+    },
+    {
+      "strategy": "0x5fd32F7F174A08bb2A2Bfe2d9cbDb4619dFcF277",
+      "vault": "aerodrome-cow-base-weth-cbada-vault",
+      "usd": 0.931169,
+      "paused": false
+    },
+    {
+      "strategy": "0x1Eeaf1D8F5bcDA752bd87b67C6f83523137417D6",
+      "vault": "aerodrome-cow-base-eurc-usdc-vault",
+      "usd": 0.926921,
+      "paused": false
+    },
+    {
+      "strategy": "0x42e411959eDd131d7740a72A3f7b54983A21cA48",
+      "vault": "aerodrome-cow-base-aero-cbbtc-vault",
+      "usd": 0.854861,
+      "paused": false
+    },
+    {
+      "strategy": "0xfD4E687706D7869b635Ba939303d4D091e53d873",
+      "vault": "aerodrome-cow-base-usdc-odos-vault",
+      "usd": 0.703063,
+      "paused": false
+    },
+    {
+      "strategy": "0x8e1403656bD507adCdFCF678449f581e5E6fa884",
+      "vault": "aerodrome-cow-base-usdc-lmts-vault",
+      "usd": 0.607081,
+      "paused": false
+    },
+    {
+      "strategy": "0x233d3B9c63797D52e296c26fe28659bc285868E2",
+      "vault": "aerodrome-cow-base-weth-mseth-vault",
+      "usd": 0.568867,
+      "paused": false
+    },
+    {
+      "strategy": "0x0c649651f053Dd602B7565611A930434BFdc43D2",
+      "vault": "aerodrome-cow-base-usdc-rnbw-vault",
+      "usd": 0.560718,
+      "paused": false
+    },
+    {
+      "strategy": "0x9Fe9b0C189e67463aaE8024788F6048abeAC1c84",
+      "vault": "aerodrome-cow-base-weth-veil-vault",
+      "usd": 0.433158,
+      "paused": false
+    }
+  ]
+}
