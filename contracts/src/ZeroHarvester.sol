@@ -45,7 +45,14 @@ contract ZeroHarvester {
 
     /// @param target   contract to call (never address(0), never this contract)
     /// @param gasLimit gas cap for this call; 0 means "all available minus the reserve"
-    /// @param data     calldata, e.g. harvest() or harvest(address)
+    /// @param data     calldata. ⚠️ ALWAYS `harvest(address callFeeRecipient)` with ZERO's Safe as the
+    ///                 argument — NEVER the no-argument `harvest()`. Verified from the source of
+    ///                 `StrategyRewardPool` at 0x68Ecddba8D4CfCa13923fC8d66f2678BF17aB4e1, the single
+    ///                 implementation behind 215 of 241 Base strategies:
+    ///                     function harvest() external { _harvest(tx.origin); }
+    ///                 It pays **tx.origin**, not msg.sender. Called through a sponsored relay, tx.origin
+    ///                 is the SPONSOR'S EOA — so the no-arg form silently donates every fee to whoever
+    ///                 paid the gas. The two-argument form is the only one that pays us.
     struct Call {
         address target;
         uint32 gasLimit;
