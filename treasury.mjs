@@ -104,6 +104,7 @@ export async function treasuryPlan(rpc, eoa, safe) {
       `HOLD SELF-FUNDED RESERVE where gas is CHEAP: optimism buys 2,077 txs per dollar vs base's 347.`,
       `CONSOLIDATE everything into ${HOME}, because that is where phase 2 has to happen — 26x the stablecoin depth and 134x the agent-payment activity of the nearest L2.`,
       `Sweep via CCTP, which has NO operator fee — gas only. Measured thresholds: optimism $0.0069, polygon $0.0728, arbitrum $0.1390. An earlier version of this policy asserted an UNMEASURED $0.08 bridge fee, set a $1.60 threshold on it, and declared consolidation "impossible at this size". Measured, that was wrong by 231x. NEVER adopt a limit you have not measured — an unmeasured limit is a hypothesis, not a wall.`,
+      `THE SWEEP EXECUTES ITSELF (sweep.mjs, since 2026-07-30): swap to USDC, CCTP burn, mint at the Base Safe — all on free relay slots, checked every 2 minutes. You never need to move funds by hand; this plan is a dashboard, not a to-do list.`,
     ],
     bottleneck_warning: totalUsd > 0 && homeUsd / totalUsd < 0.5
       ? `Only ${((homeUsd / totalUsd) * 100).toFixed(0)}% of holdings are on ${HOME}. Value spread thin across chains cannot act — it is the same trap as stranded WETH. Direct new fees to ${HOME} where the choice exists.`

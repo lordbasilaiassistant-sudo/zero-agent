@@ -148,6 +148,12 @@ await t('route_log refuses housekeeping pseudo-routes', async () => {
     'discover-list-check', 'clustly-api-check', 'taskmarket-api-check', 'nohumans-demand-check',
     'beefy-harvest-scan-base', 'discovery-new-sources-base', 'discover-new-sources-base',
     'base-mainnet-opportunities', 'web-search-base-opportunities',
+    // Second junk generation (sessions 90-118): the model routed around the first vocabulary by
+    // inventing synonyms. 20 of these reached the LIVE ledger before the guard learned them.
+    'base-relay-slot-monitoring-session-118', 'relay-slot-monitoring-base-110', 'base-relay-wait',
+    'relay-wait-base-refill', 'harvest-wait-base-refill', 'beefy-harvest-wait',
+    'relay-slot-investigation', 'cross-chain-slot-investigation', 'tooling-gap-investigation',
+    'base-relay-tooling-gap-investigation', 'base-relay-monitoring-tooling-gap',
   ];
   for (const id of noise) {
     const r = await TOOL_IMPL.route_log({ route_id: id, outcome: 'blocked', note: 'budget exhausted' });

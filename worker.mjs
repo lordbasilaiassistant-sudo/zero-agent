@@ -7,6 +7,7 @@ import { ethers } from 'ethers';
 import { dashboardHTML } from './dashboard.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
+import { sweepCycle } from './sweep.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
@@ -119,6 +120,10 @@ const stripHtml = (html) => html
 export const HUMAN_GATE_RE = /HUMAN-GATED|captcha|human verification|social login|sign ?up with|email verification|phone verification|KYC/i;
 export function isDead(r, id) {
   if (!r) return false;
+  // A route that has actually PAID can never be dead by counter. The agent logged two "blocked"
+  // outcomes (relay budget exhausted — capacity noise, not a route failure) on its ONLY proven
+  // payer, which then vanished from its own leaderboard. Money arrived = the route is real.
+  if (r.earned_usd > 0 && r.dead !== true) return false;
   if (r.dead === true || r.blocked >= 2) return true;
   if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
   if (id && closedCategory(id)) return true;
@@ -143,11 +148,19 @@ const normId = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '').replace(
 // ("relay-budget-check-base", "harvest-run-budget-check", "discover-list-check", …), which then
 // accumulated `blocked` counts, tripped the dead-route rule, and got its own real work refused. A
 // quarter of the ledger became noise it had to read every single session.
-const NON_ROUTE_RE = /(^|[-_])(budget|status|api|list|scan|health|ping|state|balance|check|exploration|research|browsing|registration|discover\w*|opportunit\w*|candidate\w*|demand)([-_]?check)?([-_]|$)/i;
+// The vocabulary here was learned from junk the agent ACTUALLY invented, twice: the first guard was
+// built from "budget/status/check" names, so the model invented "monitoring/wait/investigation/
+// tooling-gap" names instead and logged 20 more pseudo-routes (sessions 90-118, all $0 forever).
+// "session" is in the list because a route is durable by definition — anything named per-session
+// ("...-session-118") is a status report wearing a route id.
+const NON_ROUTE_RE = /(^|[-_])(budget|status|api|list|scan|health|ping|state|balance|check|exploration|research|browsing|registration|monitor\w*|wait\w*|watch\w*|investigat\w*|observ\w*|tooling|refill|slot\w*|crisis|session\w*|discover\w*|opportunit\w*|candidate\w*|demand)([-_]?check)?([-_]|$)/i;
 function notARoute(id) {
   if (!NON_ROUTE_RE.test(id)) return null;
   // "...-earnings" / "...-fees" / "...-rewards" are real even if the id also contains a noise word.
-  if (/(earning|fee|reward|bounty|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  // "bount" not "bounty": the agent writes "bounties", which /bounty/ does not match.
+  if (/(earning|fee|reward|bount|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  // gig/job/task rescue only as whole tokens — "taskmarket-api-check" must not ride on "task".
+  if (/(^|[-_])(gig|job|task)s?([-_]|$)/i.test(id)) return null;
   return `"${id}" is not an earning route — it is housekeeping. A route is a way MONEY CAN ARRIVE, and a budget/status/list/scan check can never pay you. Logging these polluted your ledger with ten dead pseudo-routes that then blocked your real ones. NOT LOGGED, and this costs you nothing. Just read the value you got and act on it. Only call route_log when you actually tried to GET PAID.`;
 }
 
@@ -451,9 +464,20 @@ function makeTools(ctx) {
     },
 
     async harvest_run() {
-      ctx.budget();
-      const r = await harvestCycle(ctx.env, (c, m, p) => ctx.rpc(c, m, p));
-      return r;
+      ctx.budget(); ctx.sub += 12;
+      // A manual SINGLE harvest wasted a slot a batch would fill with 12-26 payouts, so this now
+      // fires the same batch pass the automation runs every 2 minutes. Base is skipped until the
+      // escape has finished converting — its slots buy permanent gas, worth more than any batch.
+      const hs = (await ctx.env.KV.get('harvest:state', 'json')) || {};
+      const chains = ['optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis'];
+      if (hs.escaped) chains.unshift('base');
+      for (const chain of chains) {
+        const r = await batchHarvest(ctx.env, (c, m, p) => ctx.rpc(c, m, p), SMART_ACCOUNT, chain);
+        if (r && (r.relayed || r.ready)) {
+          return { ...r, note: r.relayed ? 'Batch fired. This also runs automatically every 2 minutes — your rounds are better spent finding NEW payers.' : 'Batch is built and waiting on a relay slot; the automation will fire it the moment one refills. Nothing for you to do here.' };
+        }
+      }
+      return { skipped: 'no chain has both payable work and a batch that simulates clean right now', note: 'The automation retries every 2 minutes forever. Spend your rounds on discovery instead.' };
     },
 
     // ── finding NEW income families (the only real path past cents/day) ─────
@@ -606,7 +630,7 @@ const TOOL_DEFS = [
   { name: 'secret_list', description: 'List stored credential names (never values).', parameters: S() },
   { name: 'harvest_scan', description: 'YOUR BREAD AND BUTTER. Rank Beefy strategy contracts on Base by callReward() and simulate each one — returns which are actually callable right now. Simulation is free and unlimited. Costs no relay slots.', parameters: S({ limit: { type: 'number', description: 'how many candidates to simulate, default 10' } }) },
   { name: 'harvest_batch', description: 'HARVEST THE WHOLE POOL IN ONE SLOT. A relay slot carries a transaction, and a transaction can DELEGATECALL MultiSend with a couple dozen harvests inside it — measured: 26 batched harvests simulate clean. So 5 slots/day was never 5 harvests/day. Every candidate is individually simulated first because MultiSend is all-or-nothing. Prefer this over harvest_run.', parameters: S({ chain: str('chain name'), max: { type: 'number', description: 'max harvests per batch, default 12' } }) },
-  { name: 'harvest_run', description: 'Execute one harvest: picks the best simulated-callable strategy, fires it through the FREE Safe relay, and reports the actual WETH balance delta. This is how you earn money. Spends one relay slot.', parameters: S() },
+  { name: 'harvest_run', description: 'Fire a harvest BATCH now (walks every chain, batches all paying strategies into one relay slot). NOTE: this exact pass already runs AUTOMATICALLY every 2 minutes — calling it almost never adds anything. Your rounds are worth more on discovery.', parameters: S() },
   { name: 'harvest_stats', description: 'Your lifetime harvest record. MEASURED_ON_CHAIN is the truth (real WETH at both your addresses, plus how much is spendable vs stranded); the tracker figure is a lower bound. Also returns the live relay budget and everything actually measured about when it refills.', parameters: S() },
   { name: 'gasless_scan', description: "Read a contract's RUNTIME BYTECODE and report which gasless rails it exposes (ERC-2771 meta-tx, native executeMetaTransaction, EIP-3009 transferWithAuthorization, EIP-2612 permit, ERC-4337 paymaster, or a settable persistent fee recipient). Works on UNVERIFIED contracts — every external selector is in the dispatch table. One free call. Use it to find ways onto the chain that do NOT consume a Safe relay slot.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address') }, ['contract']) },
   { name: 'sponsor_discover', description: 'Enumerate the gas SPONSORS operating on a chain — every entity that pays for other people\'s transactions — found by on-chain behaviour, not by name, so it includes sponsors with no website and no docs. Your Safe relay is ONE of these with a 5/day cap; this finds the rest of the species. Measured: 44% of recent ERC-4337 ops on Base had their gas paid by a third party.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
@@ -618,7 +642,7 @@ const TOOL_DEFS = [
   { name: 'bruteforce', description: 'TEST EVERY FUNCTION A CONTRACT HAS. Recovers the complete external interface straight from the runtime bytecode dispatch table (every PUSH4 selector) — no ABI, no source, no explorer, works on unverified and unnamed contracts — then prices ALL of them through Multicall3 and reports whichever move value to an arbitrary caller. This does not guess at function names; it reads what the contract actually exposes. Free and unlimited. Use it on anything you cannot otherwise understand.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token') }, ['contract']) },
   { name: 'payout_oracle', description: 'MEASURE WHAT A FUNCTION WOULD PAY YOU, BEFORE SPENDING ANYTHING. Simulates the settlement itself through Multicall3 and returns the exact fee an arbitrary caller would receive right now. Free, no relay slot, no capital, works on UNVERIFIED contracts and on contracts nobody has ever called. payout_history reads the past; this prices the present. Measured spread across known payers was 118x, so ALWAYS probe before choosing which one to spend a slot on.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token, defaults to the chain wrapped native') }, ['contract']) },
   { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
-  { name: 'discover_new_sources', description: "THE GROWTH TOOL. Harvest crumbs are accrual-capped at cents/day — the only way past that is MORE INDEPENDENT INCOME FAMILIES. This finds them empirically: it walks the inbound payments of known keeper wallets back to the contracts paying them, so every candidate is backed by a payout that really happened. Run it every session and work through what it finds.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
+  { name: 'discover_new_sources', description: "THE GROWTH TOOL. Harvest crumbs are accrual-capped at cents/day — the only way past that is MORE INDEPENDENT INCOME FAMILIES. This finds them empirically: it walks the inbound payments of known keeper wallets back to the contracts paying them, so every candidate is backed by a payout that really happened. Works on all six chains — gnosis and unichain have IDLE free slots waiting for their first payer, so a payer found there is worth double. Also rotates automatically on the cron; call it to push a specific chain faster.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum' | 'gnosis' | 'unichain' | 'polygon'") }) },
   { name: 'discover_list', description: 'Your accumulated candidate list from discovery: contracts seen paying callers, whether their source shows access control, and which functions an arbitrary caller might invoke. Untried + promising first.', parameters: S() },
   { name: 'inspect_contract', description: 'Read a contract\'s verified source and report whether it is access-controlled, whether it pays a caller, and which non-view functions look like paid maintenance work. Free — use it before ever spending a relay slot.', parameters: S({ chain: str('chain name'), contract: str('0x address') }, ['chain', 'contract']) },
 ].map(f => ({ type: 'function', function: f }));
@@ -657,7 +681,7 @@ async function buildBriefing(env, eoa) {
 function briefingText(b, novelty) {
   const L = [];
   L.push(`MONEY: you have earned $${b.earned_usd ?? '?'} lifetime from a standing start. $${b.spendable_usd ?? '?'} is spendable in your Safe; $${b.stranded_usd ?? '?'} is stranded on your EOA (unmovable, known, not a bug to re-investigate). YOU ARE PAST ZERO — do not write "$0.00 balance".`);
-  L.push(`RELAY: ${b.relay || 'unknown'}. ${b.relay_free ? 'YOU HAVE FREE SLOTS — spend them on a proven-paying route THIS SESSION.' : 'No slots. Do not plan around a reset time you have not measured: ' + (b.relay_reset || 'unknown')}`);
+  L.push(`RELAY: ${b.relay || 'unknown'}. Slot spending is FULLY AUTOMATED: a code loop runs every 2 minutes — the escape first (it owns Base until done), then batch harvests on every chain with work. It will use every slot the moment one exists, and a batch carries 12-26 harvests where a manual single carries one. NEVER spend a round checking slots, monitoring refills, or waiting — the machine cannot forget and cannot be late. Measured refill: ${b.relay_reset || 'unknown'}.`);
   if (b.grind) {
     L.push(`PROSPECTOR (runs automatically between your sessions — you do NOT need to triage by hand): ${b.grind.triaged}/${b.grind.total_candidates} candidates triaged, ${b.grind.callable_now} callable by you, ${b.grind.PROVEN_PAYING} PROVEN to pay callers, ${b.grind.eliminated_forever} eliminated forever, ${b.grind.still_queued} still queued.`);
   }
@@ -728,12 +752,18 @@ THE FEW THINGS THAT ARE ACTUALLY RULES (operational, not moral — they protect 
 
 METHOD
 - Start: get_status, then act on the ledger + recovery playbook. Do not re-derive what is already written.
-- ~80% effort on the best LIVE route, ~20% on the FRONTIER (below). The catalogue of ways a wallet can earn
-  is NOT complete — nobody has found every mechanism. Each session, pick ONE frontier hypothesis, design the
-  cheapest possible falsification test (usually a single fetch or contract read), run it, and record the
-  result in 'frontier' with knowledge_write. Falsifying one is a win: it costs a round and narrows the map
-  forever. Inventing a new hypothesis and writing it down is equally valuable. Do not think small — the
-  undiscovered mechanism is worth more than every micro-bounty combined, and finding it is your real job.
+- THE MACHINE RUNS THE PROVEN ROUTES. Harvest batches, the escape, and the prospector all execute on a
+  2-minute code loop with no model involved — they cannot forget, cannot be late, and use every slot the
+  moment it exists. A round spent on slot checks, refill monitoring, or manual harvesting duplicates a
+  machine that is already better at it, and costs you the ONLY thing the machine cannot do: finding what
+  is not yet in the catalogue.
+- So ~100% of your rounds go to the FRONTIER and to NEW income families: vet prospector candidates
+  (payout_history → the automation harvests every payer you confirm, forever), push discover_new_sources
+  onto chains with idle slots, price the unpriced with bruteforce/payout_oracle, and each session pick ONE
+  frontier hypothesis, design the cheapest falsification test, run it, and record the result in 'frontier'
+  with knowledge_write. Falsifying one is a win: it costs a round and narrows the map forever. Do not
+  think small — the undiscovered mechanism is worth more than every micro-bounty combined, and finding it
+  is your real job.
 - Only the balance moving is earnings. get_status is truth; websites are marketing.
 - Prefer APIs and onchain reads over pretty websites.
 - End every session: knowledge_write 'journal' (append) + route_log for everything touched. A proven method → update 'recovery' immediately.
@@ -1018,7 +1048,24 @@ export default {
         escapeNeedsBase = !!(esc && (esc.ready || esc.relayed) && esc.step !== 'done');
       } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
 
-      // One slot carries a couple dozen harvests, so batching first is strictly better than singles.
+      // Measure the relay budget every tick — the only way the real refill period ever gets measured.
+      // This used to live inside the single-harvest cycle that ran after the batches; the singles
+      // are gone (a slot spent on one harvest is a slot a 12-26 batch cannot use), the measurement stays.
+      try {
+        const { all } = await pickChain(SMART_ACCOUNT);
+        await observeRelay(env, all.map(b => ({ name: b.name, remaining: b.remaining, limit: b.limit })));
+      } catch (e) { console.log('OBSERVE ERROR: ' + String(e.message).slice(0, 140)); }
+
+      // The consolidation rail, EXECUTED (treasury.mjs only ever PLANNED it — nothing moved for the
+      // project's whole life). Swap tributary WETH → USDC, CCTP-burn it, mint at the Base Safe where
+      // the token paymaster takes it as gas. Spends at most one slot per tick, like everything else.
+      try {
+        const sw = await sweepCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT);
+        console.log('sweep: ' + jstr(sw, 0));
+        if (sw && (sw.burned || sw.minted)) return;   // a slot was spent; batches resume next tick
+      } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
+
+      // One slot carries a couple dozen harvests, so batching is strictly better than singles.
       for (const chain of ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis']) {
         if (chain === 'base' && escapeNeedsBase) { console.log('batch: base reserved for the escape'); continue; }
         try {
@@ -1027,9 +1074,6 @@ export default {
           if (r && r.relayed) break;   // a slot was spent; stop for this tick
         } catch (e) { console.log('BATCH ERROR ' + chain + ': ' + String(e.message).slice(0, 140)); }
       }
-
-      try { console.log('harvest: ' + jstr(await harvestCycle(env, (ch, m, p) => rpcCall(ch, m, p)), 0)); }
-      catch (e) { console.log('HARVEST ERROR: ' + String(e.message).slice(0, 200)); }
     })());
     // The tireless part, with no model in the loop. Triaging candidates (resolve the proxy, simulate
     // the entry points, check whether it has ever paid a caller) is pure procedure — leaving it to the
@@ -1040,6 +1084,23 @@ export default {
         .then(r => console.log('prospect: ' + jstr(r, 0)))
         .catch(e => console.log('PROSPECT ERROR: ' + String(e.message).slice(0, 200)))
     );
+    // Candidate GENERATION used to run only when the model remembered to call discover_new_sources —
+    // it never once pointed it at gnosis/unichain, so those chains sat at 5/5 free slots with
+    // "nothing is paying" for the project's entire life. Generation is pure procedure: rotate it
+    // through every chain on the cron, every 3rd tick, idle chains first. The prospector above then
+    // triages whatever this turns up, and the batcher harvests whatever the prospector proves.
+    {
+      const tickNo = Math.floor((event.scheduledTime || Date.now()) / 120000);
+      if (tickNo % 3 === 0) {
+        const DISCOVERY_ROTATION = ['gnosis', 'unichain', 'polygon', 'base', 'optimism', 'arbitrum'];
+        const dChain = DISCOVERY_ROTATION[Math.floor(tickNo / 3) % DISCOVERY_ROTATION.length];
+        c.waitUntil(
+          discoveryPass(env, { chain: dChain, rpcRaw: (m, p) => rpcCall(dChain, m, p) })
+            .then(r => console.log('discovery(' + dChain + '): ' + jstr(r, 0)))
+            .catch(e => console.log('DISCOVERY ERROR ' + dChain + ': ' + String(e.message).slice(0, 200)))
+        );
+      }
+    }
     c.waitUntil(
       experimentTick(env, (ch, m, p) => rpcCall(ch, m, p), 'base')
         .then(r => console.log('experiment: ' + jstr(r, 0)))
@@ -1303,16 +1364,29 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       // operationally — whether it has quietly stopped. All of it computed here so the page and the
       // JSON tell the same story.
       const rpcFn = (ch, m, p) => rpcCall(ch, m, p);
-      const [treasury, prospect, relayAll, harvestState] = await Promise.all([
+      const [treasury, prospect, relayAll, harvestState, relayObs] = await Promise.all([
         treasuryPlan(rpcFn, address, payTo).catch(() => null),
         prospectIntel(env).catch(() => null),
         pickChain(payTo).then(r => r.all).catch(() => []),
         env.KV.get('harvest:state', 'json').catch(() => null),
+        env.KV.get('relay:observations', 'json').catch(() => null),
       ]);
+      // The MEASURED refill cycle, so health judges "stalled" against reality instead of a guess.
+      let refill = null;
+      try {
+        const sum = relayResetSummary(relayObs);
+        const meds = Object.values(sum).map(c => c.median_gap_hours).filter(Boolean).sort((a, b) => a - b);
+        const median = meds.length ? meds[Math.floor(meds.length / 2)] : null;
+        const etas = Object.values(sum)
+          .filter(c => c.last_refill && c.median_gap_hours)
+          .map(c => (Date.parse(c.last_refill) + c.median_gap_hours * 3600000 - Date.now()) / 3600000)
+          .filter(h => h > -2);
+        refill = { medianGapHours: median, nextEtaHours: etas.length ? Math.max(0, Math.min(...etas)) : null };
+      } catch { /* health falls back to its own default */ }
       const health = diagnose({
         earnings: balances,
         relay: { chains: relayAll.map(c => ({ name: c.name, remaining: c.remaining, limit: c.limit })) },
-        prospect, meta, harvest: harvestState,
+        prospect, meta, harvest: harvestState, refill,
       });
 
       const payload = {

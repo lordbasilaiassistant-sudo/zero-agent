@@ -306,6 +306,8 @@ export const CLOSED_CATEGORY = {
 };
 export function isDead(r, id) {
   if (!r) return false;
+  // A route that has actually PAID can never be dead by counter — money arrived = the route is real.
+  if (r.earned_usd > 0 && r.dead !== true) return false;
   if (r.dead === true || r.blocked >= 2) return true;
   if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
   if (id && CLOSED_CATEGORY.test.test(id)) return true;
@@ -315,10 +317,13 @@ const normId = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '').replace(
 
 // Mirrors worker.mjs — a ROUTE is a way MONEY CAN ARRIVE. Budget/status/list/scan checks are
 // housekeeping; logging them polluted the ledger with ten dead pseudo-routes that then blocked real work.
-const NON_ROUTE_RE = /(^|[-_])(budget|status|api|list|scan|health|ping|state|balance|check|exploration|research|browsing|registration|discover\w*|opportunit\w*|candidate\w*|demand)([-_]?check)?([-_]|$)/i;
+const NON_ROUTE_RE = /(^|[-_])(budget|status|api|list|scan|health|ping|state|balance|check|exploration|research|browsing|registration|monitor\w*|wait\w*|watch\w*|investigat\w*|observ\w*|tooling|refill|slot\w*|crisis|session\w*|discover\w*|opportunit\w*|candidate\w*|demand)([-_]?check)?([-_]|$)/i;
 export function notARoute(id) {
   if (!NON_ROUTE_RE.test(id)) return null;
-  if (/(earning|fee|reward|bounty|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  // "bount" not "bounty": the agent writes "bounties", which /bounty/ does not match.
+  if (/(earning|fee|reward|bount|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  // gig/job/task rescue only as whole tokens — "taskmarket-api-check" must not ride on "task".
+  if (/(^|[-_])(gig|job|task)s?([-_]|$)/i.test(id)) return null;
   return `"${id}" is not an earning route — it is housekeeping. A route is a way MONEY CAN ARRIVE, and a budget/status/list/scan check can never pay you. Logging these polluted your ledger with ten dead pseudo-routes that then blocked your real ones. NOT LOGGED, and this costs you nothing. Just read the value you got and act on it. Only call route_log when you actually tried to GET PAID.`;
 }
 

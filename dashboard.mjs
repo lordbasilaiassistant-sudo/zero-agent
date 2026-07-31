@@ -23,7 +23,7 @@ export function dashboardHTML(data) {
   const esc = (s) => String(s ?? '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 
   const TONE = {
-    EARNING: 'good', 'NO INCOME YET': 'warn', 'IDLE CAPACITY': 'warn',
+    EARNING: 'good', CYCLING: 'good', 'NO INCOME YET': 'warn', 'IDLE CAPACITY': 'warn',
     DEGRADED: 'warn', 'CAPACITY EXHAUSTED': 'warn', STALLED: 'bad',
   };
   const tone = TONE[h.state] || 'warn';

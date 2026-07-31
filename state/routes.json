@@ -152,19 +152,20 @@
       }
     },
     "beefy-harvest-caller-fees": {
-      "attempts": 14,
-      "successes": 10,
-      "blocked": 2,
-      "earned_usd": 0.01925374,
+      "attempts": 30,
+      "successes": 26,
+      "blocked": 0,
+      "earned_usd": 0.074421,
       "notes": [
-        "earned_usd CORRECTED to the measured on-chain figure 0.01925374 USD (null wei WETH across both addresses) — the tracker had it at 0.220388 because the auto-harvest mirror never incremented it.",
-        "autoharvest curve-poly-mai-usdc.e: +0.000105172377415244 WETH ($0.201804) (tx 0xbbee9b6699d40d64530aba0d636f1196b5e41d83a2568fcccd967b1f5a9627fe)",
-        "earned_usd CORRECTED to the measured on-chain figure 0.018584 USD (9704834426086 wei WETH across both addresses) — the tracker had it at 0.018597 because the auto-harvest mirror never incremented it.",
-        "autoharvest morpho-arb-steakhouse-usdc: +0.000000019064059617 WETH (tx 0xe74b0818abb262a3675a5846875dc3f0da634dfbb28f92a09ff4ade2a1d876ad)",
-        "autoharvest velodrome-v2-op-velo: +0.000000288589341549 WETH (tx 0x090e3b036bf9369b78549f5a0c0ce3ae21619a5efc62d9a200f2db333b851ea5)"
+        "autoharvest ramses-zero-weth-vault: +0.000000001389863851 WETH ($0.00000264) (tx 0x631d9374b18fc1aa0f9c19c725d548572cd037b266c9f27494b381bd5e1db332)",
+        "autoharvest curve-arb-fethxeth: +0.0000000000006066 WETH ($0) (tx 0x6628c9eb59c68ab716a24a71f0d150380f48d30bf5bc90380a37ffd87c6feb59)",
+        "autoharvest ramses-cl-weth-usdc-vault: +0.000000013158559549 WETH ($0.00002501) (tx 0x3bba40c2adea6ec1ef77b5ce84d34bf713993706ad64cf67e503398f35e38bad)",
+        "autoharvest velo-cow-op-weth-usdc-vault: +0.000000797913364574 WETH ($0.00151968) (tx 0x7f61f68a743ff1effa2b63611bdc2cc32771279f959b7cbe9cac6fd97e677246)",
+        "autoharvest velodrome-v2-usdc-alusd-2: +0.000000896253604792 WETH ($0.00170683) (tx 0xfce863e5fdf2d13188d15bf534f8bc6d206274d93a762fba4273152556825d00)",
+        "OPERATOR 2026-07-30: blocked counter reset — the two blocks were relay-capacity noise, not route failure. This is your proven payer."
       ],
       "last": {
-        "at": "2026-07-29T00:00:22.339Z",
+        "at": "2026-07-30T05:28:55.294Z",
         "outcome": "success"
       },
       "dead": true
@@ -212,18 +213,45 @@
       },
       "dead": true
     },
-    "beefy-harvest-wait": {
-      "attempts": 3,
+    "harvest-run-gnosis-unichain": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0,
+      "notes": [
+        "No fresh strategies found on available chains despite having relay slots",
+        "No fresh strategies found on available chains despite having relay slots"
+      ],
+      "last": {
+        "at": "2026-07-29T05:22:43.933Z",
+        "outcome": "fail"
+      }
+    },
+    "payout-oracle-base-contracts": {
+      "attempts": 2,
+      "successes": 2,
+      "blocked": 0,
+      "earned_usd": 0,
+      "notes": [
+        "Verified 3 Base contracts pay callers, highest pays ~$0.00225 per harvest",
+        "Verified 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays 0.000000196340762279 WETH to arbitrary caller right now. Ready for harvest when slots available."
+      ],
+      "last": {
+        "at": "2026-07-29T17:41:14.002Z",
+        "outcome": "success"
+      }
+    },
+    "relay-monitor-harvest-base": {
+      "attempts": 2,
       "successes": 0,
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe",
-        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe - 47+ confirmed paying contracts ready to harvest",
-        "Waiting for Safe relay budget reset to execute harvest on confirmed paying contracts - 37+ proven paying contracts ready to harvest from prospect_intel queue"
+        "Monitoring Base relay slots for harvest - 157 proven contracts ready",
+        "Monitoring Base relay slots for harvest - 157 proven contracts ready"
       ],
       "last": {
-        "at": "2026-07-29T00:20:43.971Z",
+        "at": "2026-07-30T23:54:43.628Z",
         "outcome": "pending"
       }
     }

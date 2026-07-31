@@ -16,12 +16,17 @@
 // shrinking, sessions producing something new.
 
 export const STALL = {
-  earningStaleHours: 12,     // no new money in this long, with capacity free, is a stall
+  // Fallback only, used when no refill has ever been observed. The relay budget refills on a
+  // roughly daily cycle and the batcher spends the slots within the first hour, so earnings arrive
+  // in ONE burst per cycle — "no value in 12h" was therefore firing EVERY night on a machine that
+  // was working exactly as designed, and a nightly false alarm trains everyone to ignore the real
+  // one. Stall is measured against the OBSERVED refill period when one exists.
+  earningStaleFallbackHours: 26,
   barrenSessionsAlarm: 3,    // sessions in a row that added nothing new
   idleSlotAlarm: 3,          // free relay slots sitting unspent
 };
 
-export function diagnose({ earnings, relay, prospect, meta, harvest }) {
+export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
   const now = Date.now();
   const signals = [];
 
@@ -65,18 +70,27 @@ export function diagnose({ earnings, relay, prospect, meta, harvest }) {
     action = 'Slots expire worthless. Spend them on a proven payer, or on the WETH→ETH conversion if the Safe is above threshold.';
     signals.push('idle-capacity');
   }
+  const measuredCycle = refill?.medianGapHours || null;
+  const staleAfter = measuredCycle ? measuredCycle * 1.25 + 2 : STALL.earningStaleFallbackHours;
+  const etaTxt = refill?.nextEtaHours != null ? ` Next refill expected in ~${refill.nextEtaHours.toFixed(1)}h (measured cycle ${measuredCycle}h).` : '';
+
   if (usableSlots === 0 && totalSlots > 0) {
-    state = 'CAPACITY EXHAUSTED';
-    headline = freeSlots > 0 ? `${freeSlots} slots are free but ALL of them are on chains with nothing harvestable (${deadChains.map(c => c.name).join(', ')}).` : 'Every relay slot on every configured chain is spent.';
-    action = 'Not a wall — a prompt to ENUMERATE. Gnosis and Polygon were found sitting at 5/5 exactly this way. Check whether another sponsored chain exists that is not yet configured, or use a permissionless paymaster.';
-    signals.push('no-capacity');
+    // Mid-cycle with everything spent and earnings younger than the measured cycle is the machine
+    // WORKING, not a problem — it burned all its capacity on income and is waiting for the refill.
+    const midCycle = hoursSinceEarning !== null && hoursSinceEarning <= staleAfter;
+    state = midCycle ? 'CYCLING' : 'CAPACITY EXHAUSTED';
+    headline = (freeSlots > 0 ? `${freeSlots} slots are free but ALL of them are on chains with nothing harvestable (${deadChains.map(c => c.name).join(', ')}).` : 'Every relay slot on every configured chain is spent.') + etaTxt;
+    action = midCycle
+      ? 'Nothing is stuck. Slots were spent on earning; the batcher re-fires the moment they refill. Free work continues meanwhile: prospector triage, discovery, experiments.'
+      : 'Not a wall — a prompt to ENUMERATE. Gnosis and Polygon were found sitting at 5/5 exactly this way. Check whether another sponsored chain exists that is not yet configured, or use a permissionless paymaster.';
+    signals.push(midCycle ? 'mid-cycle' : 'no-capacity');
   }
-  if (hoursSinceEarning !== null && hoursSinceEarning > STALL.earningStaleHours) {
+  if (hoursSinceEarning !== null && hoursSinceEarning > staleAfter) {
     state = 'STALLED';
-    headline = `No value has arrived in ${hoursSinceEarning.toFixed(1)} hours.`;
+    headline = `No value has arrived in ${hoursSinceEarning.toFixed(1)} hours — past the measured ${measuredCycle ? measuredCycle + 'h refill cycle' : 'daily cycle'} with margin, so this is real.`;
     action = usableSlots > 0
       ? 'Capacity IS available, so the block is target selection, not gas. Work the proven-paying queue.'
-      : 'No capacity and no income. Find another sponsor or another chain — enumerate, do not wait.';
+      : 'No capacity and no income a full cycle after the last refill. Find another sponsor or another chain — enumerate, do not wait.';
     signals.push('no-income');
   }
   if (barren >= STALL.barrenSessionsAlarm) {

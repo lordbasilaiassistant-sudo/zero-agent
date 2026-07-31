@@ -11,6 +11,12 @@ const SCOUT = {
   base: 'https://base.blockscout.com',
   optimism: 'https://optimism.blockscout.com',
   arbitrum: 'https://arbitrum.blockscout.com',
+  // These three were MISSING for the project's whole life — gnosis and unichain sat at 5/5 free
+  // relay slots with "nothing is paying" because the discovery engine literally could not see them.
+  // All three hosts + eth_getBlockReceipts on their public RPCs verified live 2026-07-30.
+  gnosis: 'https://gnosis.blockscout.com',
+  unichain: 'https://unichain.blockscout.com',
+  polygon: 'https://polygon.blockscout.com',
 };
 
 // Seed keepers observed taking real caller/fee payouts in our own harvest transactions.
@@ -273,7 +279,9 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
   // BREAK THE CLOSED LOOP. Every few passes, inject keepers found MECHANISM-BLIND from raw block
   // data rather than from the family we already farm. Without this the engine only ever rediscovers
   // Beefy — it produced 307 candidates of a single family and called it 48 "streams".
-  if (rpcRaw && (state.passes % 3 === 0)) {
+  // Blind-seed every 3rd pass — or IMMEDIATELY on a chain with no seeds at all, because a chain
+  // with no keepers, no known payers, and a %3 gate would stay barren forever (gnosis/unichain did).
+  if (rpcRaw && (state.passes % 3 === 0 || !seeds.length)) {
     try {
       const blind = await blindSeed(chain, rpcRaw, 12);
       const fresh = blind.filter(a => !state.keepers[a]);

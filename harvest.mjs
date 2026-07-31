@@ -122,12 +122,14 @@ export function relayResetSummary(st) {
     for (let i = 0; i + 1 < (c.refills || []).length; i++) {
       gaps.push((Date.parse(c.refills[i].at) - Date.parse(c.refills[i + 1].at)) / 3600000);
     }
+    const sorted = [...gaps].sort((a, b) => a - b);
     out[name] = {
       remaining: c.lastRemaining, limit: c.limit,
       exhausted_since: c.exhaustedAt || null,
       hours_exhausted: c.exhaustedAt ? +((Date.now() - Date.parse(c.exhaustedAt)) / 3600000).toFixed(1) : null,
       refills_observed: (c.refills || []).length,
       last_refill: c.refills?.[0]?.at || null,
+      median_gap_hours: sorted.length ? +sorted[Math.floor(sorted.length / 2)].toFixed(1) : null,
       reset_schedule: (c.refills || []).length >= 2
         ? `MEASURED: refills ${gaps.map(g => g.toFixed(1)).join('h, ')}h apart`
         : 'NOT YET MEASURED. Do not guess a reset time and do not write one in your journal as fact — an earlier you invented "5 AM UTC" and wasted eleven sessions planning around it. Read the live number instead.',
