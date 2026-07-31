@@ -149,6 +149,16 @@ Two traps that fired repeatedly, so check them by reflex:
   leg1 Safe WETH→router → leg2 unwrap→EOA seed (~$0.00057) → step3 EOA self-unwraps its $0.0154.
   A Safe CANNOT unwrap WETH (2300-gas `.transfer` stipend); the router can (`.call`). Base stays
   RESERVED for the escape ahead of any harvest.
+- **Ten-fix sweep (2026-07-30, commit 884830c) — the recurring defect class was "DESCRIBED, NOT
+  EXECUTED":** the escape ended in a note, treasury only *planned* the sweep, health *told* the model
+  to act. Every fix moved execution into code. Now automated end-to-end: escape → **CCTP sweep**
+  (`sweep.mjs`: tributary WETH→USDC→burn→mint at the Base Safe, full batch state-override-simulated
+  clean as the Safe) → 12-26x batches (cron singles removed; `harvest_run` now fires batches).
+  Discovery finally SEES all 6 chains (SCOUT had 3; cron rotation, idle chains first). Ledger purged
+  (40 junk routes = 71% noise; guard extended to the model's 2nd junk vocabulary; a route with real
+  earnings can never die by blocked-counter). Journal 8e-16 garble struck at source. Health measures
+  the refill cycle (23.5h) instead of crying STALLED nightly; model rounds redirected 100% to
+  discovery — the machine cannot forget and cannot be late, the model finds what isn't catalogued.
 - **The equilibrium cap** (why everything is dust): live keeper bounties get bid down to the gas floor,
   so labour extraction is capped at ~gas cost. It breaks only at ABANDONMENT. ~2,500 functions
   bruteforced; only Beefy pays. The unlock is $1, which opens the capital tier at 100–1000×/call.
