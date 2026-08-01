@@ -85,11 +85,31 @@ Projected at ZERO's measured $0.00286/harvest and 5 sponsored slots per chain pe
 | 17 | $0.2431 | $0.010129 |
 | 34 | $0.4862 | $0.020258 |
 
-So `ZeroHarvester` is worth roughly a **10–34× improvement** on the one route we have measured — real,
-but it must be stated against the destination: phase 1's gate is $1/h, and 34 harvests per slot on one
-chain reaches $0.0203/h. **Batching alone gets ~2% of the way to phase 1.** The remaining ~50× has to
-come from more chains and from mechanism classes not yet owned. Anyone reporting "10–34×" without that
-sentence is selling a multiplier detached from its base.
+### ⚠️ CORRECTION (same day): the multiplier is ~5.9×, not 10–34×
+
+The table above assumes every harvest pays ZERO's historical average. A full 241-strategy payout sweep
+(`RESEARCH-zero-bugs.md`) shows the distribution is severely concentrated, which breaks that assumption:
+
+```
+total instantaneous pool  $0.10705
+best single strategy      $0.01516      (aerodrome-usdc-mai)
+mean payer                $0.00051
+median payer              $0.00004      <- the long tail is dust
+top-26 batch              $0.08929      = 83.4% of the whole pool
+```
+
+So against an **optimally chosen single call** ($0.01516), a 26-call batch ($0.08929) is worth
+**5.9×** — not 10–34×. My figure was too generous because it multiplied an average across a
+distribution whose median is 380× below its best. Both baselines are defensible and they answer
+different questions (5.9× vs a perfect single pick; ~37× vs ZERO's current $0.00286 average pick), but
+**5.9× is the number to plan with**, because fixing ZERO's broken ranking — see the bugs memo — raises
+the single-call baseline too, and a multiplier measured against a baseline you are about to improve is
+a multiplier that will shrink under you.
+
+Stated against the destination: phase 1's gate is $1/h. Batching at 5.9× moves ZERO from ~$0.0006/h to
+roughly **$0.0035/h**, or about **0.35% of the way to phase 1**. The rest must come from more chains and
+from mechanism classes not yet owned. Anyone quoting a multiplier without its base is selling a ratio,
+not a result.
 
 ## 5. Design facts confirmed against live chain
 
