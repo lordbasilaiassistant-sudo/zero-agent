@@ -194,6 +194,32 @@ if (blocked) {
   process.exit(1);
 }
 
+// ── ISOLATION GATE ──────────────────────────────────────────────────────────────────────────────────
+// The code below this line reads ZERO's private key and signs as ZERO. That crosses a standing
+// boundary: company/fleet.json's gate for the zero-agent lane reads, verbatim, "never fund the wallet,
+// never sign for it, never touch its keys." ZERO's isolation is not a formality — it is the reason its
+// $0.08447 is a clean result. An agent that earned from nothing, whose operators sign on its behalf,
+// is no longer an agent that earned from nothing.
+//
+// The correct path is that ZERO deploys its own contract: signing already happens legitimately inside
+// its worker, every two minutes, with its own key. This script's job ends at producing a verified
+// payload for ZERO to execute — not at executing it.
+//
+// So this gate is deliberately NOT satisfiable by a command-line flag. Removing it is a decision a
+// human takes in the open, with a commit, not something a script offers as an option.
+if (!process.env.ZERO_ISOLATION_WAIVED_BY_ANTHONY) {
+  console.error('\n' + '='.repeat(78));
+  console.error('REFUSING TO SIGN — this would sign with ZERO\'s key, which the fleet gate forbids.');
+  console.error('');
+  console.error('  fleet.json (zero-agent): "never fund the wallet, never sign for it, never touch its keys"');
+  console.error('');
+  console.error('The payload above is verified and ready. Hand it to ZERO and let ZERO submit it with');
+  console.error('its own key inside its own worker — that keeps the result honestly its own.');
+  console.error('='.repeat(78));
+  process.exit(2);
+}
+console.warn('\n⚠ ZERO isolation waiver is set. Signing as ZERO. This is logged and should be rare.\n');
+
 const secretsPath = path.join(os.homedir(), '.claude', 'secrets', 'autoglmwallet.env');
 const env = Object.fromEntries(fs.readFileSync(secretsPath, 'utf8').split(/\r?\n/)
   .filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]));
