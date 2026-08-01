@@ -296,6 +296,37 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
       state.blindSeeded = (state.blindSeeded || 0) + fresh.length;
       seeds = [...fresh, ...seeds];
     } catch (e) { console.log('blindSeed FAILED (' + chain + '): ' + String(e && e.message).slice(0, 140)); /* enhancement, never a blocker — but never again silent: this catch hid a ReferenceError for the life of the module */ }
+
+    /* BEHAVIOURAL SEED — a second, structurally different road to the same question (2026-08-01).
+       blindSeed finds contracts by looking at who has ALREADY BEEN PAID, so it cannot see a payer no
+       keeper has ever called, and it is blind by construction to the MINT class (which has no
+       caller-side footprint at all). behaviourScan looks at the PAYER directly, from raw Transfer
+       logs, so it reaches both.
+       It also carries a correction worth keeping: polygon was recorded as unscannable because
+       eth_getLogs refused topic-only queries there. That named a PRODUCT, not the RELATION — the
+       relation is "Transfer events in a block range", and eth_getBlockReceipts serves it on every
+       chain measured. Both routes verified to return identically (base 49384390: 308 = 308).
+       `trustworthy` is checked explicitly: a scan whose transport died mid-run returns an empty
+       candidate list, which is a FAILURE wearing the costume of a clean negative — exactly the shape
+       that hid a ReferenceError in blindSeed for the life of this module. */
+    try {
+      const { behaviourScan, dedupe } = await import('./knowledge/streams/behaviour-scan.mjs');
+      const scan = await behaviourScan(chain, rpcRaw, { blocks: 30 });
+      if (!scan.trustworthy) {
+        console.log(`behaviourScan UNTRUSTWORTHY (${chain}): transport degraded — treating as NO DATA, not as no candidates`);
+      } else {
+        const rows = dedupe(scan.candidates || []);
+        // DEX routers distribute constantly and never pay an arbitrary caller. isNoise() already
+        // encodes that judgement for the payer lane; reuse it rather than re-deriving it here.
+        const fresh = rows
+          .map(r => r.contract || r.address)
+          .filter(a => a && !state.keepers[a] && !isNoise(a.name));
+        for (const a of fresh) state.keepers[a] = chain;
+        state.behaviourSeeded = (state.behaviourSeeded || 0) + fresh.length;
+        seeds = [...fresh, ...seeds];
+        console.log(`behaviourScan ${chain}: ${scan.transfersCounted} transfers over ${scan.blocksScanned} blocks via ${scan.transport} → ${rows.length} candidates → ${fresh.length} new`);
+      }
+    } catch (e) { console.log('behaviourScan FAILED (' + chain + '): ' + String(e && e.message).slice(0, 140)); }
   }
   // Self-seed: a chain with no known keepers bootstraps from contracts we already know pay callers.
   if (!seeds.length) {

@@ -5,3 +5,11 @@ logs/
 # Probe caches from the income-stream lanes — regenerable, and thousands of files
 knowledge/streams/_cache/
 *.pre-2026-*.bak
+
+# ZERO behaviour-scan RPC cache + sweep scratch — data, not source (109MB as of 2026-08-01)
+knowledge/streams/_cache/
+knowledge/streams/_fa_hits_*.json
+knowledge/streams/_fa_universe*.json
+knowledge/streams/_fa_behaviour.json
+knowledge/streams/_fa_gated_out.json
+knowledge/streams/*.log
