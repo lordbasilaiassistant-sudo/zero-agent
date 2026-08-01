@@ -16,6 +16,7 @@
 // cannot be fooled by a missing ABI — the selector is either in the dispatcher or the function does not
 // exist. One eth_getCode answers "what gasless rails does this thing expose".
 import { ethers } from 'ethers';
+import { implFromCode } from './minimalproxy.mjs';
 
 const RPCS = {
   base: 'https://base-rpc.publicnode.com',
@@ -122,6 +123,12 @@ const addrFromWord = (v) => {
 };
 export async function resolveImplementation(chain, contract) {
   try {
+    // EIP-1167 clones keep the implementation in CODE, not storage — the storage sweep below cannot
+    // see them, and 12 of 12 strategies in callreward-measurement.json are clones.
+    const code = await rpc(chain, 'eth_getCode', [contract, 'latest']).catch(() => '0x');
+    const clone = implFromCode(code);
+    if (clone) return clone;
+
     for (const slot of [IMPL_SLOT, LEGACY_SLOT]) {
       const a = addrFromWord(await rpc(chain, 'eth_getStorageAt', [contract, slot, 'latest']));
       if (a) return a;

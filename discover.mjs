@@ -1,4 +1,5 @@
 ﻿// discover.mjs â€” the teat-finder. Turns one proven income family into many.
+import { ethers } from 'ethers';   // blindSeed() used ethers.id() with no top-level import: it threw ReferenceError on its first line on EVERY call, and the throw was swallowed at the call site — so the entire 'break the closed Beefy loop' mechanism has never executed once.
 //
 // Method (empirical, not theoretical): professional keeper bots get paid by every contract worth
 // calling. So instead of guessing which contracts pay an arbitrary caller, we find the WALLETS that
@@ -173,6 +174,12 @@ const RPCS = {
   base: 'https://base-rpc.publicnode.com',
   optimism: 'https://optimism-rpc.publicnode.com',
   arbitrum: 'https://arbitrum-one-rpc.publicnode.com',
+  // The three below were absent, and they are the FIRST three in the cron's DISCOVERY_ROTATION —
+  // so simulateCandidate returned 'no rpc for chain' on them permanently. gnosis and unichain are
+  // also the two chains sitting at 5/5 free relay slots right now.
+  polygon: 'https://polygon-bor-rpc.publicnode.com',
+  gnosis: 'https://gnosis-rpc.publicnode.com',
+  unichain: 'https://unichain-rpc.publicnode.com',
 };
 const IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'; // EIP-1967 impl
 const BEACON_SLOT = '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50'; // EIP-1967 beacon
@@ -288,7 +295,7 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
       for (const a of fresh) state.keepers[a] = chain;
       state.blindSeeded = (state.blindSeeded || 0) + fresh.length;
       seeds = [...fresh, ...seeds];
-    } catch { /* blind seeding is an enhancement, never a blocker */ }
+    } catch (e) { console.log('blindSeed FAILED (' + chain + '): ' + String(e && e.message).slice(0, 140)); /* enhancement, never a blocker — but never again silent: this catch hid a ReferenceError for the life of the module */ }
   }
   // Self-seed: a chain with no known keepers bootstraps from contracts we already know pay callers.
   if (!seeds.length) {
@@ -319,6 +326,11 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
         // The decisive fact: a function that simulates clean FROM OUR OWN ADDRESS. Source regexes lie
         // in both directions; an eth_call cannot.
         callable_now: ins.callable_now || [],
+        // Stamp ONLY when inspect genuinely returned a result. The catch above sets ins={} on failure,
+        // so 'inspect blew up' and 'inspect ran and found nothing' both produced [] and were
+        // indistinguishable — which is why the triage queue reported 214 candidates as fully triaged
+        // while never having simulated one of them.
+        triaged_at: Array.isArray(ins.callable_now) ? Date.now() : null,
         functions: ins.candidate_functions || [], verdict: ins.verdict || null,
         seen: 1, tried: false,
       };

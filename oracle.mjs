@@ -23,6 +23,7 @@
 // does that. State-dependent payouts (an auction that has not opened) read as zero right now and may
 // be worth re-probing later — zero here means "zero AT THIS MOMENT", not "never".
 import { ethers } from 'ethers';
+import { implFromCode } from './minimalproxy.mjs';
 
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
@@ -68,6 +69,14 @@ const addrWord = (v) => {
 };
 export async function resolveImpl(rpc, chain, contract) {
   try {
+    // EIP-1167 FIRST. A minimal proxy carries its implementation inside 45 bytes of runtime code and
+    // puts NOTHING in the storage slots below, so the storage path returned null for every clone —
+    // 53 of 60 sampled live Base strategies and all 6 KNOWN_PAYERS. Reading the code is also one call
+    // instead of three, so this is both the correct order and the cheaper one.
+    const code = await rpc(chain, 'eth_getCode', [contract, 'latest']).catch(() => '0x');
+    const clone = implFromCode(code);
+    if (clone) return clone;
+
     for (const s of [IMPL_SLOT, LEGACY_SLOT]) {
       const a = addrWord(await rpc(chain, 'eth_getStorageAt', [contract, s, 'latest']).catch(() => null));
       if (a) return a;
@@ -141,8 +150,23 @@ export async function probePayout(rpc, chain, contract, sig, token) {
  * "probe everything before spending" affordable inside a Worker: 241 contracts price out in ~10
  * requests instead of ~1000, and the whole thing still costs nothing.
  *
- * Shares state across the batch like any aggregate3, so treat the numbers as a RANKING and re-measure
- * the winner alone (probePayout) before acting on the amount.
+ * SHARED STATE — MEASURED, not assumed (2026-07-31, Base block 49,378,134, n=40, the SAME pinned block
+ * on both sides, `harvest(address)` on both sides):
+ *     payers batched 38   vs   payers isolated 38
+ *     total wei 7,222,070,864,315  vs  7,222,291,212,292   =  1.000x   (0.003% apart)
+ *     pays-in-batch-only (phantom income): 0     top pick: the SAME strategy either way
+ * The batched numbers ARE safe to rank on. An audit reported 92% phantom income and a 6.3x
+ * overstatement here; that was an ARTEFACT OF ITS OWN MEASUREMENT, not a property of this function. It
+ * fired 40 un-throttled isolated probes at a single public RPC, swallowed the failures in a bare
+ * `catch {}`, and then read the missing entries as `?? 0n`. Re-running that exact shape: 31 of 40
+ * probes threw and were scored as "pays 0 wei". DO NOT rewrite probeMany on the strength of that
+ * number — and note the shape of the error, because it is the one this file is most likely to repeat:
+ * A FAILED PROBE IS UNKNOWN, NEVER ZERO.
+ *
+ * The residual 0.003% is genuine state-sharing and is far too small to change a slot decision. What
+ * still justifies re-measuring the winner alone with probeOne() before spending a slot is not
+ * distortion — it is staleness, and the fact that the batch never tested the exact call you are about
+ * to pay for. Treat these numbers as a SCREEN; let probeOne be the gate.
  */
 export async function probeMany(rpc, chain, contracts, token, sig = 'harvest(address)', per = 30) {
   const iface = new ethers.Interface([`function ${sig}`]);
@@ -172,6 +196,54 @@ export async function probeMany(rpc, chain, contracts, token, sig = 'harvest(add
     }
   }
   return out.sort((a, b) => (BigInt(b.wei) > BigInt(a.wei) ? 1 : -1));
+}
+
+/**
+ * THE GATE. Price ONE contract, ALONE in its own eth_call, and say whether it pays RIGHT NOW.
+ *     [ balanceOf(recipient), contract.harvest(recipient), balanceOf(recipient) ]
+ * Never batched with other targets — the whole point is that this is exactly the one call a relay slot
+ * is about to be spent on. Costs one eth_call, free and gasless, and spends nothing.
+ *
+ * `recipient` doubles as the harvest argument AND the address whose balance is measured, so it should
+ * be the address that will really be paid (the Safe). MEASURED 2026-07-31 across 20 Base strategies:
+ * recipient=SAFE and recipient=MULTICALL3 gave byte-identical wei and zero pay/no-pay disagreements,
+ * so this is robust to which one a caller passes. NOTE msg.sender is still Multicall3 either way.
+ *
+ * THE RETURN CONTRACT, and the reason this function exists rather than a bare delta:
+ *     { measured: true,  wei }  the probe ran; `wei` is what it would pay (0n is a real, trusted zero)
+ *     { measured: false, wei: 0n, reason }  the probe DID NOT RUN — an RPC failure, a rate limit, an
+ *                                           unreadable balance. This is NOT a zero.
+ * Callers MUST branch on `measured` before treating 0n as "does not pay". Collapsing those two states
+ * is precisely the defect that produced a false 92%-phantom-income audit of probeMany above: 31 of 40
+ * failed probes were recorded as zeros. A reverting harvest IS a trustworthy zero (measured:true) —
+ * the contract answered. An RPC that never answered is not.
+ */
+export async function probeOne(rpc, chain, contract, token, recipient = MULTICALL3, sig = 'harvest(address)') {
+  let callData;
+  try {
+    callData = sig.includes('address')
+      ? new ethers.Interface([`function ${sig}`]).encodeFunctionData(sig.split('(')[0], [recipient])
+      : sel(sig);
+  } catch { return { contract, measured: false, wei: 0n, reason: 'encode failed' }; }
+
+  const calls = [
+    { target: token, allowFailure: true, callData: balOf(recipient) },
+    { target: contract, allowFailure: true, callData },
+    { target: token, allowFailure: true, callData: balOf(recipient) },
+  ];
+  let rows;
+  try {
+    const ret = await rpc(chain, 'eth_call', [{ to: MULTICALL3, data: AGG.encodeFunctionData('aggregate3', [calls]) }, 'latest']);
+    [rows] = AGG.decodeFunctionResult('aggregate3', ret);
+  } catch (e) { return { contract, measured: false, wei: 0n, reason: String(e.message).slice(0, 90) }; }
+
+  // The harvest itself reverting is a real answer: it pays us nothing. Trust it.
+  if (!rows?.[1]?.success) return { contract, measured: true, wei: 0n, reverted: true, sig };
+  // A balance read that failed means we cannot compute a delta at all — unknown, not zero.
+  if (!rows[0]?.success || !rows[2]?.success) return { contract, measured: false, wei: 0n, reason: 'balance read failed' };
+  try {
+    return { contract, measured: true, wei: BigInt(rows[2].returnData) - BigInt(rows[0].returnData), sig };
+  } catch { return { contract, measured: false, wei: 0n, reason: 'undecodable balance' }; }
 }
 
 /**

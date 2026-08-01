@@ -21,6 +21,7 @@
 // effects. That is fine for SCREENING (we only need "did anything pay") but the amounts can differ
 // from an isolated call, so every hit is re-measured on its own before it is believed or acted on.
 import { ethers } from 'ethers';
+import { implFromCode } from './minimalproxy.mjs';
 
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 const AGG = new ethers.Interface([
@@ -56,9 +57,18 @@ const IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d3
 const BEACON_SLOT = '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50';
 const word = (v) => { if (!v || v.length < 42) return null; const a = '0x' + v.slice(-40); return /^0x0+$/.test(a) ? null : a; };
 
-/** A proxy's own bytecode has no dispatch table — resolve the implementation or find nothing. */
+/** A proxy's own bytecode has no dispatch table — resolve the implementation or find nothing.
+ *  The sentence above was true and the function did not honour it for the commonest proxy of all:
+ *  an EIP-1167 clone stores its target in CODE, not storage, so every storage lookup here returned
+ *  null and extractSelectors then reported 0 selectors / "no dispatch table found". Measured: 456 of
+ *  ZERO's addresses are clones behind 6 implementations, including all 6 KNOWN_PAYERS. Resolving them
+ *  yields 86-92 selectors and a paying harvest(address) on 4 of 4 tested. */
 export async function implOf(rpc, chain, c) {
   try {
+    const code = await rpc(chain, 'eth_getCode', [c, 'latest']).catch(() => '0x');
+    const clone = implFromCode(code);
+    if (clone) return clone;
+
     const a = word(await rpc(chain, 'eth_getStorageAt', [c, IMPL_SLOT, 'latest']).catch(() => null));
     if (a) return a;
     const b = word(await rpc(chain, 'eth_getStorageAt', [c, BEACON_SLOT, 'latest']).catch(() => null));

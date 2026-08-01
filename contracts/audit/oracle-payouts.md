@@ -1,6 +1,7 @@
 # ZERO audit — lane `oracle-payouts`
-**Modules:** `oracle.mjs` (200 lines), `payouts.mjs` (128), `sweep.mjs` (151)
+**Modules:** `oracle.mjs`, `payouts.mjs` (128), `sweep.mjs` (151)
 **Excluded by brief:** `probeMany`'s shared-state contamination (filed as #140). Everything else in `probeMany` is in scope.
+⚠️ **`oracle.mjs` was edited by a concurrent agent at 20:57 while this audit was running** (200 → 264 lines; a new `probeOne` was added). Line numbers below are against the **264-line version**; `payouts.mjs` and `sweep.mjs` were untouched and their line numbers are exact. I re-verified after the edit: **none of the findings below were fixed by it.** See the note on `probeOne` at the end.
 **Date:** 2026-07-31 · **Method:** read + live `eth_call` / Blockscout v2 against Base, Optimism, Arbitrum mainnet. Every number below was measured tonight, none recalled.
 
 **Score: 18 findings — 7×P1, 7×P2, 4×P3, 0×P0.** No finding breaks the running harvest loop; the P1s blind the discovery instrument, overstate what a contract will pay us, and strand or risk swept value.
@@ -25,7 +26,7 @@
 # P1 — hides income / risks a scarce slot
 
 ## F1 — `resolveImpl` is blind to EIP-1167 minimal proxies, so `probeContract` reports "no money-shaped function" for **88.3% of the Base strategy universe**
-**`oracle.mjs:69-82`** (`resolveImpl`), consumed by `oracle.mjs:84-96` (`selectorsPresent`) and `oracle.mjs:181-200` (`probeContract`).
+**`oracle.mjs:69-82`** (`resolveImpl`), consumed by `oracle.mjs:84-96` (`selectorsPresent`) and `oracle.mjs:244-263` (`probeContract`).
 
 ```js
 export async function resolveImpl(rpc, chain, contract) {
@@ -413,7 +414,7 @@ There is a second shape: if `rows[0]` decodes and `rows[2]` throws, `before` is 
 # P2 — correctness, no direct money loss
 
 ## F8 — the oracle measures ONE token, but its verdict strings claim a general result, and native ETH is invisible
-**`oracle.mjs:102` / `oracle.mjs:184, 195-198`**
+**`oracle.mjs:102` / `oracle.mjs:247, 258-261`**
 
 `probePayout(rpc, chain, contract, sig, token)` measures the delta in exactly one ERC-20. `probeContract` then returns:
 ```js
@@ -443,7 +444,7 @@ and both verdicts must name the token: `` `callable but pays zero IN ${token} an
 ---
 
 ## F9 — `probeMany` silently discards an entire 30-contract batch on any RPC failure
-**`oracle.mjs:160-164`**
+**`oracle.mjs:176-179`**
 
 ```js
 try {
@@ -564,7 +565,7 @@ if (state.pending.length && hs.escaped) { ... relayExec(env, rpc, safe, …, 'ba
 ---
 
 ## F13 — `probeContract` truncates the recipient-taking signatures first
-**`oracle.mjs:183-186`**
+**`oracle.mjs:246-249`**
 
 ```js
 const sigs = [...found.zeroArg, ...found.withRecipient];
@@ -660,8 +661,8 @@ A third copy of `harvest.mjs:23-32 CHAINS[*].weth`, with no `optimism` or `unich
    The sweep's whole-batch simulation is real.
 2. **`selectorsPresent`'s naive hex-substring matching produces ZERO ghost selectors** on our population. Compared `hay.includes(selector)` against a proper PUSH4 opcode-walk (skipping PUSHn immediates) over 60 Base strategy implementations: naive matched **126**, dispatch-table walk matched **126**, ghosts **0 (0.0%)**. The `bruteforce.mjs:41` defect does **not** reproduce in `oracle.mjs`. Nibble-misaligned matches are theoretically possible but did not occur; also, `codes.join('')` inserts `'0x'` between the two blobs, and `x` is not a hex digit, so a match cannot straddle the junction.
 3. **`probePayout`'s `[bal, fn, bal]` ordering is correct** and free of the `probeMany` shared-state contamination (#140) — a single contract's call sits between its own two reads with nothing else in the batch.
-4. **`probeMany`'s index arithmetic is correct.** `before = rows[k*2]`, `call = rows[1+k*2]`, `after = rows[2+k*2]` maps exactly onto `[bal, c0.fn, bal, c1.fn, bal, …]`. No off-by-one.
-5. **The `paid_wei` / `wei` sort comparators (`oracle.mjs:174`, `oracle.mjs:187`) do not misorder.** They are formally inconsistent (return `-1` for equal values — the exact pattern `harvest.mjs:192-198` fixed with a comment), so I tested rather than assumed: 400 randomized trials each at n = 10, 24, 30, 64, 241 with heavy ties → **0/400 non-descending results, 0/400 differing from a correct comparator** at every size. V8's sort tolerates it. **Not filed as a bug.** Worth normalising to `y>x?1:y<x?-1:0` for consistency, but it is style, not a defect.
+4. **`probeMany`'s index arithmetic is correct.** (line 181) `before = rows[k*2]`, `call = rows[1+k*2]`, `after = rows[2+k*2]` maps exactly onto `[bal, c0.fn, bal, c1.fn, bal, …]`. No off-by-one.
+5. **The `paid_wei` / `wei` sort comparators (`oracle.mjs:189`, `oracle.mjs:250`) do not misorder.** They are formally inconsistent (return `-1` for equal values — the exact pattern `harvest.mjs:192-198` fixed with a comment), so I tested rather than assumed: 400 randomized trials each at n = 10, 24, 30, 64, 241 with heavy ties → **0/400 non-descending results, 0/400 differing from a correct comparator** at every size. V8's sort tolerates it. **Not filed as a bug.** Worth normalising to `y>x?1:y<x?-1:0` for consistency, but it is style, not a defect.
 6. **All 7 `SCOUT` hosts in `payouts.mjs:22-30` answer.** base / optimism / arbitrum / gnosis / polygon / unichain / base-sepolia all returned HTTP 200 with parseable `items`. Note `payouts.mjs` covers every chain in `harvest.mjs CHAINS`, unlike `NATIVE_STATS` (see F11).
 7. **The `payouts.mjs:62` `t.method` filter is not currently discarding valid data.** Blockscout returned a non-null `method` on **195/195** successful transactions across four contracts (unverified proxies included). The theoretical risk on a contract Blockscout cannot decode remains, but it does not fire today.
 8. **`probePayout`'s delta measurement itself is correct.** It reads a real payer accurately: `0x11dD6940…` `harvest(address)` → **46,165,896,263 wei WETH**, measured live. Multicall3's baseline balances are clean (`WETH 0`, `native 0`).
@@ -669,6 +670,23 @@ A third copy of `harvest.mjs:23-32 CHAINS[*].weth`, with no `optimism` or `unich
 10. **The CCTP v2 encoding in `sweep.mjs:127-129` matches what actually executed.** `depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)` with `maxFee=0, minFinalityThreshold=2000`, and SwapRouter02's 7-field `exactInputSingle` tuple with no deadline — both confirmed by the live sweep tx `0x6839a5fbd1d972aa75923980baf7382a9a7a810c940645e0d2ff30bfa8c09c1e`, which swapped and burned successfully.
 11. **`payoutHistory` does not double-count.** `paid` accumulates one entry per distinct value movement per transaction; no entry is emitted twice and nothing sums the list. The problem is *what* is in the list (F2), not arithmetic.
 12. **`sweep.mjs:91` correctly simulates `receiveMessage` before spending the mint slot.** The pre-flight guard is right; only the post-flight confirmation is missing (F4).
+
+---
+
+## Note on `probeOne` (`oracle.mjs:212-238`, added mid-audit by the concurrent agent)
+
+Re-audited after it appeared. **It is clean on the trap that F7 documents** and I am recording that so nobody re-checks it:
+
+- It checks `rows[0]?.success` and `rows[2]?.success` (line 234) and returns `{measured:false, reason:'balance read failed'}` instead of a fake zero.
+- The codeless-token case I proved against `probePayout` (success=true, `returnData:"0x"`, `BigInt('0x')` throws) is caught at line 237 and correctly becomes `{measured:false, reason:'undecodable balance'}` — **not** a zero.
+- Treating a reverting harvest as `measured:true, wei:0n` (line 232) is right: the contract answered.
+- Index/ordering is correct; it is genuinely un-batched, so #140 does not apply.
+
+Two things it does **not** fix, both already filed:
+- **F8 applies to it unchanged** — one ERC-20, no native-ETH leg. `probeOne` is described as "THE GATE" (line 193), and a gate that measures one denomination will reject a native-paying route.
+- **F7 still stands for `probePayout`**, which `probeContract` (line 249) still calls. `probeOne` is a parallel path, not a replacement — `probeContract`, the function behind the paid `/api/contract-audit` endpoint and the agent's `payout_oracle` tool, is untouched.
+
+One new nit (P3): `probeOne`'s `recipient` defaults to `MULTICALL3`, but its own docstring (line 198) says it "should be the address that will really be paid (the Safe)". A caller that omits the argument silently gets the other measurement. Make the parameter required, or rename the default so the choice is explicit.
 
 ---
 

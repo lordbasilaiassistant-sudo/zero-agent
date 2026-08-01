@@ -38,7 +38,10 @@ function pickNext(candidates) {
   const pending = Object.values(candidates).filter(c => !c.retired);
   const needsPayout = pending.filter(c => c.callable_now?.length && !c.payout_verdict);
   if (needsPayout.length) return { c: needsPayout.sort((a, b) => (b.payouts_seen || 0) - (a.payouts_seen || 0))[0], why: 'callable, payout unproven' };
-  const unscored = pending.filter(c => c.callable_now === undefined);
+  // WAS: c.callable_now === undefined — which no candidate can ever satisfy, because every write site
+  // does 'ins.callable_now || []'. The queue was therefore always empty and this whole grind was dead
+  // code reporting success. Select on a stamp that is only written after a real simulation.
+  const unscored = pending.filter(c => !c.triaged_at);
   if (unscored.length) return { c: unscored.sort((a, b) => (b.payouts_seen || 0) - (a.payouts_seen || 0))[0], why: 'never triaged' };
   return { c: null, why: 'backlog empty — every known candidate is triaged' };
 }
@@ -51,7 +54,7 @@ export async function prospectTick(env, fetcher) {
   const out = { contract: c.contract, chain: c.chain, reason: why };
 
   // Stage 1 — resolve + simulate. Free, and the only thing that cannot lie about callability.
-  if (c.callable_now === undefined) {
+  if (!c.triaged_at) {
     try {
       const ins = await inspect(c.chain, c.contract);
       c.verified = !!ins.verified;
@@ -59,6 +62,7 @@ export async function prospectTick(env, fetcher) {
       c.pays_a_caller = ins.pays_a_caller ?? null;
       c.implementation = ins.implementation || null;
       c.callable_now = ins.callable_now || [];
+      c.triaged_at = Date.now();
       c.functions = ins.candidate_functions || [];
       c.name = ins.name || c.name || null;
       c.family = familyOf(c.name);
@@ -67,6 +71,7 @@ export async function prospectTick(env, fetcher) {
       out.name = c.name;
     } catch (e) {
       c.callable_now = [];
+      c.triaged_at = Date.now();   // attempted and failed still counts as triaged, or it blocks forever
       out.stage = 'simulate failed';
       out.error = String(e.message).slice(0, 120);
     }
