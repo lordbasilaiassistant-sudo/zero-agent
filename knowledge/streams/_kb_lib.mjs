@@ -133,14 +133,21 @@ export function has(hay, sig) { return hay.includes(sel(sig).slice(2)); }
  * Reads are side-effect free, so reading several tokens at once does not break isolation.
  * Returns per-token deltas. Anything > 0 is measured payment.
  */
-export async function probeIsolated(chain, target, callData, recipient, tokens, block = 'latest') {
+export async function probeIsolated(chain, target, callData, recipient, tokens, block = 'latest', opts = {}) {
   const pre = [{ target: MULTICALL3, allowFailure: true, callData: ethBalOf(recipient) },
     ...tokens.map(t => ({ target: t.address, allowFailure: true, callData: balOf(recipient) }))];
   const calls = [...pre, { target, allowFailure: true, callData }, ...pre];
   const n = pre.length;
   let rows;
   try {
-    const ret = await rpc(chain, 'eth_call', [{ to: MULTICALL3, data: AGG.encodeFunctionData('aggregate3', [calls]) }, block]);
+    // `from` sets tx.origin. MEASURED 2026-07-31: without it, tx.origin is the zero address while
+    // msg.sender is Multicall3, so EVERY function guarded by `require(msg.sender == tx.origin)`
+    // reverts and reads as "permissioned". Setting from = MULTICALL3 makes origin == sender and the
+    // guard passes — which is how you TELL THEM APART. (They are still unreachable for a Safe: a
+    // relayed Safe tx always has tx.origin = the relayer, never the Safe.)
+    const p = { to: MULTICALL3, data: AGG.encodeFunctionData('aggregate3', [calls]) };
+    if (opts.origin) p.from = opts.origin;
+    const ret = await rpc(chain, 'eth_call', [p, block]);
     [rows] = AGG.decodeFunctionResult('aggregate3', ret);
   } catch (e) { return { ok: false, reason: 'aggregate3 failed: ' + String(e.message).slice(0, 90) }; }
   const call = rows[n];

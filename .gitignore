@@ -1,3 +1,7 @@
 node_modules/
 logs/
 *.env
+
+# Probe caches from the income-stream lanes — regenerable, and thousands of files
+knowledge/streams/_cache/
+*.pre-2026-*.bak

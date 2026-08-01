@@ -123,7 +123,15 @@ export function isDead(r, id) {
   // A route that has actually PAID can never be dead by counter. The agent logged two "blocked"
   // outcomes (relay budget exhausted — capacity noise, not a route failure) on its ONLY proven
   // payer, which then vanished from its own leaderboard. Money arrived = the route is real.
-  if (r.earned_usd > 0 && r.dead !== true) return false;
+  /* FIXED 2026-07-31 — the `&& r.dead !== true` DISABLED the very escape hatch the comment above
+     describes. Measured live consequence: the top earner (`beefy-harvest-caller-fees`, $0.074421 = 88% of
+     lifetime, 26 of 34 successes) carried dead:true from two capacity-noise blocks, so isDead() returned
+     true, so routeSummary listed it under DEAD_NEVER_REVISIT in the system prompt EVERY SESSION. The agent
+     was being told never to revisit its ONLY source of income — and responded by logging each harvest
+     under a fresh id (`base-harvest-batch-127/131/133/...`), which inflated `routes_tried` from 22 to 38
+     in ten hours. The ledger's denominator was therefore measuring SESSIONS ELAPSED, not exploration.
+     Money arriving outranks any flag, unconditionally. */
+  if (r.earned_usd > 0) return false;
   if (r.dead === true || r.blocked >= 2) return true;
   if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
   if (id && closedCategory(id)) return true;
@@ -443,7 +451,12 @@ function makeTools(ctx) {
       // execute with the Safe, so the scan was not testing the transaction that actually gets sent.
       const recipient = SMART_ACCOUNT;
       const strategies = await loadStrategies(ctx.env, (c, m, p) => ctx.rpc(c, m, p));
-      const ranked = await rankByCallReward((c, m, p) => ctx.rpc(c, m, p), strategies.slice(0, 80));
+      // This used to be `strategies.slice(0, 80)`. The slice ran BEFORE the ranking, so it was never
+      // "the top 80" — it was the first 80 in Beefy API order, which is arbitrary. MEASURED 2026-07-31:
+      // that truncation hid 6 of the 10 highest real payers and 56.2% of the live pool value.
+      // It bought nothing either: rankByCallReward batches 100 per aggregate3, so the whole
+      // 241-strategy universe prices out in 3 subrequests — one more than the truncated scan cost.
+      const ranked = await rankByCallReward((c, m, p) => ctx.rpc(c, m, p), strategies, 'base');
       const top = [];
       for (const c of ranked.slice(0, Math.min(Number(limit) || 10, 15))) {
         const sim = await simulate((ch, m, p) => ctx.rpc(ch, m, p), c.strategy, safe, recipient);
@@ -451,13 +464,16 @@ function makeTools(ctx) {
         if (ctx.sub > SLICE_SUBREQUESTS - 4) break;
       }
       return {
-        note: 'callReward is a RANKING signal only — it once overstated a real payout by ~4,300x. Only "callable: true" entries are worth a relay slot.',
+        note: 'callReward is a RANKING signal only, and it is denominated in the REWARD token (AERO, Cake) with no conversion to native — it overstates the real caller fee by price(reward)/price(ETH): measured 4,478x on AERO, 1,284x on Cake. Never quote it as money. A callReward_wei of "0" does NOT mean no payout — three Morpho strategies read 0 and pay. Only "callable: true" entries are worth a relay slot.',
         budget: await relayBudget(safe), candidates: top,
       };
     },
 
-    // ONE relay slot, MANY harvests. A slot is a TRANSACTION, not an action — MultiSend carries a
-    // couple dozen inner calls, so this takes the whole paying pool instead of a single strategy.
+    // ONE relay slot, MANY harvests. A slot is a TRANSACTION, not an action: the Safe execTransaction
+    // DELEGATECALLs MultiSend (harvest.mjs, operation = 1), which carries `max` inner harvests —
+    // DEFAULT 12, not the "couple dozen" this comment used to claim. 26 has only ever been simulated.
+    // MultiSend is ALL-OR-NOTHING, so batchHarvest simulates every candidate alone AND simulates the
+    // assembled batch before it spends the slot.
     async harvest_batch({ chain = 'base', max = 12 }) {
       ctx.budget(); ctx.sub += 12;
       return await batchHarvest(ctx.env, (c, m, p) => ctx.rpc(c, m, p), SMART_ACCOUNT, chain, { max: Number(max) || 12 });
@@ -465,19 +481,36 @@ function makeTools(ctx) {
 
     async harvest_run() {
       ctx.budget(); ctx.sub += 12;
-      // A manual SINGLE harvest wasted a slot a batch would fill with 12-26 payouts, so this now
-      // fires the same batch pass the automation runs every 2 minutes. Base is skipped until the
-      // escape has finished converting — its slots buy permanent gas, worth more than any batch.
-      const hs = (await ctx.env.KV.get('harvest:state', 'json')) || {};
-      const chains = ['optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis'];
-      if (hs.escaped) chains.unshift('base');
+      // A manual SINGLE harvest wasted a slot a batch would fill, so this fires the same batch pass the
+      // automation runs every 2 minutes — up to `max` (default 12) harvests in one MultiSend, not the
+      // "12-26 payouts" this comment used to claim.
+      //
+      // BASE IS FIRST, exactly as in the cron (see scheduled()). It used to be absent from the list and
+      // prepended only `if (hs.escaped)` — but `hs.escaped` means "the escape has FINISHED", the near
+      // opposite of the cron's `escapeNeedsBase` ("the escape is mid-flight, reserve Base for it"). So
+      // this path locked itself out of Base, the chain holding all 241 strategies and the only chain
+      // harvest_scan even reports on, for exactly as long as the escape had NOT finished.
+      //
+      // The cron derives that verdict from a live escapeCycle(), which HAS SIDE EFFECTS (it can relay
+      // and spend a slot), so we must not call it here. The cron persists its verdict to KV every tick
+      // instead. Missing or older than 15 minutes ⇒ do NOT reserve Base: the cron reserves Base itself
+      // when it matters, so failing open costs at most one contended slot, while failing closed costs
+      // the whole pool — which is the bug being fixed.
+      const escv = (await ctx.env.KV.get('escape:needsBase', 'json')) || null;
+      const escapeNeedsBase = !!(escv && escv.v === true && Date.now() - (escv.at || 0) < 15 * 60 * 1000);
+      const chains = ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis'];
       for (const chain of chains) {
+        if (chain === 'base' && escapeNeedsBase) continue;   // reserved for the escape, same as the cron
         const r = await batchHarvest(ctx.env, (c, m, p) => ctx.rpc(c, m, p), SMART_ACCOUNT, chain);
         if (r && (r.relayed || r.ready)) {
           return { ...r, note: r.relayed ? 'Batch fired. This also runs automatically every 2 minutes — your rounds are better spent finding NEW payers.' : 'Batch is built and waiting on a relay slot; the automation will fire it the moment one refills. Nothing for you to do here.' };
         }
       }
-      return { skipped: 'no chain has both payable work and a batch that simulates clean right now', note: 'The automation retries every 2 minutes forever. Spend your rounds on discovery instead.' };
+      return {
+        skipped: 'no chain has both payable work and a batch that simulates clean right now',
+        ...(escapeNeedsBase ? { base_reserved: 'Base was skipped this pass — the escape is mid-flight and its slots buy permanent gas, worth more than any batch.' } : {}),
+        note: 'The automation retries every 2 minutes forever. Spend your rounds on discovery instead.',
+      };
     },
 
     // ── finding NEW income families (the only real path past cents/day) ─────
@@ -1048,6 +1081,14 @@ export default {
         escapeNeedsBase = !!(esc && (esc.ready || esc.relayed) && esc.step !== 'done');
       } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
 
+      // Publish the verdict so the MANUAL path (harvest_run) can honour the same reservation without
+      // calling escapeCycle() itself — that call can relay and spend a slot, which a read must never do.
+      // Written on every tick including the error path (verdict false = do not reserve), so a stale key
+      // always means "the cron stopped", never "the escape is still holding Base".
+      try {
+        await env.KV.put('escape:needsBase', JSON.stringify({ v: escapeNeedsBase, at: Date.now() }), { expirationTtl: 3600 });
+      } catch (e) { console.log('ESCAPE FLAG ERROR: ' + String(e.message).slice(0, 140)); }
+
       // Measure the relay budget every tick — the only way the real refill period ever gets measured.
       // This used to live inside the single-harvest cycle that ran after the batches; the singles
       // are gone (a slot spent on one harvest is a slot a 12-26 batch cannot use), the measurement stays.
@@ -1065,7 +1106,9 @@ export default {
         if (sw && (sw.burned || sw.minted)) return;   // a slot was spent; batches resume next tick
       } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
 
-      // One slot carries a couple dozen harvests, so batching is strictly better than singles.
+      // One slot carries up to `max` harvests (default 12) in a single MultiSend DELEGATECALL, so
+      // batching beats singles. NOT "a couple dozen": 26 is a simulation result, never an executed
+      // batch size, and nothing here raises `max` above its default.
       for (const chain of ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis']) {
         if (chain === 'base' && escapeNeedsBase) { console.log('batch: base reserved for the escape'); continue; }
         try {
@@ -1402,6 +1445,14 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         treasury,
         prospect: prospect ? { grind: prospect.grind, streams: prospect.streams_ready_to_stack, families: prospect.families_by_evidence } : null,
         recent_harvests: (harvestState?.log || []).slice(0, 8),
+        /* LIFETIME EARNED vs HOLDINGS — these are different numbers and the dashboard used to conflate
+           them, labelling holdings as "lifetime earned". They diverge by every wei ever spent on gas:
+           on 2026-07-31 holdings were $0.026 while the route ledger summed to $0.074, so the headline
+           understated the only autonomous-earning result this project has by 2.9x. `routes` is the
+           same ledger /ledger serves, so this is a sum of what it was actually PAID, not what survived. */
+        lifetime_earned_usd: Object.values(routes || {}).reduce((s, r) => s + (Number(r?.earned_usd) || 0), 0),
+        harvest_wins: harvestState?.wins ?? null,
+        harvest_attempts: harvestState?.attempts ?? null,
         sessions_completed: meta.sessions,
         last_session: meta.lastSession || null,
         session_in_progress: cur ? { session: cur.session, round: cur.round, started: new Date(cur.startedAt).toISOString() } : null,

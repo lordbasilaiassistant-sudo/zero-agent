@@ -1,0 +1,6 @@
+optimism: 300 blocks, 17676 Transfer logs -> 44 behavioural candidates (3 open-mint, 41 distributor)
+arbitrum: 300 blocks, 1196 Transfer logs -> 13 behavioural candidates (2 open-mint, 11 distributor)
+polygon: 0 blocks, 0 Transfer logs -> 0 behavioural candidates (0 open-mint, 0 distributor)
+gnosis: 300 blocks, 1384 Transfer logs -> 20 behavioural candidates (4 open-mint, 16 distributor)
+unichain: 300 blocks, 100 Transfer logs -> 2 behavioural candidates (0 open-mint, 2 distributor)
+multichain behaviour universe: 63

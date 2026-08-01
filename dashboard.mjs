@@ -40,6 +40,41 @@ export function dashboardHTML(data) {
   const chainsAll = [{ chain: 'base', spendable_usd: homeUsd, home: true }, ...trib];
   const maxHold = Math.max(...chainsAll.map(c => c.spendable_usd || 0), 1e-9);
 
+  /* ── ADDED 2026-07-31 (Anthony's brief: "tab info and concise info. Just want to know if things are
+     broken, progressing, or stopping anything and which phase its on. Think Phase 0 -> Phase 10.") ──
+
+     THE VERDICT. The page previously opened with a manifesto and made you scroll to a "diagnosis"
+     block to learn whether anything was wrong. Now one word answers it, and the three states are kept
+     genuinely distinct so the word carries information:
+       BROKEN      — the machinery is failing, or it is attempting and never winning
+       PROGRESSING — earning, or actively spending capacity on work
+       WAITING     — nothing is wrong; it is rate-limited by a resource that refills on a clock
+     WAITING exists so a healthy pause is never dressed as progress and never as breakage. */
+  const st = String(h.state || '').toUpperCase();
+  let verdict = 'WAITING', vtone = 'warn';
+  if (['STALLED', 'DEGRADED', 'BROKEN', 'NO INCOME YET'].includes(st)) { verdict = 'BROKEN'; vtone = 'bad'; }
+  else if (['EARNING', 'CYCLING'].includes(st)) { verdict = 'PROGRESSING'; vtone = 'good'; }
+
+  /* LIFETIME vs HOLDINGS — see the worker note. `totalUsd` is what it HOLDS; lifetime is what it was
+     PAID. Showing only the former (as this page did) understates the result by the gas it spent. */
+  const lifetimeUsd = Number(data.lifetime_earned_usd);
+  const hasLifetime = Number.isFinite(lifetimeUsd) && lifetimeUsd > 0;
+
+  /* PHASES ARE LAYERS, NOT STAGES — knowledge/phases.md, operator correction 2026-07-28. Every layer
+     you unlock keeps running forever; you never step off one. So this renders bottom-up as a stack
+     that lights up, never as a progress bar — a bar would imply phase 0 is something you leave behind,
+     which is precisely the "expensive kind of wrong" the doctrine calls out. Layer 0 is live iff it has
+     actually earned (evidence, not aspiration); 4–10 stay unnamed because naming rungs nobody has
+     reached is a roadmap pretending to be a product. */
+  const LAYERS = [
+    { n: 0, name: 'Free actions', blurb: 'Earns with no money at risk. Never stops, never needs funding — the floor that makes ruin structurally impossible.' },
+    { n: 1, name: 'Small-capital yield', blurb: 'Puts the floor’s earnings to work. Funded by 0, runs forever once found.' },
+    { n: 2, name: 'Risk-capital plays', blurb: 'Bets that can lose — licensed by 0+1 paying regardless, and uncorrelated with the bet.' },
+    { n: 3, name: 'Risk / speed', blurb: 'Faster, larger positions resting on everything below.' },
+    { n: 4 }, { n: 5 }, { n: 6 }, { n: 7 }, { n: 8 }, { n: 9 }, { n: 10 },
+  ];
+  const liveLayers = (data.balances?.has_earned || totalUsd > 0) ? 1 : 0;
+
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ZERO — an AI agent earning crypto from nothing</title>
@@ -82,6 +117,40 @@ h1 em{font-style:normal;color:var(--sig);text-shadow:0 0 34px rgba(61,250,160,.4
   letter-spacing:.18em;text-transform:uppercase;color:var(--dimmer)}
 .ecg .amp{position:absolute;right:13px;top:11px;font-family:var(--mono);font-size:10px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--sig)}
+/* ── verdict: the one thing the operator wants at a glance (2026-07-31) ── */
+.verdict{margin:26px 0 0;padding:20px 22px;border:1px solid var(--line2);border-radius:12px;
+  background:linear-gradient(180deg,var(--panel2),var(--panel))}
+.verdict .vv{font-size:clamp(26px,4.6vw,38px);font-weight:750;letter-spacing:-.02em;line-height:1.05}
+.verdict.good .vv{color:var(--sig)} .verdict.warn .vv{color:var(--warn)} .verdict.bad .vv{color:var(--bad)}
+.verdict .vh{color:var(--dim);margin-top:7px;max-width:64ch;font-size:14.5px}
+.verdict .vn{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);color:var(--dim);font-size:13.5px}
+.verdict .vn b{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--dimmer);margin-right:9px}
+/* ── phase layers: bottom-up stack, lit by evidence ── */
+.phases{margin:14px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px}
+.ph-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;
+  font-size:13.5px;color:var(--dim);margin-bottom:10px}
+.ph-h b{color:var(--ink)}
+.ph-note{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer)}
+.ph-stack{display:flex;flex-direction:column}
+.ph{display:grid;grid-template-columns:26px 4px 1fr;grid-template-areas:"n b t" ". . d";
+  gap:0 11px;padding:6px 0;align-items:center}
+.ph-n{grid-area:n;font-family:var(--mono);font-size:11px;color:var(--dimmer);text-align:right}
+.ph-bar{grid-area:b;background:var(--line2);border-radius:2px;align-self:stretch;min-height:16px}
+.ph-t{grid-area:t;font-size:13.5px;color:var(--dimmer);font-weight:600}
+.ph-t i{font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--sig);border:1px solid var(--sig-dim);border-radius:999px;padding:1px 7px;margin-left:9px}
+.ph-b{grid-area:d;font-size:12.5px;color:var(--dim);max-width:66ch;padding-top:2px}
+.ph.on .ph-bar{background:var(--sig)} .ph.on .ph-n{color:var(--sig)} .ph.on .ph-t{color:var(--ink)}
+.ph-foot{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dimmer);max-width:70ch}
+/* ── tabs ── */
+.tabs{display:flex;gap:2px;margin:30px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{appearance:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--dimmer);
+  font:inherit;font-size:13.5px;font-weight:600;padding:10px 13px;cursor:pointer;white-space:nowrap}
+.tabs button:hover{color:var(--dim)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--sig)}
+.panel{display:none} .panel.on{display:block}
 .vitals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
   background:var(--line);border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:22px 0 34px}
 .v{background:var(--panel);padding:16px 17px}
@@ -158,10 +227,37 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
       <b>including the failures</b>.</p>
     <div class="ecg"><canvas id="ecg"></canvas>
       <div class="lbl">balance · live trace</div><div class="amp" id="amp"></div></div>
+    <div class="verdict ${vtone}">
+      <div class="vv">${verdict}</div>
+      <div class="vh">${esc(h.headline || h.state || '')}</div>
+      ${h.next_move ? `<div class="vn"><b>next move</b> ${esc(h.next_move)}</div>` : ''}
+    </div>
+
+    <div class="phases">
+      <div class="ph-h"><span>Phase layers — <b>${liveLayers} of 11 live</b></span>
+        <span class="ph-note">layers stack; nothing switches off</span></div>
+      <div class="ph-stack">
+        ${[...LAYERS].reverse().map(l => {
+          const live = l.n < liveLayers, named = !!l.name;
+          return `<div class="ph ${live ? 'on' : ''}">
+            <span class="ph-n">${l.n}</span>
+            <span class="ph-bar"></span>
+            <span class="ph-t">${named ? esc(l.name) : 'not yet mapped'}${live ? '<i>live</i>' : ''}</span>
+            ${l.blurb ? `<span class="ph-b">${esc(l.blurb)}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="ph-foot">Phase 0 already did the hard part — nothing into something. It keeps running
+        forever and refills what the layers above spend. Layers 4–10 stay unnamed until one is reached.</div>
+    </div>
+
     <div class="vitals">
       <div class="v"><div class="k">lifetime earned</div>
-        <div class="n ${totalUsd > 0 ? 'live' : 'zero'}">${usd(totalUsd)}</div>
-        <div class="sub">from an absolute standing start</div></div>
+        <div class="n ${(hasLifetime ? lifetimeUsd : totalUsd) > 0 ? 'live' : 'zero'}">${usd(hasLifetime ? lifetimeUsd : totalUsd)}</div>
+        <div class="sub">${hasLifetime ? 'every fee it has ever been paid (route ledger)' : 'from an absolute standing start'}</div></div>
+      <div class="v"><div class="k">holding now</div>
+        <div class="n">${usd(totalUsd)}</div>
+        <div class="sub">${hasLifetime ? 'less than lifetime — the difference went on gas' : 'across every chain'}</div></div>
       <div class="v"><div class="k">spendable</div>
         <div class="n">${usd(data.balances?.spendable_usd ?? 0)}</div>
         <div class="sub">the rest is stranded — see holdings</div></div>
@@ -176,6 +272,14 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
     </div>
   </header>
 
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true"  data-p="status">Status</button>
+    <button role="tab" aria-selected="false" data-p="capacity">Capacity</button>
+    <button role="tab" aria-selected="false" data-p="learned">What it learned</button>
+    <button role="tab" aria-selected="false" data-p="log">Activity</button>
+  </div>
+
+  <div class="panel on" id="p-status">
   <section><h2>diagnosis — is it stalled?</h2>
     <div class="dx ${tone}">
       <div class="st">${esc(h.state || 'UNKNOWN')}</div>
@@ -185,6 +289,7 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
     </div>
   </section>
 
+  </div><div class="panel" id="p-capacity">
   <section><h2>gas capacity — free slots, per chain</h2><div class="card">
     <div class="caps">${cap.map(c => {
       const dead = (c.remaining || 0) > 0 && c.work === 0;
@@ -215,6 +320,7 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
     </div></div>
   </section>
 
+  </div><div class="panel" id="p-learned">
   <section><h2>the hunt — automatic, no model in the loop</h2>
     <div class="fn">
       <div><div class="k">candidates</div><div class="n">${g.total_candidates ?? 0}</div></div>
@@ -244,6 +350,7 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
       <td class="m">${f.pay_rate === null || f.pay_rate === undefined ? '—' : f.pay_rate}</td>
     </tr>`).join('')}</tbody></table></div></section>` : ''}
 
+  </div><div class="panel" id="p-log">
   ${(data.recent_harvests || []).length ? `<section><h2>recent attempts — successes and failures both</h2>
     <div class="card scroll"><table>
     <thead><tr><th>when</th><th>chain</th><th>strategy</th><th>earned</th><th>tx</th></tr></thead>
@@ -257,6 +364,7 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
         <td class="m">${l.tx ? `<a href="${scout(l.chain)}/tx/${esc(l.tx)}" target="_blank" rel="noopener">${esc(String(l.tx).slice(0, 12))}…</a>` : '<span class="d">—</span>'}</td>
       </tr>`;
     }).join('')}</tbody></table></div></section>` : ''}
+  </div>
 
   <footer>
     <div class="lk">
@@ -271,6 +379,24 @@ footer .lk a:hover{color:var(--sig);border-color:var(--sig-dim);background:rgba(
   </footer>
 </div>
 <script>
+// Tabs (2026-07-31). Plain buttons + panels, no framework. Arrow keys work, because a tablist that
+// only answers to clicks is not a tablist; the hash is kept so a tab can be linked to directly.
+(function(){
+  const tabs=[...document.querySelectorAll('.tabs button')],panels=[...document.querySelectorAll('.panel')];
+  function show(n){
+    tabs.forEach(t=>t.setAttribute('aria-selected',String(t.dataset.p===n)));
+    panels.forEach(p=>p.classList.toggle('on',p.id==='p-'+n));
+    history.replaceState(null,'','#'+n);
+  }
+  tabs.forEach((t,i)=>{
+    t.addEventListener('click',()=>show(t.dataset.p));
+    t.addEventListener('keydown',e=>{
+      const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0; if(!d)return; e.preventDefault();
+      const n=tabs[(i+d+tabs.length)%tabs.length]; n.focus(); show(n.dataset.p);
+    });
+  });
+  const h=location.hash.slice(1); if(h&&tabs.some(t=>t.dataset.p===h))show(h);
+})();
 const D = ${d};
 // The trace amplitude IS the balance. It was a flatline while the balance was zero, which was the
 // honest picture. It earned, so it beats. Log scale, because a linear scale would render a real

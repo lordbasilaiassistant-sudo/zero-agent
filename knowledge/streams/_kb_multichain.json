@@ -1,0 +1,152 @@
+{
+  "optimism": {
+    "block": 154974088,
+    "probed": 71,
+    "payers": 65,
+    "totalWei": "13082330794540",
+    "top": [
+      {
+        "id": "curve-op-crvusd-usdc",
+        "platform": "curve",
+        "strategy": "0xA8586453dFD00dA80edADfa4156B939b668cEeae",
+        "wei": "1058097100862"
+      },
+      {
+        "id": "velodrome-v2-bold-lusd-new",
+        "platform": "velodrome",
+        "strategy": "0x61C6B6cc733E70FC72f18bA217076D50d7CB3162",
+        "wei": "1006303075196"
+      },
+      {
+        "id": "morpho-op-gauntlet-prime-usdc",
+        "platform": "morpho",
+        "strategy": "0x64537d1fcF0dc05E5D5c316EBBB0aBd983e3cDF9",
+        "wei": "1001045658421"
+      },
+      {
+        "id": "curve-op-crvusd-usdc.e",
+        "platform": "curve",
+        "strategy": "0xa26e016f300D30256c0B9D26013cA6e1CF725060",
+        "wei": "974307627499"
+      },
+      {
+        "id": "velodrome-v2-usdce-msusd",
+        "platform": "velodrome",
+        "strategy": "0x254775dDc40e1c5FB5D386130B1099ed5cF7002B",
+        "wei": "808067215294"
+      },
+      {
+        "id": "velodrome-v2-weth-over",
+        "platform": "velodrome",
+        "strategy": "0x663e14E73203EE1Fe873527aaEE7F9C8eb593cb5",
+        "wei": "720885262635"
+      },
+      {
+        "id": "velodrome-v2-velo-usdc",
+        "platform": "velodrome",
+        "strategy": "0xfc4AaA220a3938FF6516eBf40c1945e73064cB0A",
+        "wei": "643532116473"
+      },
+      {
+        "id": "velodrome-v2-bold-usdc-new",
+        "platform": "velodrome",
+        "strategy": "0x17757b38f0b4171133846f6427035939A53C4d15",
+        "wei": "605847828708"
+      },
+      {
+        "id": "curve-op-tricrv",
+        "platform": "curve",
+        "strategy": "0xb6556af946A84e205FeCc062A168D1B48e0D68fE",
+        "wei": "595701033737"
+      },
+      {
+        "id": "velodrome-v2-usdc-msusd",
+        "platform": "velodrome",
+        "strategy": "0x98636272Da42aACd3A64C9a95FCF9649C7266029",
+        "wei": "527266813426"
+      }
+    ]
+  },
+  "arbitrum": {
+    "block": 489821273,
+    "probed": 44,
+    "payers": 16,
+    "totalWei": "5745764514414",
+    "top": [
+      {
+        "id": "pancake-cow-arb-weth-usdc-500-vault",
+        "platform": "pancakeswap",
+        "strategy": "0x2c0Aa176D337E70BAd16D3E07717582745a8dAc1",
+        "wei": "1554499148624"
+      },
+      {
+        "id": "pancake-cow-arb-weth-usdt-500-vault",
+        "platform": "pancakeswap",
+        "strategy": "0x3C6F6e0C4775DDE79BbE576a738d706B422c23e9",
+        "wei": "1280974553702"
+      },
+      {
+        "id": "pancake-cow-arb-wbtc-usdc-vault",
+        "platform": "pancakeswap",
+        "strategy": "0x37932E6E79810Ec1503DC95fF24369290305727D",
+        "wei": "842692399867"
+      },
+      {
+        "id": "curve-arb-crvusd-usdt",
+        "platform": "convex",
+        "strategy": "0x50371d6ecfd666dA59af1Fd3901Ecdf09854bc26",
+        "wei": "539885838378"
+      },
+      {
+        "id": "morpho-arb-gauntlet-core-usdc",
+        "platform": "morpho",
+        "strategy": "0xFE2ceb2472Ef0b39C662a033e2a572cBb009AF6B",
+        "wei": "409949326061"
+      },
+      {
+        "id": "pancake-cow-arb-wbtc-weth-vault",
+        "platform": "pancakeswap",
+        "strategy": "0x8b34e162F6786E9F50CAC4dFbb7816Fc9aCd6468",
+        "wei": "315820692166"
+      },
+      {
+        "id": "curve-arb-crvusd-usdc.e",
+        "platform": "convex",
+        "strategy": "0x12DFB33d484208daB551Ca313Deac96E06d74838",
+        "wei": "264215751407"
+      },
+      {
+        "id": "curve-arb-crvusd-usdc",
+        "platform": "convex",
+        "strategy": "0x75DFC877CDA660A6c3Ef98F3fb38f6ecf6fA51b0",
+        "wei": "187991270980"
+      },
+      {
+        "id": "morpho-arb-hyperithm-usdc",
+        "platform": "morpho",
+        "strategy": "0x5Dae568d7291aAbC597Ed5E000cB8b745EC8b273",
+        "wei": "86817861699"
+      },
+      {
+        "id": "morpho-arb-steakhouse-usdc",
+        "platform": "morpho",
+        "strategy": "0x2eA13561b0C041d51E47d7e98C2C28584eaC95AE",
+        "wei": "61861421169"
+      }
+    ]
+  },
+  "polygon": {
+    "block": 91227983,
+    "probed": 1,
+    "payers": 1,
+    "totalWei": "373079203868266",
+    "top": [
+      {
+        "id": "curve-poly-mai-usdc.e",
+        "platform": "curve",
+        "strategy": "0x4f678E4E32293c4553A0811C9D3625Ba4a07664D",
+        "wei": "373079203868266"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1603 @@
+{
+  "block": 49378552,
+  "total": "55345486526535",
+  "blindTotal": "5751873786370",
+  "rows": [
+    {
+      "id": "aerodrome-cbbtc-edge",
+      "platform": "aerodrome",
+      "strategy": "0xD1E1cDc52BC290F9bd3d50fc2D363B76eC0Dd0ee",
+      "wei": "4533335414676",
+      "callReward": "4469902187568"
+    },
+    {
+      "id": "aero-cow-eurc-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x9D15Bae40d2C127C6C69D2D61e0a0fBd0Fc86eAd",
+      "wei": "4096948258817",
+      "callReward": "18302030466342231"
+    },
+    {
+      "id": "aerodrome-usdc-aero",
+      "platform": "aerodrome",
+      "strategy": "0xedE4Dd6758634007Eb1f4cF8A203bf237A44ea4C",
+      "wei": "4094461610855",
+      "callReward": "4088489513788"
+    },
+    {
+      "id": "morpho-base-steakhouse-high-yield-usdc",
+      "platform": "morpho",
+      "strategy": "0xD90ec9e27c47FDF0f766c0D6fC4f0f47376dAA47",
+      "wei": "3724551749476",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-weth-lrds",
+      "platform": "aerodrome",
+      "strategy": "0x0F03255Df313f85FAe2C34273010c22Bddc36cEa",
+      "wei": "3410166247385",
+      "callReward": "3222582594424"
+    },
+    {
+      "id": "aerodrome-cow-base-cbbtc-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x8B45D51e015Dac924EeAEa754e6f768943206F05",
+      "wei": "3286152187035",
+      "callReward": "14679337037535521"
+    },
+    {
+      "id": "aerodrome-lcap-eusd",
+      "platform": "aerodrome",
+      "strategy": "0x87C032C1BCb19Bcf99c2DeA040Ef7fccfbd4C04A",
+      "wei": "2070477988856",
+      "callReward": "2041604551819"
+    },
+    {
+      "id": "aerodrome-cow-base-cbltc-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xa0dBaE6a747BF5deB0254B62bb2557489d6b837D",
+      "wei": "2038037452670",
+      "callReward": "9103863074349481"
+    },
+    {
+      "id": "aero-cow-weth-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x087A4Cb5299b178fc5dA6f47127c1B5d7B5bc6Bc",
+      "wei": "1998508345667",
+      "callReward": "8927284133706375"
+    },
+    {
+      "id": "morpho-base-gauntlet-frontier-usdc",
+      "platform": "morpho",
+      "strategy": "0x1FdD1C2533B0bABab328eb4bCB3c94b19a3a5cEB",
+      "wei": "1446098287123",
+      "callReward": "0"
+    },
+    {
+      "id": "pancakeswap-cow-base-sol-cbbtc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xafF4f20E5F340f11944DB3eC9adE6A29c13FE67d",
+      "wei": "1183810940401",
+      "callReward": "1521761464994373"
+    },
+    {
+      "id": "aerodrome-weth-bsdeth",
+      "platform": "aerodrome",
+      "strategy": "0x143D4dC084270f397D350E7BfE0065aBa6A63a56",
+      "wei": "1064229899193",
+      "callReward": "1063683888859"
+    },
+    {
+      "id": "aerodrome-cow-base-cbada-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x50199073482b0413a4321B21da97aC090D70d05E",
+      "wei": "983281066130",
+      "callReward": "4392247878920174"
+    },
+    {
+      "id": "aerodrome-weth-lcap",
+      "platform": "aerodrome",
+      "strategy": "0x16d722a0B394d8a402d64f7e43b5f75aCc445A59",
+      "wei": "970293836224",
+      "callReward": "794362905632"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-cbbtc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7CE16947a044795602faB00880aeE482b9478F73",
+      "wei": "915648388738",
+      "callReward": "4090324592311037"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-eurc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xc664C800bC54229034A629335A231f279320a605",
+      "wei": "889272640794",
+      "callReward": "3972576506724822"
+    },
+    {
+      "id": "aero-cow-usdc-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xf6f229adFc7B5119C50913b8265A418E8c6c0C77",
+      "wei": "826572912486",
+      "callReward": "3692237810950943"
+    },
+    {
+      "id": "aero-cow-tbtc-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0c19E165c9e369edcC819bAD004b17cfAB30aeF5",
+      "wei": "802356525895",
+      "callReward": "3584064234471833"
+    },
+    {
+      "id": "aerodrome-weth-mor",
+      "platform": "aerodrome",
+      "strategy": "0xB7D7A3dFd7bD7c4e0C9315E3f7d07d80b6d15Af6",
+      "wei": "741662793942",
+      "callReward": "665543250344"
+    },
+    {
+      "id": "aero-cow-weth-usdt-vault",
+      "platform": "aerodrome",
+      "strategy": "0xD62c204A5dA441E135A9d1e48Ba2CaABF40B4Ab8",
+      "wei": "701188319765",
+      "callReward": "3132150673981550"
+    },
+    {
+      "id": "aerodrome-weth-tlos",
+      "platform": "aerodrome",
+      "strategy": "0x65Da01aB8894c7be02f8867Ee6d55bCddB72819C",
+      "wei": "700000747112",
+      "callReward": "682243426193"
+    },
+    {
+      "id": "aerodrome-weth-usdc",
+      "platform": "aerodrome",
+      "strategy": "0x9bd7A4b5D5Fe8C7dd39D085279306309fA6F1a15",
+      "wei": "673290783511",
+      "callReward": "672024127187"
+    },
+    {
+      "id": "aerodrome-jeur-eurc",
+      "platform": "aerodrome",
+      "strategy": "0x6C3Bd79f569d88dC4eEdD73AD0d7CD821bCe10e5",
+      "wei": "637221169767",
+      "callReward": "637215347158"
+    },
+    {
+      "id": "aerodrome-usdc-mai",
+      "platform": "aerodrome",
+      "strategy": "0xD73c6B7b020e8Dd6F9eD7097923f5Bf9fE176D81",
+      "wei": "615682730912",
+      "callReward": "614524634970"
+    },
+    {
+      "id": "aerodrome-msusd-usdc",
+      "platform": "aerodrome",
+      "strategy": "0x9aB2Bcb021ff1998340D252Bb9Cd55b04C725Bba",
+      "wei": "588337628993",
+      "callReward": "588550891467"
+    },
+    {
+      "id": "aerodrome-aero-wsteth",
+      "platform": "aerodrome",
+      "strategy": "0x68d24F7C60D316EB27e116A9910902Ff23CD8f1E",
+      "wei": "540651196419",
+      "callReward": "535053873796"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbltc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x5de40568045aa537E032450563687Ef48EB9eef6",
+      "wei": "480101285435",
+      "callReward": "2144568477596022"
+    },
+    {
+      "id": "aerodrome-weth-vvv",
+      "platform": "aerodrome",
+      "strategy": "0xB6D144fCCE62547C870b4E231b01Ca2994Aa54f6",
+      "wei": "427164335348",
+      "callReward": "73738085393"
+    },
+    {
+      "id": "aerodrome-tybg-weth",
+      "platform": "aerodrome",
+      "strategy": "0xe5c4CD247ac11F4E20583b4D3357627F4411D9A4",
+      "wei": "403722374876",
+      "callReward": "385688890346"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-vvv-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0xf17D24db671E13eFcAc012ba4249E31455aC0848",
+      "wei": "399005906516",
+      "callReward": "1782400242602092"
+    },
+    {
+      "id": "pancake-cow-base-weth-usdc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0x69b1c3155b77B7f1bc0313E97265Ef67D402adBd",
+      "wei": "372785488005",
+      "callReward": "479215008003992"
+    },
+    {
+      "id": "aerodrome-cow-base-aero-cbbtc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x8D3960Fe3D8FEd272B6DE1b02751a3EDFf195B21",
+      "wei": "328838784994",
+      "callReward": "1468890602939532"
+    },
+    {
+      "id": "aerodrome-weth-aero",
+      "platform": "aerodrome",
+      "strategy": "0x2de93273d06c344427f7Ef8992e5baB9ff971005",
+      "wei": "289660137245",
+      "callReward": "286964815484"
+    },
+    {
+      "id": "aerodrome-usdc-eusd",
+      "platform": "aerodrome",
+      "strategy": "0x5d823546463fD0Ac3b31DBA6AD38B56a39BFbf70",
+      "wei": "287708863139",
+      "callReward": "287210967519"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-aero-vault",
+      "platform": "aerodrome",
+      "strategy": "0xA7F6A4FA235b82920ecBA5a79e88bbfE8C7dED5D",
+      "wei": "277819756167",
+      "callReward": "1240993036388073"
+    },
+    {
+      "id": "aerodrome-cow-base-virtual-mamo-vault",
+      "platform": "aerodrome",
+      "strategy": "0x22f5397EAC7369F8B4b042C862c97dCDe00C8Fc9",
+      "wei": "271083837056",
+      "callReward": "1210904241983662"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-usdc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0xa50696b9D58da273C33413bD778007Bc9cC53669",
+      "wei": "258991094062",
+      "callReward": "1156887040438543"
+    },
+    {
+      "id": "aerodrome-cow-base-sol-usdc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x34Ff33eE9caEdAf33F64FbDd4Afb55D34C377B9F",
+      "wei": "248618728775",
+      "callReward": "1110554658662181"
+    },
+    {
+      "id": "aero-cow-weth-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x6b631742C03FfE552aC7C918D226056336d0779c",
+      "wei": "245148006452",
+      "callReward": "1095051221447649"
+    },
+    {
+      "id": "aerodrome-cow-base-lfi-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7b0ef57cCa2031fcc073445C48Db75f46F91deb2",
+      "wei": "235757020931",
+      "callReward": "1053102548764069"
+    },
+    {
+      "id": "aerodrome-cow-base-o-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x176b2C3d0aa5B344A9B87fD26C1Ab1abd2D07179",
+      "wei": "235386219264",
+      "callReward": "1051516497563118"
+    },
+    {
+      "id": "aerodrome-cbbtc-tarot",
+      "platform": "aerodrome",
+      "strategy": "0xfe896646c19A4A8DFB32703Fa1EeaaC8CF96a834",
+      "wei": "208794848372",
+      "callReward": "205886359002"
+    },
+    {
+      "id": "aerodrome-weth-qi",
+      "platform": "aerodrome",
+      "strategy": "0xACAD08b10542a65733bc2782572136338002E1e7",
+      "wei": "197081975553",
+      "callReward": "173962028250"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-cbmega-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7cd0e3095054cb57745D79cCfc78C2B4eF816F83",
+      "wei": "196949569424",
+      "callReward": "879753324444693"
+    },
+    {
+      "id": "morpho-base-gauntlet-prime-usdc",
+      "platform": "morpho",
+      "strategy": "0xAbcD8A94Db286949B3D725bd3bC4601BC71cb369",
+      "wei": "184333396542",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbxrp-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0xb120677bDd4e9211E2a218a625Aa5432927e1C7e",
+      "wei": "184192401143",
+      "callReward": "822768247360682"
+    },
+    {
+      "id": "alienbase-usdc-usdbc-narrow",
+      "platform": "alienbase",
+      "strategy": "0xA28D5a576432687E9d6E8bEa54ab816a9a0f0293",
+      "wei": "183473827254",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-aave-vault",
+      "platform": "aerodrome",
+      "strategy": "0xd72eA03E43BcB05924DFEc2431Cf7806B96D8677",
+      "wei": "177999908595",
+      "callReward": "795106981583703"
+    },
+    {
+      "id": "aerodrome-cow-base-cbxrp-cbbtc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x321197Dcc90fAD24E3B211D3A2B400df9e9fEEe8",
+      "wei": "174055340884",
+      "callReward": "777486980531732"
+    },
+    {
+      "id": "aerodrome-cow-base-mamo-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x59A91B989C09EB3ff05629abfC6Bd759Dfa1C27F",
+      "wei": "172936164307",
+      "callReward": "772487727651712"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-zro-vault",
+      "platform": "aerodrome",
+      "strategy": "0xFEE41d6956bFE1A17FbbA9AB11EB12698dBBe0f0",
+      "wei": "171008623964",
+      "callReward": "763877592721944"
+    },
+    {
+      "id": "aerodrome-cow-base-synd-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xe72Ab78CE1c366874307A8a329a25848701960Ba",
+      "wei": "166550049964",
+      "callReward": "743961578255912"
+    },
+    {
+      "id": "aero-cow-weth-moobifi-vault",
+      "platform": "aerodrome",
+      "strategy": "0x071c0c7B0Dd677Bc042Bc910f7b7b0999d128F7A",
+      "wei": "166256300305",
+      "callReward": "742649451613551"
+    },
+    {
+      "id": "aerodrome-cow-base-uxrp-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7a60321dcf2e2066dF73E6beD4F58f9d3Cb1Cd20",
+      "wei": "160749702920",
+      "callReward": "718051997237997"
+    },
+    {
+      "id": "aerodrome-dola-usdc",
+      "platform": "aerodrome",
+      "strategy": "0xCEf9a522587F142F62777dAa79cf569199C2B9B3",
+      "wei": "148352718068",
+      "callReward": "148352402474"
+    },
+    {
+      "id": "aerodrome-cow-base-eurc-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x1Eeaf1D8F5bcDA752bd87b67C6f83523137417D6",
+      "wei": "134676500655",
+      "callReward": "601585597181864"
+    },
+    {
+      "id": "aerodrome-lcap-usdc",
+      "platform": "aerodrome",
+      "strategy": "0x0A6cd5b3d1253A3bB03F70FDE9a8BFFd8483779A",
+      "wei": "134601633723",
+      "callReward": "132726796914"
+    },
+    {
+      "id": "aerodrome-cow-wblt-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x839bF2dB6D715d1E1e3DA365f73f026A8d47Fd4c",
+      "wei": "132434541888",
+      "callReward": "591597564791622"
+    },
+    {
+      "id": "aerodrome-cow-base-tig-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x846992cb3a701f3e7a782395149F2daa84d004cd",
+      "wei": "128550694478",
+      "callReward": "574237309473291"
+    },
+    {
+      "id": "aerodrome-cow-base-ousdt-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xd8d64Ed31e432d9375D07Df11555A58F66e12D69",
+      "wei": "128397742203",
+      "callReward": "573552980846637"
+    },
+    {
+      "id": "aerodrome-virtual-cbbtc",
+      "platform": "aerodrome",
+      "strategy": "0x48912528a1e2a5A1388B0E33AFCBF4065EB1089E",
+      "wei": "127447010929",
+      "callReward": "125677413375"
+    },
+    {
+      "id": "curve-base-4pool",
+      "platform": "curve",
+      "strategy": "0xD345B2a911317CeD3A8d7A116F5AcD34A2073646",
+      "wei": "126478431622",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbada-vault",
+      "platform": "aerodrome",
+      "strategy": "0x5fd32F7F174A08bb2A2Bfe2d9cbDb4619dFcF277",
+      "wei": "124279428362",
+      "callReward": "555142926116409"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-kta-vault",
+      "platform": "aerodrome",
+      "strategy": "0x63c5c1A89b3dd83bcd6cab6aaB695EeFaA83D7d0",
+      "wei": "123364215331",
+      "callReward": "551054762458217"
+    },
+    {
+      "id": "aerodrome-aero-usdbc",
+      "platform": "aerodrome",
+      "strategy": "0xE329f2B51669dEDeB26E6AF0E901d0c8268EE619",
+      "wei": "114404876336",
+      "callReward": "108945851434"
+    },
+    {
+      "id": "aerodrome-cow-base-aero-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x42e411959eDd131d7740a72A3f7b54983A21cA48",
+      "wei": "112152895706",
+      "callReward": "500974942147634"
+    },
+    {
+      "id": "aerodrome-wblt-bmx",
+      "platform": "aerodrome",
+      "strategy": "0x5bcf32553ba732a8532c06E3B2901f6200022f38",
+      "wei": "102621217171",
+      "callReward": "101193100908"
+    },
+    {
+      "id": "aerodrome-weth-veil",
+      "platform": "aerodrome",
+      "strategy": "0xdbBc707cE40FF72ADaC8f87ED0CdF65554010062",
+      "wei": "100269966371",
+      "callReward": "73068441899"
+    },
+    {
+      "id": "aerodrome-weth-npc",
+      "platform": "aerodrome",
+      "strategy": "0x71B5FCc6bd31Ae0C93a09122C603879B57F76eF9",
+      "wei": "97273795276",
+      "callReward": "88693987725"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-odos-vault",
+      "platform": "aerodrome",
+      "strategy": "0xfD4E687706D7869b635Ba939303d4D091e53d873",
+      "wei": "89126943399",
+      "callReward": "398120397555819"
+    },
+    {
+      "id": "aerodrome-virtual-weth",
+      "platform": "aerodrome",
+      "strategy": "0x560ce4ff44a70Ee2390C602fDbC58A009453f5c4",
+      "wei": "89052575455",
+      "callReward": "12621191398"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-rnbw-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0c649651f053Dd602B7565611A930434BFdc43D2",
+      "wei": "82722832841",
+      "callReward": "369513906942927"
+    },
+    {
+      "id": "pancakeswap-cow-base-sol-usdc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+      "wei": "79809739104",
+      "callReward": "102586116848257"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-lmts-vault",
+      "platform": "aerodrome",
+      "strategy": "0x8e1403656bD507adCdFCF678449f581e5E6fa884",
+      "wei": "79191630515",
+      "callReward": "353740397785302"
+    },
+    {
+      "id": "aerodrome-tbtc-usdbc",
+      "platform": "aerodrome",
+      "strategy": "0xd740f387163E5E7a9D105b5e15f9383e2bb1aFcf",
+      "wei": "78251031793",
+      "callReward": "78252963621"
+    },
+    {
+      "id": "aerodrome-cow-base-up-cbbtc-vault-v2",
+      "platform": "aerodrome",
+      "strategy": "0x0eB52bec5C73048bb83B9Aa7524e476cE2ce4F18",
+      "wei": "69762263493",
+      "callReward": "311620423124833"
+    },
+    {
+      "id": "aerodrome-cow-base-ousdt-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x3c641A8B62e5Ecaddf5eA636A2a0672B539d6679",
+      "wei": "66827976902",
+      "callReward": "298513266718107"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-drv-vault",
+      "platform": "aerodrome",
+      "strategy": "0x2e15D07CCB7B4f1fD1D81ADc27Da97096c7b9853",
+      "wei": "64069599424",
+      "callReward": "286191888497245"
+    },
+    {
+      "id": "aerodrome-cow-base-ctr-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x3baf4ba6cC85e6171F7ACD2342b149BFE7d4A45b",
+      "wei": "62392106610",
+      "callReward": "278698707200354"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-veil-vault",
+      "platform": "aerodrome",
+      "strategy": "0x9Fe9b0C189e67463aaE8024788F6048abeAC1c84",
+      "wei": "58763786991",
+      "callReward": "250608874190256"
+    },
+    {
+      "id": "aerodrome-ovn-usd+",
+      "platform": "aerodrome",
+      "strategy": "0x2913966e88490B5a65D67298801c0c51f377BB9C",
+      "wei": "57669866740",
+      "callReward": "57677918735"
+    },
+    {
+      "id": "aerodrome-weth-doginme",
+      "platform": "aerodrome",
+      "strategy": "0x5f396e58FE74114BED1ABD213516c519012F0a05",
+      "wei": "55785272053",
+      "callReward": "50849106433"
+    },
+    {
+      "id": "aero-cow-tbtc-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x11dD6940AeA57aAC6aC4D204E13161BB6E5Bf0A8",
+      "wei": "55492218712",
+      "callReward": "247877647162283"
+    },
+    {
+      "id": "aerodrome-weth-mseth",
+      "platform": "aerodrome",
+      "strategy": "0x376F362373CFF80030ce9a065e79fdEa67282561",
+      "wei": "55445114577",
+      "callReward": "55444869547"
+    },
+    {
+      "id": "aerodrome-cow-base-virtual-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xF53AddD84b0DdCac071FE51C409735daaCBaE4c6",
+      "wei": "54514897824",
+      "callReward": "243512059796581"
+    },
+    {
+      "id": "aerodrome-cow-base-up-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xa2f4615f691A7b8FeB741212bb76932d0AaB92AD",
+      "wei": "53628966115",
+      "callReward": "239554698130338"
+    },
+    {
+      "id": "aerodrome-weth-jarvis-v2",
+      "platform": "aerodrome",
+      "strategy": "0x3035DF9d8F2dc302084D95E2205d5D6F61835904",
+      "wei": "49156925089",
+      "callReward": "47951130018"
+    },
+    {
+      "id": "aerodrome-cow-weth-degen-vault",
+      "platform": "aerodrome",
+      "strategy": "0x8c473f3E7f0cA259c5C2873c006950ECAC7aE3A4",
+      "wei": "48858785435",
+      "callReward": "218246822385429"
+    },
+    {
+      "id": "aerodrome-synd-weth",
+      "platform": "aerodrome",
+      "strategy": "0xD0544cD2b5B16CD23DBd1AB83710b82c46D059c0",
+      "wei": "48179306123",
+      "callReward": "39308495787"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-vfy-vault",
+      "platform": "aerodrome",
+      "strategy": "0xe2c01bebBE72f35ec2F6A3F339CBB10307EdEE89",
+      "wei": "46957268149",
+      "callReward": "209752943039373"
+    },
+    {
+      "id": "aero-cow-doginme-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xEB2a430eE8C13B00FFA62942f63e4299F0a22d80",
+      "wei": "45955117623",
+      "callReward": "205276445076880"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-ghst-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x14cbAf007B3EBBCB9C05D56Bd507e38c0C8C9b12",
+      "wei": "43227516016",
+      "callReward": "193092544287525"
+    },
+    {
+      "id": "aerodrome-awe-usdc",
+      "platform": "aerodrome",
+      "strategy": "0xD364f7A7a460742B29027B782e63583fAB95Fb2D",
+      "wei": "41745283350",
+      "callReward": "41164791684"
+    },
+    {
+      "id": "morpho-v2-base-gauntlet-balanced-weth",
+      "platform": "morpho",
+      "strategy": "0x07421Db65caE0df71c5c173AdAB37282098eB6ef",
+      "wei": "41497176937",
+      "callReward": "0"
+    },
+    {
+      "id": "aero-cow-usd+-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xb7f612ed766f31Fa832696F93657bcf3541ACdDf",
+      "wei": "40170566653",
+      "callReward": "179437489388886"
+    },
+    {
+      "id": "aerodrome-weth-spx",
+      "platform": "aerodrome",
+      "strategy": "0x5DB73f13fe43B67F4941501d06Dc1f61Fa0D3B9b",
+      "wei": "39938997149",
+      "callReward": "36351516446"
+    },
+    {
+      "id": "aero-cow-eurc-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0e53938d45B17f453998b7e61d0E7A68f3943895",
+      "wei": "36953875883",
+      "callReward": "165068876088885"
+    },
+    {
+      "id": "pancake-cow-base-weth-eurc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xf7F28af8dfAe9Caefb446Dc7Ca627083E42B20Ec",
+      "wei": "36205638248",
+      "callReward": "46540071320976"
+    },
+    {
+      "id": "aero-cow-weth-luna-vault",
+      "platform": "aerodrome",
+      "strategy": "0x052191B8D2173C8efA2706E2E56be48ACc872E07",
+      "wei": "36086404279",
+      "callReward": "161193975040775"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-morpho-vault",
+      "platform": "aerodrome",
+      "strategy": "0x33720C9D044Bb491e27dD5c619E15dB9F8a5f966",
+      "wei": "35621896514",
+      "callReward": "159149188128552"
+    },
+    {
+      "id": "aero-cow-weth-keycat-vault",
+      "platform": "aerodrome",
+      "strategy": "0xb1B5D93ef21E0A355968a59d2Ca39724aCBD2306",
+      "wei": "35342417400",
+      "callReward": "157870666841681"
+    },
+    {
+      "id": "aerodrome-weth-fai",
+      "platform": "aerodrome",
+      "strategy": "0xD96EC76f4D6444C3FD0b187A641BFd7337742626",
+      "wei": "34809638202",
+      "callReward": "27773036995"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-mamo-vault",
+      "platform": "aerodrome",
+      "strategy": "0x98C2A0C149671De9B023dd7E1716698c91931F25",
+      "wei": "32250727237",
+      "callReward": "144060429505192"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-wct-vault",
+      "platform": "aerodrome",
+      "strategy": "0xa2a04D89CdABbB34B1336598222D2aA8d42A1657",
+      "wei": "31465381772",
+      "callReward": "140560619736782"
+    },
+    {
+      "id": "aerodrome-usdz-usdc",
+      "platform": "aerodrome",
+      "strategy": "0x4C3cB0D6273A27C68AB4B2F96DB211d8d75e98Da",
+      "wei": "30218288551",
+      "callReward": "30218275457"
+    },
+    {
+      "id": "aerodrome-cow-base-hype-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xde0b782070B64ebB33f8FE94d227070319f92894",
+      "wei": "29721906414",
+      "callReward": "132764459167019"
+    },
+    {
+      "id": "aero-cow-miggles-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x05f9f222005Bb134227f3923859fCb572d951904",
+      "wei": "28447491082",
+      "callReward": "127071789843283"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-velvet-vault",
+      "platform": "aerodrome",
+      "strategy": "0xA4e13fD3d629911B416db22B753dd18285b90A60",
+      "wei": "27264827263",
+      "callReward": "121796702282277"
+    },
+    {
+      "id": "aerodrome-cow-base-aora-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0F4b1Df3395f91A2Ebd7108b36Bcc9e7ddDBDf24",
+      "wei": "26821366882",
+      "callReward": "119808071392448"
+    },
+    {
+      "id": "aero-cow-bitcoin-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x72972C11dC5a86f8619F0609ED492c8E2C9541CA",
+      "wei": "26324632250",
+      "callReward": "117589212316821"
+    },
+    {
+      "id": "aerodrome-cow-base-fun-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xfED48ED5CF18f05D63d0De570f1a2F17CE1a9602",
+      "wei": "25743056992",
+      "callReward": "114997503055083"
+    },
+    {
+      "id": "aerodrome-weth-edel",
+      "platform": "aerodrome",
+      "strategy": "0xa69FF9C3e57b8385b1a786c4e40cf1c35601de79",
+      "wei": "25620366083",
+      "callReward": "17717145724"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-clawd-vault",
+      "platform": "aerodrome",
+      "strategy": "0xC692c7db267BA08CfE60473922f09e1b57178308",
+      "wei": "25563042111",
+      "callReward": "114187293944040"
+    },
+    {
+      "id": "aerodrome-tbtc-cbbtc",
+      "platform": "aerodrome",
+      "strategy": "0x6b4a9b0d4d7F363B787594524F351bDe49449EF7",
+      "wei": "25407742600",
+      "callReward": "25407733343"
+    },
+    {
+      "id": "aerodrome-cow-base-moca-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x44502CE817530A425e7f61d6902471E05e64F2ea",
+      "wei": "24713598117",
+      "callReward": "110392899831853"
+    },
+    {
+      "id": "aerodrome-cow-base-chip-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x60a1ed246A7AC0D96D33B1667166e84224e6b213",
+      "wei": "24555801736",
+      "callReward": "109688037148913"
+    },
+    {
+      "id": "aerodrome-cow-base-zora-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x54964b6bb89DB8e95aAAEb0aa4ab8E889cE2d704",
+      "wei": "24288098478",
+      "callReward": "108492236173294"
+    },
+    {
+      "id": "aerodrome-msusd-frxusd",
+      "platform": "aerodrome",
+      "strategy": "0x308B1d59BC2f1985bb44Fb64F67c1ddA99d19656",
+      "wei": "23944072659",
+      "callReward": "23610876189"
+    },
+    {
+      "id": "stakedao-base-superoethb",
+      "platform": "stakedao",
+      "strategy": "0x825d8fF2FC98Ef7551C726899B4Eb2e281d98C57",
+      "wei": "23341179914",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-hyusd-eusd",
+      "platform": "aerodrome",
+      "strategy": "0x09322bd95Ef32D9192C6DD3F58FA43446cfaA40D",
+      "wei": "21748875285",
+      "callReward": "21712371095"
+    },
+    {
+      "id": "aerodrome-cow-base-rave-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xc38f8A0adE6E836D09511eF40F99Ff400958F26D",
+      "wei": "21305336855",
+      "callReward": "95168568817273"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-link-vault",
+      "platform": "aerodrome",
+      "strategy": "0x18769a744Be966F9db95C4a0194C7938891Ebb64",
+      "wei": "19849653295",
+      "callReward": "88471639660604"
+    },
+    {
+      "id": "aerodrome-cow-base-cbbtc-cbdoge-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0xDCB99F7261Dc635e4c213956613713F05Fd08535",
+      "wei": "19342303440",
+      "callReward": "86399915373221"
+    },
+    {
+      "id": "pancake-cow-base-usdc-cbbtc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xf698a0f0d2b0dD634b695d564c17b36556c348cF",
+      "wei": "18512281532",
+      "callReward": "23795284159252"
+    },
+    {
+      "id": "aerodrome-rsr-bsdeth",
+      "platform": "aerodrome",
+      "strategy": "0x693288C8f52752d921B03E8b0229c947f857D1f7",
+      "wei": "16485701860",
+      "callReward": "16485534051"
+    },
+    {
+      "id": "aerodrome-weth-bwell",
+      "platform": "aerodrome",
+      "strategy": "0x5a6859C2f992B998837342d29911dD14E8DC2E1a",
+      "wei": "16345581224",
+      "callReward": "10667269535"
+    },
+    {
+      "id": "aerodrome-botto-weth",
+      "platform": "aerodrome",
+      "strategy": "0x2135F6835245cC4CE81aA6Db078695a5B9056EaD",
+      "wei": "16182113009",
+      "callReward": "15383855108"
+    },
+    {
+      "id": "aero-cow-tbtc-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x6c48143cea9E2f7C64A58AAf41441f52681CFF76",
+      "wei": "15918226516",
+      "callReward": "71107687788606"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-wct-vault",
+      "platform": "aerodrome",
+      "strategy": "0x10480dD82D7ED8C6e60C1DB4dEA892b59C91B3c4",
+      "wei": "15121679550",
+      "callReward": "67546857965875"
+    },
+    {
+      "id": "aerodrome-cow-base-usdz-weth-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x6c7272401C863d17c0127A1DFC489871ADBFf0F5",
+      "wei": "15076558495",
+      "callReward": "67345305005546"
+    },
+    {
+      "id": "pancake-cow-base-virtual-usdc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xF58D702860436645Aa87Fe2AFa7C0eF967420c18",
+      "wei": "14308715856",
+      "callReward": "18392112416629"
+    },
+    {
+      "id": "aero-cow-usdc-usdt-vault",
+      "platform": "aerodrome",
+      "strategy": "0x9ccb151259cbE9B248a9cFcc6720C867F16E4BB7",
+      "wei": "13563424942",
+      "callReward": "60593078252132"
+    },
+    {
+      "id": "aerodrome-tbtc-weth",
+      "platform": "aerodrome",
+      "strategy": "0x3d52E7eCCb674392101847568fEb2cf0aAE06d4D",
+      "wei": "13451979646",
+      "callReward": "13451691887"
+    },
+    {
+      "id": "aero-cow-eigen-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xE54de66f5eEE20d17172ab304BF3d7171936d25c",
+      "wei": "12993561101",
+      "callReward": "58043602445266"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-b3-vault",
+      "platform": "aerodrome",
+      "strategy": "0x71EC1f4596830743aF83Dd205858a5A4e91c5121",
+      "wei": "12917676728",
+      "callReward": "57712629410775"
+    },
+    {
+      "id": "aerodrome-lusd-pool",
+      "platform": "aerodrome",
+      "strategy": "0xb4823f5da6c37301C700C47517afc2A46ebD6c82",
+      "wei": "10744065982",
+      "callReward": "10744064327"
+    },
+    {
+      "id": "aerodrome-cow-base-flock-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x50853fAb58C9986B2D2A55819E94eF1e2d24c167",
+      "wei": "10393452797",
+      "callReward": "46426393686219"
+    },
+    {
+      "id": "aerodrome-snx-usdc",
+      "platform": "aerodrome",
+      "strategy": "0xd35E45adbfBf05a3A8752A4526502173491FA030",
+      "wei": "10007154927",
+      "callReward": "10007153491"
+    },
+    {
+      "id": "aerodrome-cow-base-moca-usdc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x3724127b026eB3D1c6f3735683661667d72A56d9",
+      "wei": "9999871206",
+      "callReward": "44668308472005"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-sapien-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7e2323E587B7e97CE60332de5d9743Bde2aBA1b9",
+      "wei": "9917131036",
+      "callReward": "44298717335695"
+    },
+    {
+      "id": "aerodrome-weth-drv",
+      "platform": "aerodrome",
+      "strategy": "0x354385E28C4F71F49885635AA528F0A262A9CC88",
+      "wei": "9567734862",
+      "callReward": "8067497522"
+    },
+    {
+      "id": "aero-cow-bsdeth-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x23136374D11a40E631A2a4C3F14f5272B16bc6f0",
+      "wei": "9429868102",
+      "callReward": "42122166622301"
+    },
+    {
+      "id": "curve-base-superoethb",
+      "platform": "curve",
+      "strategy": "0x85B2eb08740cdE8F8Fa29f60f6d6F12df54EE85F",
+      "wei": "9217886430",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cbbtc-champ",
+      "platform": "aerodrome",
+      "strategy": "0x2451301F0E1e616990a33728dDA588eC7385F600",
+      "wei": "9198694010",
+      "callReward": "9070377583"
+    },
+    {
+      "id": "aerodrome-weeth-weth",
+      "platform": "aerodrome",
+      "strategy": "0x22f893A4ACFae28525A94e27C48Eb18A476D1059",
+      "wei": "9119478096",
+      "callReward": "9041372216"
+    },
+    {
+      "id": "aerodrome-dola-usdbc",
+      "platform": "aerodrome",
+      "strategy": "0xbe3809838D4aD70d1A57E9d4D8FAF974E35e7caA",
+      "wei": "9104754540",
+      "callReward": "9105608579"
+    },
+    {
+      "id": "aerodrome-cow-base-avnt-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xEa1A624ed86754b5AC4b65b6dE17F20caA6b856d",
+      "wei": "8797744363",
+      "callReward": "39298540310055"
+    },
+    {
+      "id": "aerodrome-cow-base-xsgd-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xCdA25e3F9EA83058DdCA7D4adfe7c02DC3f6253a",
+      "wei": "8431566692",
+      "callReward": "37596372569578"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-avail-vault",
+      "platform": "aerodrome",
+      "strategy": "0xE75c105F13ca763aF399913f90F5aF7341934f33",
+      "wei": "8395891740",
+      "callReward": "37503510661019"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-usui-vault",
+      "platform": "aerodrome",
+      "strategy": "0x1174F8e6dFd58bBfb1C64111a0CD0792e318b082",
+      "wei": "8315573032",
+      "callReward": "37144735934941"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-diem-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7782E9cf4cbf97a1fA8BaBAA24123b8510876eEC",
+      "wei": "8029920059",
+      "callReward": "35868754734818"
+    },
+    {
+      "id": "morpho-base-steakhouse-prime-eurc",
+      "platform": "morpho",
+      "strategy": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+      "wei": "8004532285",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-pendle-vault",
+      "platform": "aerodrome",
+      "strategy": "0x22fec056A06B6d5d8bFf585bcf986a2EdD2c34e8",
+      "wei": "7645582524",
+      "callReward": "34153545726197"
+    },
+    {
+      "id": "aerodrome-cow-base-seda-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x2CfC31d786911Ad10E2af9b9fB985011FB74bb93",
+      "wei": "7606086521",
+      "callReward": "33975538704575"
+    },
+    {
+      "id": "aerodrome-cow-base-sol-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x533DaF246257819015196D4A9D629a4A7BA27D9B",
+      "wei": "7564540072",
+      "callReward": "33789954236951"
+    },
+    {
+      "id": "aerodrome-cow-base-clanker-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0xf990112856face4C96Fb06e5b393735b9ae2bdb2",
+      "wei": "7130389053",
+      "callReward": "31850650072483"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-weth-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x29B9Ac88aeE9B16Fb98218aF5b8c11Cf42a3DcB3",
+      "wei": "7111949109",
+      "callReward": "31768280899075"
+    },
+    {
+      "id": "pancakeswap-cow-base-sol-jitosol-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xAC3C1D42E3f26FC2c6fE3737b2665373304E1891",
+      "wei": "6640199595",
+      "callReward": "8535161514860"
+    },
+    {
+      "id": "aerodrome-cow-base-tea-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x2D845B976D07C40D576913C2c9D637e127449508",
+      "wei": "6070387851",
+      "callReward": "27116723246271"
+    },
+    {
+      "id": "pancake-cow-base-cake-weth-vault",
+      "platform": "pancakeswap",
+      "strategy": "0x6DB663309EDE496D6a6AE12F3Baca4ea9dd7920A",
+      "wei": "6065790653",
+      "callReward": "7796829032151"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbbtc-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0xc6c3e72A086a76b23f9E70469A9AA80Fb3be641F",
+      "wei": "5952425676",
+      "callReward": "26588819169230"
+    },
+    {
+      "id": "aerodrome-cow-base-virtual-weth-v3-vault",
+      "platform": "aerodrome",
+      "strategy": "0xaf53e7202B57A8E2855Dbf7359E914dE9F08EC80",
+      "wei": "5589249859",
+      "callReward": "24966554182317"
+    },
+    {
+      "id": "aerodrome-cow-base-virtual-weth-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0xD054F4124B940e19d21d439ec0C9615b32B48b80",
+      "wei": "5518924806",
+      "callReward": "24652420013417"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-felix-vault",
+      "platform": "aerodrome",
+      "strategy": "0xB20BFA255CD68d06a5A7FD405e4a1e28205A8D38",
+      "wei": "5293375849",
+      "callReward": "23644917215505"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbdoge-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0Fc1D76666A47878780f4656C54b1A3eF776485c",
+      "wei": "5133668285",
+      "callReward": "22931521378400"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-well-vault",
+      "platform": "aerodrome",
+      "strategy": "0x5fA8942eBA5d258f8E42C6978D97c67277Dd0caf",
+      "wei": "4355531266",
+      "callReward": "19455670299851"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-aero-vault",
+      "platform": "aerodrome",
+      "strategy": "0x51d47A27E71fEB3b75402EA8e5DdF8e4E381F0C8",
+      "wei": "4310993096",
+      "callReward": "19256723277271"
+    },
+    {
+      "id": "aerodrome-weth-klima",
+      "platform": "aerodrome",
+      "strategy": "0xd81785D344b12794c559Bd0Bd739b6aCF78C5879",
+      "wei": "3868154141",
+      "callReward": "1632565497"
+    },
+    {
+      "id": "aerodrome-cow-base-bnkr-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x5b963Fb0d6A96846858B450C335D92CdB368EAA8",
+      "wei": "3787421512",
+      "callReward": "16917988126556"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-ulink-vault",
+      "platform": "aerodrome",
+      "strategy": "0xAC7e5ea807e2807B94a9DD162D7fCBeAb9b74491",
+      "wei": "3449424868",
+      "callReward": "15408194885749"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-aixbt-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7eFFb1F59157c92EA6e6369A7b118391fF939356",
+      "wei": "3448260971",
+      "callReward": "15402995382693"
+    },
+    {
+      "id": "aerodrome-cow-base-drb-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x61d41853A22d63eFe9504c29057CACb22AAab3Ca",
+      "wei": "3392666842",
+      "callReward": "15154668519838"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-brz-vault",
+      "platform": "aerodrome",
+      "strategy": "0xF4e9878B551C61632C0bB5c64fcA5ae6DFf23fBF",
+      "wei": "3334431480",
+      "callReward": "14894531785672"
+    },
+    {
+      "id": "aerodrome-cbeth-weth",
+      "platform": "aerodrome",
+      "strategy": "0x5B429f261953416AD2bb8Aa76CE47725e09CD67E",
+      "wei": "3312800415",
+      "callReward": "3217846307"
+    },
+    {
+      "id": "aerodrome-cow-base-cbbtc-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x96Dc37e428D607d1DBDfa764a4D11fD4C3034e2b",
+      "wei": "3183834890",
+      "callReward": "14221833671823"
+    },
+    {
+      "id": "aerodrome-cow-base-mamo-cbbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xf354C2665A6D7C9d290Fe8D746E5e212b555ee24",
+      "wei": "3046585108",
+      "callReward": "13608754259488"
+    },
+    {
+      "id": "aerodrome-cow-base-vfy-zen-vault",
+      "platform": "aerodrome",
+      "strategy": "0x43006921fC79e603B8a9eC017A399b77d39eD0b9",
+      "wei": "2927087321",
+      "callReward": "13074971447503"
+    },
+    {
+      "id": "aerodrome-cow-base-afc-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7bA5d8F622ceEbcc5c1407Cec48282276222ba1e",
+      "wei": "2925226017",
+      "callReward": "13066656782158"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-usol-vault",
+      "platform": "aerodrome",
+      "strategy": "0xee37bFdE2efe1a32D6A2e96C95cB9007898eF692",
+      "wei": "2923265670",
+      "callReward": "13057900134358"
+    },
+    {
+      "id": "aerodrome-vvv-diem",
+      "platform": "aerodrome",
+      "strategy": "0xc2c94abF0F2128591F85cA46d3B986Beb9509A2b",
+      "wei": "2883197585",
+      "callReward": "2843077002"
+    },
+    {
+      "id": "pancake-cow-base-cake-usdc-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xd031FbbF7d5cEC2113FBD84d35471856a4D8b659",
+      "wei": "2831544276",
+      "callReward": "3639601691493"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-toshi-vault",
+      "platform": "aerodrome",
+      "strategy": "0xb47E6824D0163A656d46F8f12304b9E212bB1d5E",
+      "wei": "2655204144",
+      "callReward": "11860501143083"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-lcap-vault",
+      "platform": "aerodrome",
+      "strategy": "0x6C345755fCdF2F96Cac7FE813e18fa6De8913b5d",
+      "wei": "2388584349",
+      "callReward": "10669538891321"
+    },
+    {
+      "id": "aerodrome-wusdr-usdbc",
+      "platform": "aerodrome",
+      "strategy": "0x4188Cb3e0FFa637B7B1a6Edc0241E41Cb9100DaA",
+      "wei": "2383495897",
+      "callReward": "2383495816"
+    },
+    {
+      "id": "aerodrome-weth-usdbc",
+      "platform": "aerodrome",
+      "strategy": "0x75d661F5dfe5B1855D1D6A62088615c1f945Cb59",
+      "wei": "2182559869",
+      "callReward": "2182559801"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-litkey-vault",
+      "platform": "aerodrome",
+      "strategy": "0x14731536D1bA56e3a5247426CcdF22dBf44a249D",
+      "wei": "2172473133",
+      "callReward": "9704922760400"
+    },
+    {
+      "id": "aerodrome-weth-tarot",
+      "platform": "aerodrome",
+      "strategy": "0xd4fe29c3A1101733bc48BCaFab509cd461c014Ae",
+      "wei": "2007881071",
+      "callReward": "1918219823"
+    },
+    {
+      "id": "aerodrome-usdc-sqd",
+      "platform": "aerodrome",
+      "strategy": "0x4cd63FAebBe4fdE4Cac171a78689F7a1355E70D8",
+      "wei": "2005640200",
+      "callReward": "1977707933"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-tower-vault",
+      "platform": "aerodrome",
+      "strategy": "0x619C4251011C5f4d552DA097b98206762EBa082a",
+      "wei": "1938961494",
+      "callReward": "8661123609586"
+    },
+    {
+      "id": "aero-cow-cbeth-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x3a89E5f24469F37f847672C9f39EDB4F1F8Cd466",
+      "wei": "1701598573",
+      "callReward": "7600871861136"
+    },
+    {
+      "id": "aerodrome-weth-wsteth",
+      "platform": "aerodrome",
+      "strategy": "0x7138333Bce12054c488F5bfCA2f92bd84b2E8f87",
+      "wei": "1641833851",
+      "callReward": "1596859117"
+    },
+    {
+      "id": "aerodrome-cow-base-cbbtc-lbtc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xEef2dab4521841E420eAc7bB48caEC5a392FFCBD",
+      "wei": "1563467596",
+      "callReward": "6983834439248"
+    },
+    {
+      "id": "pancake-cow-base-sol-weth-vault",
+      "platform": "pancakeswap",
+      "strategy": "0xd361Ee48307AdeC4447DfBe9fc6E67567f1a5Bba",
+      "wei": "1480631097",
+      "callReward": "1903169253341"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-sttao-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0d19D5f1a7aF804f0301a30A602b7a5E46025c49",
+      "wei": "1448007931",
+      "callReward": "6468089054709"
+    },
+    {
+      "id": "aerodrome-weth-flock",
+      "platform": "aerodrome",
+      "strategy": "0x7991C48341eF2A755536c81D6cFC4e528F43058d",
+      "wei": "1431096578",
+      "callReward": "1357668360"
+    },
+    {
+      "id": "aero-cow-wsteth-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x872E96eA315A71e319D5b29457eD9492b0e7E615",
+      "wei": "1329814076",
+      "callReward": "5940130549128"
+    },
+    {
+      "id": "aerodrome-weth-degen",
+      "platform": "aerodrome",
+      "strategy": "0xC314990f1379fEe384Be9a74328C75Df8587aE77",
+      "wei": "1305004717",
+      "callReward": "1125172891"
+    },
+    {
+      "id": "curve-base-crv",
+      "platform": "curve",
+      "strategy": "0x898Cb1986dD94D1AFc709aE88d3B97ec837756C3",
+      "wei": "1304340485",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-weth-ghst",
+      "platform": "aerodrome",
+      "strategy": "0xc327C62072EB5e02Dfb8eca6AF050185707A7C01",
+      "wei": "1234868916",
+      "callReward": "1098142059"
+    },
+    {
+      "id": "aerodrome-weth-cbbtc",
+      "platform": "aerodrome",
+      "strategy": "0x106b9121d259fb46F1033BDBd29ad0C67650953C",
+      "wei": "1171507883",
+      "callReward": "1171507864"
+    },
+    {
+      "id": "aerodrome-cow-base-cbbtc-zen-vault",
+      "platform": "aerodrome",
+      "strategy": "0xcB1eC6a5EaaE09033Ce5ea64099B969A956a0613",
+      "wei": "1131810068",
+      "callReward": "5055668644208"
+    },
+    {
+      "id": "aerodrome-cow-base-psg-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0xaB9D79C796DeE9755aa023Cb5756dE19e2fE28C3",
+      "wei": "1080081910",
+      "callReward": "4824604761210"
+    },
+    {
+      "id": "aerodrome-weth-over",
+      "platform": "aerodrome",
+      "strategy": "0xe11B50dA85a682bC06C4cBC2A3f52489Ba69B129",
+      "wei": "1074719553",
+      "callReward": "989567244"
+    },
+    {
+      "id": "aerodrome-bold-usdc-new",
+      "platform": "aerodrome",
+      "strategy": "0xBceD90b591C94137c92bE5720170F991cef69826",
+      "wei": "1043226093",
+      "callReward": "0"
+    },
+    {
+      "id": "curve-base-cbeth",
+      "platform": "curve",
+      "strategy": "0x47bA57B0522bdd422B81f7a2e075B2fE1Db3f99B",
+      "wei": "982650006",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-aero-tarot",
+      "platform": "aerodrome",
+      "strategy": "0x98E86bF5864064F32D5D564fbA796f5b8317F12b",
+      "wei": "908701131",
+      "callReward": "867437763"
+    },
+    {
+      "id": "aerodrome-ion-weth",
+      "platform": "aerodrome",
+      "strategy": "0x377EfeB9F98B50F4c98F8F637161B512Eb873689",
+      "wei": "801657822",
+      "callReward": "390221434"
+    },
+    {
+      "id": "aerodrome-cow-base-vvv-diem-v2-vault",
+      "platform": "aerodrome",
+      "strategy": "0x7061F70d97675C32e4Db69CB6A4b3D2a2656e8d6",
+      "wei": "800030743",
+      "callReward": "3573647712712"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-zen-vault",
+      "platform": "aerodrome",
+      "strategy": "0x6f847473c3408CEd61aAFe5079023bcea25855Ab",
+      "wei": "785867958",
+      "callReward": "3510384024051"
+    },
+    {
+      "id": "aerodrome-virtual-aero",
+      "platform": "aerodrome",
+      "strategy": "0x62548F8a2661A399417ADe11Ac0A0c9B9Fe8641b",
+      "wei": "741483612",
+      "callReward": "0"
+    },
+    {
+      "id": "aero-cow-weth-spx-vault",
+      "platform": "aerodrome",
+      "strategy": "0xDF00878C03251E38aE37011f16c8722D99392Cf3",
+      "wei": "602185110",
+      "callReward": "2689893341785"
+    },
+    {
+      "id": "morpho-v2-base-clearstar-reactor-usdc",
+      "platform": "morpho",
+      "strategy": "0x8839494227ff33fCb3a4f2338C7826Fbc396634a",
+      "wei": "494207385",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-lsk-vault",
+      "platform": "aerodrome",
+      "strategy": "0x1fA46bF109805EEF6d8a6B0c69bcc8CC876704cc",
+      "wei": "277755178",
+      "callReward": "1240701220088"
+    },
+    {
+      "id": "pancake-cow-base-virtual-opg-vault",
+      "platform": "pancakeswap",
+      "strategy": "0x76BcabC0e291E994CDD956c715e80c71f76F565c",
+      "wei": "255070090",
+      "callReward": "327898141249"
+    },
+    {
+      "id": "aerodrome-usdc-send",
+      "platform": "aerodrome",
+      "strategy": "0x3428c46716cb248001d9f05Ccfff4EDa4153DBE7",
+      "wei": "231837058",
+      "callReward": "228608295"
+    },
+    {
+      "id": "aerodrome-usdc-cbbtc",
+      "platform": "aerodrome",
+      "strategy": "0x9Cb29Fac809413B633BC74f9F4b7b2180078dF91",
+      "wei": "220194977",
+      "callReward": "220194976"
+    },
+    {
+      "id": "aerodrome-weth-kta",
+      "platform": "aerodrome",
+      "strategy": "0x506d3565d0AE39E87Fb48256a1e1fD90234d00A8",
+      "wei": "187716438",
+      "callReward": "36556541"
+    },
+    {
+      "id": "aerodrome-usdc-usdbc",
+      "platform": "aerodrome",
+      "strategy": "0x36D0De5E9401Fb6CB58d0A499a165921a3192241",
+      "wei": "157009456",
+      "callReward": "156992508"
+    },
+    {
+      "id": "aerodrome-bold-lusd-new",
+      "platform": "aerodrome",
+      "strategy": "0x928D002329E1c4b3135251Cb319771f9CfCdaA63",
+      "wei": "131850423",
+      "callReward": "0"
+    },
+    {
+      "id": "curve-base-tricrypto",
+      "platform": "curve",
+      "strategy": "0xecD5b452e399e78f852809CD8a03C472947a1A97",
+      "wei": "125229186",
+      "callReward": "0"
+    },
+    {
+      "id": "pancakeswap-cow-base-cbeth-weth-vault",
+      "platform": "pancakeswap",
+      "strategy": "0x572aBb7496F170A3FBFedA91979bc7de6AE8baF8",
+      "wei": "123642974",
+      "callReward": "158927798439"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-opg-vault",
+      "platform": "aerodrome",
+      "strategy": "0xEedfA33721FeF376425b5342eA89C1651b8d8517",
+      "wei": "86754400",
+      "callReward": "387522172675"
+    },
+    {
+      "id": "aerodrome-cow-base-weeth-weth-vault",
+      "platform": "aerodrome",
+      "strategy": "0x45A957EEb9BfD4383B3F252cCd7908cC46D45BD4",
+      "wei": "60173961",
+      "callReward": "268790334713"
+    },
+    {
+      "id": "stakedao-base-tricrypto",
+      "platform": "stakedao",
+      "strategy": "0x516b6e27632091cf6279f6A0b3c6FcdA39d1FdEB",
+      "wei": "53725329",
+      "callReward": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-cadc-usdc-vault",
+      "platform": "aerodrome",
+      "strategy": "0x0C88cA6b5605648B4a277fBDb0E00F56189a745d",
+      "wei": "46109514",
+      "callReward": "205966027534"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-titn-vault",
+      "platform": "aerodrome",
+      "strategy": "0xc59a851e6C9B64920DE95813235F8Bc27559FC57",
+      "wei": "7880469",
+      "callReward": "35201171849"
+    },
+    {
+      "id": "aero-cow-usdc-eusd-vault",
+      "platform": "aerodrome",
+      "strategy": "0xcbE38c202D51369D4256AD5a7daB5f81C0A3c3D2",
+      "wei": "1438567",
+      "callReward": "6425917800"
+    },
+    {
+      "id": "aavev3-base-cbeth",
+      "platform": "aave",
+      "strategy": "0x0300A8b1bb5E55F834a3Ce65c757f599679BE115",
+      "wei": "606268",
+      "callReward": "0"
+    }
+  ]
+}

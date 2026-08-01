@@ -10,7 +10,7 @@
 //   * per-strategy cooldown (rewards accrue over time; re-harvesting immediately earns nothing)
 //   * callReward() is a RANKING signal only â€” it overstated a real payout by ~4,300x once
 import { ethers } from 'ethers';
-import { probeContract, probeMany } from './oracle.mjs';
+import { probeContract, probeMany, probeOne } from './oracle.mjs';
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
 // Rotating across them multiplies free throughput with no extra identities and no puppetry.
@@ -153,25 +153,49 @@ export async function loadStrategies(env, rpc, chainName = 'base') {
 }
 
 // callReward() across many strategies in one Multicall3 aggregate3 â€” ranking only, never a forecast.
-export async function rankByCallReward(rpc, strategies) {
+//
+// `chainName` used to be the constant HARVEST_CFG.chain ('base'). Any caller passing another chain's
+// strategies would have eth_call'd them ON BASE, where they are not contracts, and got back an empty
+// list that reads as "nothing pays here" â€” a silent wrong answer, not an error. Threaded, default base.
+// Multicall3 lives at the same address on every chain we touch, so the address needed no change.
+//
+// `per`: MEASURED 2026-07-31 against all four Base upstreams in worker.mjs CHAINS.base â€” one aggregate3
+// of 100 callReward() calls decoded the whole 241-strategy universe on every upstream
+// (publicnode / drpc / 1rpc / base.org) in 3 eth_calls. 100 is also Multicall3's practical ceiling.
+// Lower it for a chain whose nodes cap eth_call gas harder; a batch that overruns is swallowed by the
+// catch below and disappears silently, so do not raise it without measuring the chain you raise it on.
+export async function rankByCallReward(rpc, strategies, chainName = 'base', per = 100) {
   const iface = new ethers.Interface(['function aggregate3((address target,bool allowFailure,bytes callData)[] calls) view returns ((bool success,bytes returnData)[])']);
   const out = [];
-  for (let i = 0; i < strategies.length; i += 40) {
-    const batch = strategies.slice(i, i + 40);
+  for (let i = 0; i < strategies.length; i += per) {
+    const batch = strategies.slice(i, i + per);
     const calls = batch.map(s => ({ target: s.strategy, allowFailure: true, callData: HARVEST_CFG.callRewardSel }));
     try {
       const data = iface.encodeFunctionData('aggregate3', [calls]);
-      const ret = await rpc(HARVEST_CFG.chain, 'eth_call', [{ to: HARVEST_CFG.multicall, data }, 'latest']);
+      const ret = await rpc(chainName, 'eth_call', [{ to: HARVEST_CFG.multicall, data }, 'latest']);
       const [results] = iface.decodeFunctionResult('aggregate3', ret);
       results.forEach((r, k) => {
         if (!r.success || !r.returnData || r.returnData === '0x') return;
         let v = 0n;
         try { v = BigInt(r.returnData.slice(0, 66)); } catch { return; }
-        if (v > 0n) out.push({ ...batch[k], callReward: v.toString() });
+        // KEEP THE ZEROS. This used to be `if (v > 0n)`, which silently discarded proven payers:
+        // measured 2026-07-31, three Morpho strategies read callReward() == 0 and PAY anyway
+        // (morpho-base-steakhouse-prime-eurc, morpho-v2-base-gauntlet-balanced-weth,
+        // morpho-v2-base-clearstar-reactor-usdc). Their _chargeFees pays out of the post-swap native
+        // balance while the getter reads a reward-pool accrual they do not use. Never filter on a
+        // getter already proven to lie â€” a zero here means "the getter said nothing", not "no payout".
+        // They cost nothing to keep: the descending sort puts them last on their own.
+        out.push({ ...batch[k], callReward: v.toString() });
       });
     } catch { /* batch failed; skip it rather than abort the cycle */ }
   }
-  return out.sort((a, b) => (BigInt(b.callReward) > BigInt(a.callReward) ? 1 : -1));
+  // Returns 0 on ties. The old comparator returned -1 for equal values, which is an inconsistent
+  // ordering â€” harmless while every value was distinct and non-zero, unsafe now that the kept zeros
+  // make ties the common case.
+  return out.sort((a, b) => {
+    const x = BigInt(a.callReward), y = BigInt(b.callReward);
+    return y > x ? 1 : y < x ? -1 : 0;
+  });
 }
 
 // â”€â”€ simulation: free, unlimited, and mandatory before spending a slot â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -478,10 +502,12 @@ export async function escapeCycle(env, rpc, safe, eoa) {
 // slot carries a Safe `execTransaction`, and that can DELEGATECALL MultiSend, which carries as many
 // inner calls as fit in the gas limit.
 //
-// MEASURED 2026-07-28: a batch of 26 harvests simulated CLEAN from the Safe in one call (a batch of 10
-// estimated at 15.3M gas). So one slot takes the ENTIRE pool of paying strategies instead of one of
-// them, and the remaining four slots re-sweep later as value re-accrues. That is roughly a 10-20x
-// throughput increase and it costs nothing — no capital, no new rail, no permission.
+// SIMULATED 2026-07-28 — and only simulated: a batch of 26 harvests simulated CLEAN from the Safe in
+// one call (a batch of 10 estimated at 15.3M gas). WHAT THIS FUNCTION ACTUALLY EXECUTES IS CAPPED AT
+// `max`, DEFAULT 12. It does not take "the entire pool", and no batch larger than 12 has ever been
+// relayed. Corrected 2026-07-31: against an optimally chosen SINGLE harvest the honest multiple for a
+// top-26 batch is 5.9x ($0.08929 of a $0.10705 live Base pool), and less than that at 12. The old
+// "10-20x throughput" was never measured. The remaining slots re-sweep later as value re-accrues.
 //
 // MultiSend is ALL-OR-NOTHING: a single reverting inner call kills the whole batch. So every harvest
 // is individually simulated first (free, unlimited) and only the clean ones go in.
@@ -497,6 +523,17 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 1
   const state = (await env.KV.get('harvest:state', 'json')) || { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] };
 
   const strategies = await loadStrategies(env, rpc, chainName);
+  // PAYMENT IS ALREADY VERIFIED HERE, unlike in harvestCycle: probeMany only returns contracts whose
+  // simulated balance delta is strictly positive (oracle.mjs, `if (d > 0n)`), so every entry in
+  // `paying` has a measured payout behind it. The eth_call below is a REVERT check on top of that, not
+  // the payment evidence — do not read it as one.
+  //
+  // Deliberately NOT adding harvestCycle's per-candidate isolated probeOne gate here. Measured
+  // 2026-07-31 at one pinned Base block, n=40: batched and isolated agreed 1.000x (0.003% apart), 38
+  // payers either way, zero phantoms, same top pick. So an extra 12 isolated eth_calls every 2 minutes
+  // would buy no accuracy on the hottest path in the system. harvestCycle needs the gate because its
+  // BANDIT FALLBACK can select a strategy that probeMany never priced at all; this function has no
+  // such path — nothing reaches the batch without a measured delta.
   const paying = await probeMany(rpc, chainName, strategies.map(s => s.strategy), chain.weth);
   if (!paying.length) return { skipped: 'nothing is paying on this chain right now', chain: chainName };
 
@@ -626,24 +663,52 @@ export async function harvestCycle(env, rpc) {
       .map(r => ({ cand: byAddr.get(r.contract.toLowerCase()), wei: BigInt(r.wei) }))
       .filter(p => p.cand);
   } catch { /* no information is not a blocker */ }
-  for (const p of probes) {
+  // simulate() CANNOT tell you a harvest pays. It eth_calls and returns ok on anything that does not
+  // revert — it reads no balance, keeps no return data, measures no delta (harvest.mjs, `simulate`).
+  // A harvest that succeeds and pays zero passes it. So `sim.ok` is a REVERT check, and the payment
+  // check has to come from a balance delta. probeOne supplies that for the single call we are about to
+  // spend a slot on, which is what oracle.mjs's docstring has always prescribed and nothing implemented.
+  // Capped at ISOLATED_WALK candidates: one extra free eth_call each, but a Worker has a subrequest
+  // ceiling and an unbounded walk down 241 strategies would reach it.
+  const ISOLATED_WALK = 12;
+  for (const p of probes.slice(0, ISOLATED_WALK)) {
     const sim = await simulate(rpc, p.cand.strategy, safe, recipient, chain.name);
-    if (sim.ok) { chosen = { ...p.cand, ...sim, predicted_wei: p.wei.toString() }; break; }
-    state.cooldowns[p.cand.strategy] = Date.now();
+    if (!sim.ok) { state.cooldowns[p.cand.strategy] = Date.now(); continue; }
+    // These candidates already carry a MEASURED positive delta from probeMany, so the isolated read is
+    // a re-verification, not the only evidence. If it cannot run we keep the batched number rather than
+    // inventing a zero — an unmeasurable probe is unknown (see probeOne's return contract).
+    const iso = await probeOne(rpc, chain.name, p.cand.strategy, chain.weth, recipient);
+    if (iso.measured && iso.wei <= 0n) { state.cooldowns[p.cand.strategy] = Date.now(); continue; }
+    chosen = {
+      ...p.cand, ...sim,
+      predicted_wei: p.wei.toString(),
+      measured_wei: iso.measured ? iso.wei.toString() : null,
+      payment_verified: iso.measured ? 'isolated' : 'batched-only:' + (iso.reason || 'probe unavailable'),
+    };
+    break;
   }
   // Oracle found nothing payable (or every probe failed) — fall back to the historical bandit so a
   // slot is never wasted just because the measurement was unavailable.
   if (!chosen) {
-    for (const cand of scored.slice(0, 14)) {
+    for (const cand of scored.slice(0, ISOLATED_WALK)) {
       const sim = await simulate(rpc, cand.strategy, safe, recipient, chain.name);
-      if (sim.ok) { chosen = { ...cand, ...sim }; break; }
-      state.cooldowns[cand.strategy] = Date.now();
+      if (!sim.ok) { state.cooldowns[cand.strategy] = Date.now(); continue; }
+      // STRICTER THAN THE PATH ABOVE, deliberately. The bandit ranks on what a strategy paid us in the
+      // PAST; nothing here has measured that it pays anything now, so probeOne is the only evidence
+      // there is. It must both run AND come back positive — an unavailable probe is not a green light.
+      const iso = await probeOne(rpc, chain.name, cand.strategy, chain.weth, recipient);
+      if (!iso.measured || iso.wei <= 0n) { state.cooldowns[cand.strategy] = Date.now(); continue; }
+      chosen = { ...cand, ...sim, measured_wei: iso.wei.toString(), payment_verified: 'isolated' };
+      break;
     }
   }
   if (!chosen) {
+    // Keep the slot. Slots refill on their own; a slot spent on a strategy that pays zero is gone and
+    // bought nothing. "Nothing simulated clean" used to be the only way to get here — now it also
+    // covers "simulated clean but measured zero payout", which is the case simulate() could never see.
     state.lastAttemptAt = Date.now();
     await env.KV.put('harvest:state', JSON.stringify(state));
-    return { skipped: 'nothing simulated clean', considered: scored.length };
+    return { skipped: 'no candidate both simulates clean AND measures a positive payout — slot kept', considered: scored.length, probed: probes.length };
   }
 
   const before = await wethBalance(rpc, recipient, chain.name, chain.weth);
@@ -652,7 +717,16 @@ export async function harvestCycle(env, rpc) {
   state.lastAttemptAt = Date.now();
   state.cooldowns[chosen.strategy] = Date.now();
 
-  let result = { chain: chain.name, strategy: chosen.strategy, id: chosen.id, relayed: sent.ok, taskId: sent.taskId, error: sent.error };
+  // measured_wei is what the isolated probe said this exact call would pay, recorded alongside what it
+  // actually paid (wei_earned below). Predicted-vs-received is the only way we ever find out that a
+  // gate has started lying, and every gate we have trusted so far eventually did.
+  let result = {
+    chain: chain.name, strategy: chosen.strategy, id: chosen.id,
+    measured_wei: chosen.measured_wei ?? null,
+    predicted_wei: chosen.predicted_wei ?? null,
+    payment_verified: chosen.payment_verified ?? null,
+    relayed: sent.ok, taskId: sent.taskId, error: sent.error,
+  };
   if (sent.ok && sent.taskId) {
     // Wait for inclusion AND for the node to reflect it â€” measuring too early reported 0 on a
     // harvest that actually paid (verified: tx 0x76a2db9bâ€¦ credited after the check had returned).

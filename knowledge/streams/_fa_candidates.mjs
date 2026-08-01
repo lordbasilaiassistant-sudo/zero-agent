@@ -7,6 +7,7 @@
 //   3. Recent-block contract creations — the freshest deployments, before anyone drains them
 import fs from 'fs';
 import path from 'path';
+import * as L from './_fa_lib.mjs';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const OUT = path.join(HERE, '_fa_universe.json');
@@ -81,21 +82,27 @@ async function fromVerified(chain, pages = 6) {
   return out;
 }
 
-/** Source 3: contract creations in the newest blocks — freshest, least-drained. */
-async function fromRecentCreations(chain, blocks = 12) {
-  const host = BS[chain]; const out = [];
-  const head = await jget(`${host}/api/v2/main-page/blocks`);
-  if (!Array.isArray(head) || !head.length) return out;
-  const top = head[0].height;
+/**
+ * Source 3: contract creations in the newest blocks, read from OUR OWN RPC.
+ * Blockscout's per-block transactions endpoint times out under any real load; the chain does not.
+ * A creation is a tx with no `to`, so the block itself identifies them for free — only those few
+ * txs need a receipt fetched, which is what makes this affordable.
+ */
+async function fromRecentCreations(chain, blocks = 40) {
+  const out = [];
+  const head = await L.rpc(chain, 'eth_blockNumber', []).catch(() => null);
+  if (!head) return out;
+  const top = BigInt(head);
   for (let i = 0; i < blocks; i++) {
-    const j = await jget(`${host}/api/v2/blocks/${top - i}/transactions`);
-    for (const tx of (j?.items || [])) {
-      // A creation has no `to`; Blockscout exposes the new address on the tx.
-      const created = tx.created_contract?.hash;
-      if (created) out.push({ chain, address: created, name: tx.created_contract?.name || null,
-        type: 'contract', verified: !!tx.created_contract?.is_verified, src: `creation:${top - i}` });
+    const bn = '0x' + (top - BigInt(i)).toString(16);
+    const b = await L.rpc(chain, 'eth_getBlockByNumber', [bn, true]).catch(() => null);
+    if (!b?.transactions) continue;
+    const creations = b.transactions.filter(t => !t.to);
+    for (const t of creations) {
+      const rc = await L.rpc(chain, 'eth_getTransactionReceipt', [t.hash]).catch(() => null);
+      if (rc?.contractAddress) out.push({ chain, address: rc.contractAddress, name: null,
+        type: 'contract', verified: false, src: `creation:${Number(top - BigInt(i))}` });
     }
-    await sleep(150);
   }
   return out;
 }
@@ -125,12 +132,13 @@ async function fromTokens(chain, pages = 3) {
 export async function harvest(chains) {
   const seen = new Map();
   for (const chain of chains) {
-    const parts = await Promise.all([
-      fromSearch(chain).catch(() => []),
-      fromVerified(chain).catch(() => []),
-      fromRecentCreations(chain).catch(() => []),
-      fromTokens(chain).catch(() => []),
-    ]);
+    // SEQUENTIAL, not Promise.all: firing four Blockscout sources at once rate-limits the host and
+    // three of them silently return nothing — which reads as "this chain has no candidates".
+    const parts = [];
+    for (const fn of [fromSearch, fromVerified, fromRecentCreations, fromTokens]) {
+      parts.push(await fn(chain).catch(() => []));
+      await sleep(400);
+    }
     let n = 0;
     for (const list of parts) for (const c of list) {
       const k = `${c.chain}:${c.address.toLowerCase()}`;

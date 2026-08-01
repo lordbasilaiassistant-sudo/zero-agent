@@ -1,0 +1,23 @@
+  ..25/450 pays=0
+  ..50/450 pays=0
+  ..75/450 pays=0
+  ..100/450 pays=0
+  ..125/450 pays=0
+  ..150/450 pays=0
+  ..175/450 pays=0
+  ..200/450 pays=0
+PAYS base 0x116491255cB4cd4Da562a0dD0A3396c602362496 "FreeMint NFT" :: mint() -> 1 Free@0xcA11bde0 | mint(uint256) -> 1 Free@0xcA11bde0
+PAYS base 0x10311C78936238d2207cCDE41451ce93EECDADC9 "base freemint" :: mint(uint256) -> 1 SELF@0xcA11bde0
+  ..225/450 pays=2
+PAYS base 0x4C82292716D9233CA98e5EbB4251FED96B720CcD "testToken" :: mint(address) -> 100000000000000000000000000000000 SELF@0x510601f5
+  ..250/450 pays=3
+  ..275/450 pays=3
+  ..300/450 pays=3
+  ..325/450 pays=3
+  ..350/450 pays=3
+  ..375/450 pays=3
+  ..400/450 pays=3
+  ..425/450 pays=3
+  ..450/450 pays=3
+
+DONE 450 probed, 3 pay -> C:\Users\drlor\OneDrive\Desktop\AutoGLMwallet\knowledge\streams\_fa_hits_base.json

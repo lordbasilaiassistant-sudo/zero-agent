@@ -15,7 +15,10 @@ export const ZERO_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
 export const ZERO_SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
 
 export const RPCS = {
-  base: ['https://mainnet.base.org', 'https://base-rpc.publicnode.com', 'https://base.llamarpc.com'],
+  // llamarpc removed 2026-08-01: it answers with an HTML error page, which every JSON parse in this
+  // file reads as a transport failure and silently retries away. A bad endpoint in a round-robin does
+  // not look like a bad endpoint, it looks like the chain having nothing to say.
+  base: ['https://mainnet.base.org', 'https://base-rpc.publicnode.com'],
   optimism: ['https://optimism-rpc.publicnode.com', 'https://mainnet.optimism.io'],
   arbitrum: ['https://arbitrum-one-rpc.publicnode.com', 'https://arb1.arbitrum.io/rpc'],
   polygon: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon-rpc.com'],
@@ -216,26 +219,42 @@ export async function payTest(chain, target, callData, tokens, block = 'latest',
   return { ok: true, callable: true, pays: deltas.length > 0, deltas, returnData: call.returnData };
 }
 
-/** SCREENING ONLY — shared state, never a finding. Many selectors on ONE contract, one balance stream. */
-export async function screenSelectors(chain, contract, variants, watchTarget, watchData, per = 24) {
+/**
+ * SCREENING ONLY — shared state across the batch, so a screen hit is NEVER a finding, only a lead
+ * that earns an isolated payment test. Many selectors on ONE contract.
+ *
+ * Two watcher kinds, because money moving can be seen from either end:
+ *   'in'  a balance that should RISE   (Multicall3 receives the token)
+ *   'out' a balance that should FALL   (the contract's own ETH leaves — this catches native payouts
+ *         that Multicall3 could never receive, without needing the prober inside a batch)
+ */
+export async function screenSelectors(chain, contract, variants, watchers, per = 20) {
   const hits = [];
+  const probe = watchers.map(w => ({ target: w.target, allowFailure: true, callData: w.data }));
+  const W = probe.length;
   for (let i = 0; i < variants.length; i += per) {
     const slice = variants.slice(i, i + per);
-    const calls = [{ target: watchTarget, allowFailure: true, callData: watchData }];
-    for (const v of slice) {
-      calls.push({ target: contract, allowFailure: true, callData: v.data });
-      calls.push({ target: watchTarget, allowFailure: true, callData: watchData });
-    }
+    const calls = [...probe];
+    for (const v of slice) { calls.push({ target: contract, allowFailure: true, callData: v.data }); calls.push(...probe); }
     let rows;
     try {
       const ret = await rpc(chain, 'eth_call', [{ to: MULTICALL3, data: AGG.encodeFunctionData('aggregate3', [calls]) }, 'latest']);
       [rows] = AGG.decodeFunctionResult('aggregate3', ret);
     } catch { continue; }
     for (let k = 0; k < slice.length; k++) {
-      const b = rows[k * 2], c = rows[1 + k * 2], a = rows[2 + k * 2];
+      const base = k * (W + 1);
+      const c = rows[base + W];
       if (!c?.success) continue;
-      let d = 0n; try { d = BigInt(a.returnData) - BigInt(b.returnData); } catch {}
-      hits.push({ ...slice[k], callable: true, screenWei: d.toString() });
+      let moved = false; const seen = [];
+      for (let w = 0; w < W; w++) {
+        const b = rows[base + w], a = rows[base + W + 1 + w];
+        if (!b?.success || !a?.success) continue;
+        let d = 0n; try { d = BigInt(a.returnData) - BigInt(b.returnData); } catch { continue; }
+        if (d === 0n) continue;
+        const want = watchers[w].dir === 'out' ? d < 0n : d > 0n;
+        if (want) { moved = true; seen.push({ watcher: watchers[w].label, delta: d.toString() }); }
+      }
+      if (moved) hits.push({ ...slice[k], callable: true, screen: seen });
     }
   }
   return hits;
@@ -277,6 +296,34 @@ export async function overridesSupported(chain) {
 
 export async function tryCall(chain, to, data, block = 'latest') {
   try { return await rpc(chain, 'eth_call', [{ to, data }, block]); } catch { return null; }
+}
+
+/**
+ * DOMAIN GATE on a measured delta. The arithmetic can be flawless and the "payment" still fake.
+ *
+ * MEASURED 2026-08-01, on a cluster of 11 vanity-address contracts (0x0000…0000) on optimism: every
+ * one reported a delta of 462562227601867317537366769653933563683203632049, which is
+ * 0x510601f59fda068d70ad6760c9d9085b0f42cbb1 — ZERO's own Safe address, echoed back as a number. The
+ * contracts write the address argument into the slot balanceOf reads. Nothing was paid; the balance
+ * was poisoned with our own input. A positive delta is a WELL-FORMED result, not a true one.
+ *
+ * Two bindings a real payment cannot violate:
+ *   1. you cannot be paid more of a token than exists  (delta <= totalSupply)
+ *   2. a payment is not an address                     (delta != any address in the calldata)
+ */
+export async function plausibleDelta(chain, delta, tokenAddr, callData) {
+  const wei = BigInt(delta);
+  if (wei <= 0n) return { ok: false, why: 'non-positive' };
+  const hex = (callData || '').toLowerCase().replace(/^0x/, '').slice(8);
+  for (let i = 0; i + 64 <= hex.length; i += 64) {
+    const w = hex.slice(i, i + 64);
+    if (!/^0{24}[0-9a-f]{40}$/.test(w)) continue;
+    if (BigInt('0x' + w) === wei) return { ok: false, why: 'the delta IS an address passed in the calldata — the contract wrote our own argument into the balance slot, it did not pay us' };
+  }
+  if (tokenAddr === ethers.ZeroAddress) return { ok: true };
+  const ts = dec(await tryCall(chain, tokenAddr, sel('totalSupply()')));
+  if (ts !== null && ts > 0n && wei > ts) return { ok: false, why: `delta ${wei} exceeds the token's totalSupply ${ts} — arithmetically impossible as a transfer` };
+  return { ok: true, totalSupply: ts?.toString() ?? null };
 }
 export const dec = (h) => { try { return BigInt(h); } catch { return null; } };
 export const decStr = (h) => { try { return ethers.AbiCoder.defaultAbiCoder().decode(['string'], h)[0]; } catch { return null; } };

@@ -85,7 +85,22 @@ Projected at ZERO's measured $0.00286/harvest and 5 sponsored slots per chain pe
 | 17 | $0.2431 | $0.010129 |
 | 34 | $0.4862 | $0.020258 |
 
-### ⚠️⚠️ FINAL, FULL-UNIVERSE MEASUREMENT — supersedes both estimates below
+
+> ## ⛔ SECTION SUPERSEDED — the isolated figures below are corrupted
+> The isolated-probe loop in `oracle-distortion.mjs` was `try{...}catch{}` with no retry, run sequentially
+> against ONE public RPC. Every rate-limited probe threw, was swallowed, and was counted as **pays zero**.
+> That is the same defect that forced the retraction of broketobuilt#140 — and it corrupted these numbers
+> too, in the same direction.
+>
+> **Re-measured with retries and endpoint rotation (keeper-bounties lane, same method, recipient controls
+> passing): 228 of 241 Base strategies pay = 55,345,486,526,535 wei = $0.103197.** Not 12 payers, not
+> $0.005069 — **20x understated**. Independently corroborated by my own pooled re-run at a pinned block,
+> where 10 of 10 sampled strategies paid.
+>
+> Every ceiling and multiplier derived from $0.005069 below is therefore wrong and low. Do not plan
+> against them.
+
+### ⚠️ (superseded) full-universe measurement
 
 All 241 active Base strategies, priced the way ZERO ranks them (batched `aggregate3`) and then each one
 ALONE from clean state (`contracts/oracle-distortion.mjs`, N=241):
