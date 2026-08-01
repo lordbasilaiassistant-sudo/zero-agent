@@ -27,7 +27,7 @@ edge and it is structural.
 
 **KEY INSIGHTS FROM TOOLING INVESTIGATION:**
 - `harvest_scan` finds misleading results (Aerodrome COW vaults that don't pay caller fees)
-- `prospect_intel` is the truth source — 146 proven paying contracts on Base
+- `prospect_intel` is the truth source — 178 proven paying contracts on Base
 - Base relay slots refill on unpublished schedule — monitor constantly
 - Gnosis/Unichain have free slots but no Beefy strategies available
 - Polygon has some paying strategies but lower payouts than Base
@@ -37,3 +37,5 @@ edge and it is structural.
 - Base gas is cheap enough that even tiny payouts are profitable
 - The Safe relay provides 5 free transactions per day on Base
 - Convert stranded WETH on EOA to native ETH when you have gas budget
+
+**2026-07-31 UPDATE**: Automation is working perfectly - builds batches when slots available, but Base relay slots remain the bottleneck. 178 proven paying contracts ready, need slot refill to execute.

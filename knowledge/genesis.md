@@ -224,3 +224,81 @@ What this means for how you spend your life:
 
 ## Notes on your operator relationship
 - Your operator (and their AI) will read your journal but will NOT fund you and will NOT do your work. They may occasionally bestow new verified knowledge into this file or new tools. If you repeatedly need a capability you lack (e.g. a browser, an email, an API key), write it in your journal under "CAPABILITY REQUESTS" with the exact route it unblocks — that is how tools have historically been granted.
+
+## ✅ VERIFIED 2026-07-31 — YOUR BOTTLENECK IS NOT CAPACITY, IT IS WHERE YOU LOOKED
+
+Your journal (sessions 122–123) concludes: *"The bottleneck remains purely Base relay slot capacity"*
+and *"Gnosis and Unichain have free slots but no paying strategies."* Your creator measured both
+claims against the source. **One is right, one is costing you money.**
+
+**RIGHT, and stop re-checking it:** Gnosis and Unichain have **ZERO active Beefy vaults** — verified
+directly against `https://api.beefy.finance/vaults` (filter `status === 'active'`, count by `chain`).
+They are correctly `dead_chains`. Your relay slots there are genuinely unspendable on this route.
+Do not spend rounds re-testing Gnosis/Unichain for Beefy work again.
+
+**WRONG, and this is the unlock — active Beefy vaults by chain, same measurement, same minute:**
+
+| chain | active vaults | your relay slots (at time of reading) |
+|---|---|---|
+| base | **241** | 0 / 5 — exhausted |
+| ethereum | 97 | — (not in your relay set) |
+| **optimism** | **72** | **3 of 5 FREE and marked `usable: 3` by your own health** |
+| arbitrum | 44 | 0 / 5 — exhausted |
+| polygon | 1 | 0 / 5 |
+
+You hold **usable optimism capacity right now**, and Optimism has **72 active vaults** — the second
+largest population that exists. Your `prospect.streams` sample is **100% Base**, and your journal
+counts *"178 proven paying contracts on Base"*. So your 431-candidate grind was run where you already
+were. **"No paying strategies on the chains with free slots" is true only of Gnosis and Unichain; it
+is false for Optimism, and you have been treating it as true for all of them.**
+
+**THE ACTION:** run your existing prospect grind against **Optimism** (then Arbitrum, where you have
+already harvested successfully — `ramses-zero-weth-vault`, `curve-arb-*`). You do not need a new
+mechanism, a new tool, or more Base slots. You need the same instrument pointed at a chain you had
+not indexed. Fetch the vault list per chain from the Beefy API above, resolve each vault's strategy
+address, and triage exactly as you did on Base.
+
+**THE LESSON, which is bigger than this fix** — it is your creator's own hardest-won rule and you
+just reproduced the failure independently: **"impossible" is a measurement, not a conclusion. When
+something looks capped, enumerate where else it exists before you accept the cap.** Twice now in this
+family of projects a resource sat at full free quota for a project's entire life while its owner
+described the system as blocked. You wrote *"the constraint is purely relay slot availability"* — the
+constraint was the geography of your own search. Before you next record a limit, ask: did I measure
+this, or did I infer it from where I happened to be standing?
+
+Method note for your ledger: this finding cost one HTTP GET to a public API. It did not require
+capital, permission, or a new capability — which is exactly the class of move your `method.md`
+tells you to prefer.
+
+## ✅ VERIFIED 2026-07-31 — YOUR EARNINGS ARE REAL, AND YOU ARE UNDER-COUNTING YOUR OWN HOLDINGS
+
+Your creator reconciled your ledger against Blockscout transfer logs — an independent source, not
+your own counters. Two results, one good and one you should act on.
+
+**GOOD: your route ledger is accurate.** WETH actually received across every address you control
+totals **≈ $0.0756** (base EOA $0.0153 · base Safe $0.0482 · optimism Safe $0.0105 · arbitrum Safe
+$0.0018). Your ledger says **$0.074421**. A 1.6% match from an independent source. **You really did
+earn it.** Stop hedging about whether the number is real — it is.
+
+**THE APPARENT GAP IS A SWAP, NOT A LOSS.** Holdings read lower than lifetime earned because six
+outbound WETH transfers from your base Safe went to `0x2626664c2603336E57B271c5C0b26F421741e481` —
+Uniswap SwapRouter02 on Base — converting WETH→USDC. You changed the FORM of the value, you did not
+lose it, and you have never taken a position. Anyone reading your dashboard should understand that
+lifetime-earned and holdings differ by conversions and their cost, not by risk.
+
+**⚠️ ACT ON THIS: YOUR BALANCE READER IS UNDER-COUNTING YOU.**
+- Direct read of your token balances: **≈ $0.036** (WETH on base/optimism/arbitrum plus polygon).
+  Your own status reports **$0.02599**. The missing line is **optimism ≈ $0.0101**.
+- It is INTERMITTENT, not absent: one `/` fetch included `optimism safe_usd 0.01008276`, a fetch
+  minutes later returned optimism at 0 while base/arbitrum/polygon stayed put. So the optimism read
+  fails silently and your total silently shrinks.
+- Separately, USDC you swapped into reads `0.000000` in your status at addresses where the explorer
+  shows a real dust balance — so your USDC accounting is missing too.
+- **Consequence, and this is the part that costs you:** `spendable_usd` and `can_transact` are
+  computed from this under-count. You may have concluded you cannot act when you could. Treat your
+  current holdings figure as a FLOOR, re-read optimism before any "I have no capacity" conclusion,
+  and count USDC as well as wrapped native.
+
+**Method note:** this is the same lesson as the relay-slot finding, one layer down — you trusted an
+internal counter instead of the source. When a number decides what you are allowed to do, verify it
+against the chain, not against yourself.

@@ -85,7 +85,76 @@ Projected at ZERO's measured $0.00286/harvest and 5 sponsored slots per chain pe
 | 17 | $0.2431 | $0.010129 |
 | 34 | $0.4862 | $0.020258 |
 
-### ⚠️ CORRECTION (same day): the multiplier is ~5.9×, not 10–34×
+### ⚠️⚠️ FINAL, FULL-UNIVERSE MEASUREMENT — supersedes both estimates below
+
+All 241 active Base strategies, priced the way ZERO ranks them (batched `aggregate3`) and then each one
+ALONE from clean state (`contracts/oracle-distortion.mjs`, N=241):
+
+```
+payers, batched (what ZERO ranks on) : 226
+payers, ISOLATED (what actually pays):  12        <- 94.7% of apparent income is phantom
+total real payable                   : $0.005069
+best single strategy                 : $0.001731
+BATCHING VALUE                       : 2.93x      (all 12 real payers vs the best single)
+```
+
+**Value per relay slot, measured:**
+
+| state | per slot |
+|---|---|
+| today — the oracle picks a strategy paying **0** | **$0.000000** |
+| oracle fixed, one harvest | $0.001731 |
+| oracle fixed + real batching | $0.005069 |
+
+**Ceiling of THIS SLICE, both fixes applied, 5 slots/day: $0.0253/day = $0.001056/h** — **8.1× ZERO's
+current rate**, free, and worth taking.
+
+### 🛑 RETRACTION — I wrote "the harvest route cannot reach phase 1" and that was not a measurement
+
+I measured **241 Beefy vaults, fetched from one protocol's API endpoint**, and generalised it into a
+ceiling for the entire route. Anthony caught it immediately. Measured against the actual chain
+(Blockscout `/api/v2/stats`, 2026-08-01):
+
+```
+Base total addresses      977,007,834
+Base total transactions     6,999,963,459
+transactions today              7,493,028
+contracts ZERO looks at               241     <- 0.000025% of the address space
+```
+
+**241 of 977 million.** Beefy's curated list is not "the harvest route", it is one protocol's slice of
+it, arriving through an HTTP API rather than off the chain. So the honest statement is the narrow one:
+*Beefy-on-Base, perfectly harvested, yields ~$0.025/day.* Whether callable income across the other
+~977 million addresses reaches $1/h is **UNMEASURED**, and calling it capped was the exact error
+CLAUDE.md §7 names — *"IMPOSSIBLE is a measurement, not a conclusion"* — committed by the person who
+had just quoted that law twice in the same document.
+
+**The architectural consequence is the real finding: ZERO's discovery is API-BOUND, not CHAIN-BOUND.**
+`loadStrategies` (`harvest.mjs:146`) fetches `https://api.beefy.finance/vaults`. Every candidate ZERO
+has ever considered came from a list somebody else curated — so ZERO can only ever earn from income
+that a protocol chose to publish. Meanwhile it already owns the instrument for reading the chain
+directly: `bruteforce.mjs` recovers a contract's complete external interface from raw runtime bytecode,
+no ABI, no source, no explorer, and it works on contracts nobody has ever called — including the ones
+deployed today by people who do not know what they deployed. That tool has never been pointed at the
+chain at scale. Pointing it there is the single largest unexplored lever we have found.
+
+Phase 1 may still need a new mechanism class (broketobuilt#137, and the 5-lane hunt) — but that is now
+an open question, not a closed one.
+
+**THE ESTIMATE TRAJECTORY, RECORDED AS A DISCIPLINE LESSON.** My batching multiplier across one night:
+
+| estimate | basis | verdict |
+|---|---|---|
+| 10–34× | ZERO's average payout × N calls | wrong — assumed a uniform distribution |
+| 5.9× | pool derived from `callReward()` | wrong — the base was inflated 4,481× |
+| 2.93× | 241 isolated probes, real balance deltas | **measured** |
+
+Each refinement shrank it, because each earlier version rested on a number nobody had measured. The
+pattern to notice: **an estimate inherits every inflation in its base, silently, and reports the
+product with full confidence.** When a multiplier is quoted here, the base it multiplies must be a
+measurement or the multiplier is decoration.
+
+### ⚠️ Superseded interim correction: ~5.9×, not 10–34×
 
 The table above assumes every harvest pays ZERO's historical average. A full 241-strategy payout sweep
 (`RESEARCH-zero-bugs.md`) shows the distribution is severely concentrated, which breaks that assumption:
