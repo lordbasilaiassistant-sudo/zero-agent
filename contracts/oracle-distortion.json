@@ -1,0 +1,173 @@
+{
+  "measuredAt": "2026-08-01T00:35:41.603Z",
+  "rpc": "https://mainnet.base.org",
+  "probed": 40,
+  "payersBatched": 38,
+  "payersIsolated": 3,
+  "totalBatched": "7422955516049",
+  "totalIsolated": "1179712983353",
+  "identical": 2,
+  "batchedOnly": 35,
+  "isolatedOnly": 0,
+  "differentAmount": 1,
+  "topBatched": {
+    "addr": "0xa0dBaE6a747BF5deB0254B62bb2557489d6b837D",
+    "wei": "1886114966750"
+  },
+  "topIsolated": {
+    "addr": "0x16d722a0B394d8a402d64f7e43b5f75aCc445A59",
+    "wei": "917896522751"
+  },
+  "divergences": [
+    {
+      "id": "aerodrome-cow-base-hype-weth-vault",
+      "addr": "0xde0b782070B64ebB33f8FE94d227070319f92894",
+      "batched": "28592768353",
+      "isolated": "28592995417"
+    },
+    {
+      "id": "aero-cow-tbtc-weth-vault",
+      "addr": "0x11dD6940AeA57aAC6aC4D204E13161BB6E5Bf0A8",
+      "batched": "35041099995",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-aero-wsteth",
+      "addr": "0x68d24F7C60D316EB27e116A9910902Ff23CD8f1E",
+      "batched": "517846419967",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-cbbtc-lbtc-vault",
+      "addr": "0xEef2dab4521841E420eAc7bB48caEC5a392FFCBD",
+      "batched": "1278384188",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-awe-usdc",
+      "addr": "0xD364f7A7a460742B29027B782e63583fAB95Fb2D",
+      "batched": "41632353334",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-rave-usdc-vault",
+      "addr": "0xc38f8A0adE6E836D09511eF40F99Ff400958F26D",
+      "batched": "21146145580",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-weth-usdc",
+      "addr": "0x9bd7A4b5D5Fe8C7dd39D085279306309fA6F1a15",
+      "batched": "616250492557",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-up-usdc-vault",
+      "addr": "0xa2f4615f691A7b8FeB741212bb76932d0AaB92AD",
+      "batched": "50485040250",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-wblt-usdc-vault",
+      "addr": "0x839bF2dB6D715d1E1e3DA365f73f026A8d47Fd4c",
+      "batched": "126423631755",
+      "isolated": "0"
+    },
+    {
+      "id": "pancake-cow-base-weth-eurc-vault",
+      "addr": "0xf7F28af8dfAe9Caefb446Dc7Ca627083E42B20Ec",
+      "batched": "34716586821",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-toshi-vault",
+      "addr": "0xb47E6824D0163A656d46F8f12304b9E212bB1d5E",
+      "batched": "2648264096",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-eurc-vault",
+      "addr": "0xc664C800bC54229034A629335A231f279320a605",
+      "batched": "830977411313",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbada-vault",
+      "addr": "0x5fd32F7F174A08bb2A2Bfe2d9cbDb4619dFcF277",
+      "batched": "119632229027",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-weth-tarot",
+      "addr": "0xd4fe29c3A1101733bc48BCaFab509cd461c014Ae",
+      "batched": "2002404859",
+      "isolated": "0"
+    },
+    {
+      "id": "morpho-v2-base-gauntlet-balanced-weth",
+      "addr": "0x07421Db65caE0df71c5c173AdAB37282098eB6ef",
+      "batched": "40446452897",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-kta-vault",
+      "addr": "0x63c5c1A89b3dd83bcd6cab6aaB695EeFaA83D7d0",
+      "batched": "119175175079",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-weth-flock",
+      "addr": "0x7991C48341eF2A755536c81D6cFC4e528F43058d",
+      "batched": "1427204948",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-rsr-bsdeth",
+      "addr": "0x693288C8f52752d921B03E8b0229c947f857D1f7",
+      "batched": "15694306458",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-uxrp-weth-vault",
+      "addr": "0x7a60321dcf2e2066dF73E6beD4F58f9d3Cb1Cd20",
+      "batched": "155987707084",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-usdc-mai",
+      "addr": "0xD73c6B7b020e8Dd6F9eD7097923f5Bf9fE176D81",
+      "batched": "364145548290",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-usdc-vfy-vault",
+      "addr": "0xe2c01bebBE72f35ec2F6A3F339CBB10307EdEE89",
+      "batched": "46758351088",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-weth-ghst",
+      "addr": "0xc327C62072EB5e02Dfb8eca6AF050185707A7C01",
+      "batched": "992258130",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-weth-klima",
+      "addr": "0xd81785D344b12794c559Bd0Bd739b6aCF78C5879",
+      "batched": "3403809817",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-cow-base-weth-cbltc-vault",
+      "addr": "0x5de40568045aa537E032450563687Ef48EB9eef6",
+      "batched": "463779953052",
+      "isolated": "0"
+    },
+    {
+      "id": "aerodrome-weth-veil",
+      "addr": "0xdbBc707cE40FF72ADaC8f87ED0CdF65554010062",
+      "batched": "93414843263",
+      "isolated": "0"
+    }
+  ]
+}
