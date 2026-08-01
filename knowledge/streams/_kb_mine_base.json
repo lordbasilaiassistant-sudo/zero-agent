@@ -1,0 +1,1610 @@
+{
+  "chain": "base",
+  "head": 49378226,
+  "nblocks": 150,
+  "rows": [
+    {
+      "chain": "base",
+      "target": "0xc9c98965297bc527861c898329ee280632b76e18",
+      "selector": "0x01b7037c",
+      "occurrences": 51,
+      "distinctKeepers": 7,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x51d1deb1c19437efe3c8d329f2d120035407dea34929e174f8294596a32e32bb",
+      "input": "0x01b7037c000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda029130000000000000000000000000000000000000000000000000000000000000000",
+      "maxAmount": "1993750000",
+      "medGas": 80059
+    },
+    {
+      "chain": "base",
+      "target": "0x827922686190790b37229fd06084350e74485b72",
+      "selector": "0xac9650d8",
+      "occurrences": 41,
+      "distinctKeepers": 8,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006",
+        "0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4",
+        "0x226a2fa2556c48245e57cd1cba4c6c9e67077dd2",
+        "0x1bc0c42215582d5a085795f4badbac3ff36d1bcb",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x1111111111166b7fe7bd91427724b487980afc69",
+        "0x532f27101965dd16442e59d40670faf5ebb142e4",
+        "0x696f9436b67233384889472cd7cd58a6fb5df4f1",
+        "0x63706e401c06ac8513145b7687a14804d17f814b",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"
+      ],
+      "sample": "0xb467502673991f9e48c7132a234257a674da3d571ae60b1d71dd3bfc0f06a8d0",
+      "input": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002",
+      "maxAmount": "55654247116640007793207607",
+      "medGas": 207874
+    },
+    {
+      "chain": "base",
+      "target": "0x12577cf0d8a07363224d6909c54c056a183e13b3",
+      "selector": "0xe84dfecc",
+      "occurrences": 32,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x12577cf0d8a07363224d6909c54c056a183e13b3"
+      ],
+      "sample": "0xdd7daf1b4acecb0d2fc30b242f29148e553991e3f4e744d0fb5f6f01f17b6cdd",
+      "input": "0xe84dfecc00000000000000000000000000000000000000000000000011921d59af0541180000000000000000000000000000000000000000000000000000000000000060",
+      "maxAmount": "13500000000000000000",
+      "medGas": 101202
+    },
+    {
+      "chain": "base",
+      "target": "0xd62b33a7df4d0ca5edd373576e48f73366e36179",
+      "selector": "0xcf586c5c",
+      "occurrences": 25,
+      "distinctKeepers": 4,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "0x8b7dde054be9d180c1be7fae0874697374a49832",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x696f9436b67233384889472cd7cd58a6fb5df4f1"
+      ],
+      "sample": "0x6dc678360cb21ae9ca3486ad549f6dae8f0a32bcca85207b325e514d43892df0",
+      "input": "0xcf586c5c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000ce0",
+      "maxAmount": "9348318835167757831",
+      "medGas": 1743358
+    },
+    {
+      "chain": "base",
+      "target": "0xca11bde05977b3631167028862be2a173976ca11",
+      "selector": "0x82ad56cb",
+      "occurrences": 24,
+      "distinctKeepers": 3,
+      "tokens": [
+        "0xa88594d404727625a9437c3f886c7643872296ae",
+        "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
+      ],
+      "sample": "0x26050cf9e13dd0797f68dfe62b13e08bb3424bbb929831bc093ebeb4d5de1c87",
+      "input": "0x82ad56cb00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000004",
+      "maxAmount": "4539404898426239256",
+      "medGas": 636660
+    },
+    {
+      "chain": "base",
+      "target": "0xe1f8cd9ac4e4a65f54f38a5cdafca44f6dd68b53",
+      "selector": "0xac9650d8",
+      "occurrences": 20,
+      "distinctKeepers": 5,
+      "tokens": [
+        "0xcb585250f852c6c6bf90434ab21a00f02833a4af",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x00000000a22c618fd6b4d7e9a335c4b96b189a38",
+        "0x4200000000000000000000000000000000000006",
+        "0x0c1c1c109fe34733fca54b82d7b46b75cfb71f6e",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf",
+        "0x6985884c4392d348587b19cb9eaaf157f13271cd"
+      ],
+      "sample": "0xe7d21736e7ada8705d100b8fb294ad0791dfbf8b0970e0b5478cff67a8d50887",
+      "input": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002",
+      "maxAmount": "1762211356260442226824900",
+      "medGas": 208189
+    },
+    {
+      "chain": "base",
+      "target": "0x03a520b32c04bf3beef7beb72e919cf822ed34f1",
+      "selector": "0xac9650d8",
+      "occurrences": 20,
+      "distinctKeepers": 4,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x4200000000000000000000000000000000000006",
+        "0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4",
+        "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"
+      ],
+      "sample": "0xe41067625ad64abc5a956effce8ba12e7d7aad49b284b4194cee5a2f502d3a85",
+      "input": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003",
+      "maxAmount": "43050173543278157810056856",
+      "medGas": 196327
+    },
+    {
+      "chain": "base",
+      "target": "0xca60d801b9b2330edadcb28793578705ecd77262",
+      "selector": "0xaec1d95b",
+      "occurrences": 16,
+      "distinctKeepers": 13,
+      "tokens": [
+        "0x85e90a5430af45776548adb82ee4cd9e33b08077"
+      ],
+      "sample": "0xf3b1765c221449018cc300ad82b0f646de39a7367a04fa14b450733fffe5df2d",
+      "input": "0xaec1d95b",
+      "maxAmount": "9614194474896817014936",
+      "medGas": 64526
+    },
+    {
+      "chain": "base",
+      "target": "0xb3b32f9f8827d4634fe7d973fa1034ec9fddb3b3",
+      "selector": "0x23b872dd",
+      "occurrences": 15,
+      "distinctKeepers": 15,
+      "tokens": [
+        "0xb3b32f9f8827d4634fe7d973fa1034ec9fddb3b3"
+      ],
+      "sample": "0xa5cd50d864cda8d1d77bbfd530bc30cab0999d192cc3295cd59b529a6b78dcc5",
+      "input": "0x23b872dd000000000000000000000000f4fae2345dcdfac39279178ac2638fec0751025a000000000000000000000000ed8b1022711f158f982c9daa2be0ebdeb373fbe9",
+      "maxAmount": "1678930000000000000000",
+      "medGas": 40506
+    },
+    {
+      "chain": "base",
+      "target": "0x7c5f5a4bbd8fd63184577525326123b519429bdc",
+      "selector": "0xdd46508f",
+      "occurrences": 10,
+      "distinctKeepers": 4,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf",
+        "0x18a3f3f2bffb855a769bfd672c28807f8fb04ba3",
+        "0x33ec03d445c9d5cd70d80cf3a010c11cee779b07"
+      ],
+      "sample": "0xdcc98843ce76c8c02c9248a63efb479592f6efe2be14ab7b52c0306e6fb10cae",
+      "input": "0xdd46508f0000000000000000000000000000000000000000000000000000000000000040ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "maxAmount": "98999999999999999999976497825",
+      "medGas": 147662
+    },
+    {
+      "chain": "base",
+      "target": "0xad351f55af7a753b7133dc8342473e833248959c",
+      "selector": "0x83abd548",
+      "occurrences": 8,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xad974c528ed218f4b9f2f80ae90a59bdcf0666da8acd42bfaa41f98c37f58ccf",
+      "input": "0x83abd5480000000000000000000000000000000000000000000000000000000000354752000000000000000000000000160d7e9d948b16c163332a277b393c288408eb12",
+      "maxAmount": "4452948610905576991",
+      "medGas": 598140
+    },
+    {
+      "chain": "base",
+      "target": "0x079c3035e68ae1ae6a45303b16d67fa727c2cc35",
+      "selector": "0x1247bf4e",
+      "occurrences": 7,
+      "distinctKeepers": 6,
+      "tokens": [
+        "0xf38671ea6290b43f30f2b685e86cdd125b86e13a"
+      ],
+      "sample": "0x7558b0924c7c7755ebbc35ca22e8f97002889e50c73d04c9cfa7f7eae75b796d",
+      "input": "0x1247bf4e",
+      "maxAmount": "440368966457862837889",
+      "medGas": 288567
+    },
+    {
+      "chain": "base",
+      "target": "0xa9c4357c1cc4b3843ddbab7ea746b60ab6624cfd",
+      "selector": "0x83abd548",
+      "occurrences": 6,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xb19c49a3a1ce3af41eaa277f66eee6a13e85215a0be1f0422a43f56509dafdb2",
+      "input": "0x83abd548000000000000000000000000000000000000000000000000000000000035476500000000000000000000000042d4a22cad0f5a49681a5715ce994af73a43b76b",
+      "maxAmount": "8988171026780748897",
+      "medGas": 596502
+    },
+    {
+      "chain": "base",
+      "target": "0xab7d23acb0c52e890cef7f8d7f8e68ab92ac9ab2",
+      "selector": "0x7169b574",
+      "occurrences": 6,
+      "distinctKeepers": 5,
+      "tokens": [
+        "0x18a3f3f2bffb855a769bfd672c28807f8fb04ba3"
+      ],
+      "sample": "0x2bf042ef86b78123547b8e3d98efd8f683824e71aa72286b7cbcd9a3756853c3",
+      "input": "0x7169b57400000000000000000000000000000000000000000000000000000000000000200000000000000000000000006ff5693b99212da76ad316178a184ab56d299b43",
+      "maxAmount": "758213194158876125287775951",
+      "medGas": 173127
+    },
+    {
+      "chain": "base",
+      "target": "0x03a520b32c04bf3beef7beb72e919cf822ed34f1",
+      "selector": "0xfc6f7865",
+      "occurrences": 6,
+      "distinctKeepers": 3,
+      "tokens": [
+        "0x3e12b9d6a4d12cd9b4a6d613872d0eb32f68b380",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x4200000000000000000000000000000000000006",
+        "0x6921b130d297cc43754afba22e5eac0fbf8db75b"
+      ],
+      "sample": "0x7d4bb3e46fb3ad95c7cd3ad7ad94fc0a2f0d02a452cf7c423462ff67c2783dc5",
+      "input": "0xfc6f786500000000000000000000000000000000000000000000000000000000002d9e9b0000000000000000000000000945073cbb3b56ec204c61b4beb7c449a520777a",
+      "maxAmount": "8064526283129716031538004",
+      "medGas": 115640
+    },
+    {
+      "chain": "base",
+      "target": "0xa0a99eaf0f4531bfd79f161b4ba93352e464339e",
+      "selector": "0xdb7935e8",
+      "occurrences": 6,
+      "distinctKeepers": 6,
+      "tokens": [
+        "0x04cbd9cba03f1fbe845408e9e85ae20490586105"
+      ],
+      "sample": "0xa2da3a559ba204b69890efad2602737f2c873483121ee26b77641e4e1906a0e1",
+      "input": "0xdb7935e8000000000000000000000000e310a9c8a1ac76252d44f2104c8f243a7900fc4c000000000000000000000000000000000000000000000000000000006a6d43ad",
+      "maxAmount": "2921535336000000000000",
+      "medGas": 142074
+    },
+    {
+      "chain": "base",
+      "target": "0x0f91a5991d348e99ed60a34bb0ac705d05f71e70",
+      "selector": "0x83abd548",
+      "occurrences": 5,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0xa96641e9b04ddc8f014215c9c9ea4eaf34d9457f3f802de6c58e0eda9bf77afe",
+      "input": "0x83abd54800000000000000000000000000000000000000000000000000000000003547660000000000000000000000009d14ff91ae2c6e3d1a760542248b6c7f206894b0",
+      "maxAmount": "451334114574525872",
+      "medGas": 626573
+    },
+    {
+      "chain": "base",
+      "target": "0xa990c6a764b73bf43cee5bb40339c3322fb9d55f",
+      "selector": "0xac9650d8",
+      "occurrences": 5,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x9126236476efba9ad8ab77855c60eb5bf37586eb",
+        "0x1aa8fd5bcce2231c6100d55bf8b377cff33acfc3",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x153bc26378baf583a35ebcd9a7961d8d2475ec00f3ad20e312c25ec1e673787f",
+      "input": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001",
+      "maxAmount": "13558499597833149983164",
+      "medGas": 204297
+    },
+    {
+      "chain": "base",
+      "target": "0xfd5b9b614335524410a84438d0052bf8ca399faa",
+      "selector": "0x86edf11c",
+      "occurrences": 4,
+      "distinctKeepers": 4,
+      "tokens": [
+        "0x2b5050f01d64fbb3e4ac44dc07f0732bfb5ecadf"
+      ],
+      "sample": "0xa4ce5f9513a7cf080a73eae2b4a5f5fd1ea7a53883b63ef2d9d6e9bfdb6f1a10",
+      "input": "0x86edf11c00000000000000000000000092cb4f6461f62c892c02bad2df18c8d280ae03df00000000000000000000000065a052ad48d641576dd43e362c72aaffeff36aac",
+      "maxAmount": "10000000000000000000000",
+      "medGas": 94399
+    },
+    {
+      "chain": "base",
+      "target": "0x4cd00e387622c35bddb9b4c962c136462338bc31",
+      "selector": "0x2d9fb478",
+      "occurrences": 4,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x33e5f7d706b6ec975068c41f4543f2a8e910647b5d1762c7b5314fa962b1d060",
+      "input": "0x2d9fb478000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000001e0",
+      "maxAmount": "4689130614",
+      "medGas": 100447
+    },
+    {
+      "chain": "base",
+      "target": "0x78a556c926d0a7e740c3170067ad28e27384bf31",
+      "selector": "0x83abd548",
+      "occurrences": 4,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xa951d285b2234cb8b102bbd06289da98e9011195d5584fac8e6b9ad7634d923d",
+      "input": "0x83abd548000000000000000000000000000000000000000000000000000000000035475d0000000000000000000000004e506648d493c8870f55e870480f92f2f33ece51",
+      "maxAmount": "4491271902803988653257",
+      "medGas": 581653
+    },
+    {
+      "chain": "base",
+      "target": "0x6b008bac0e5846cb5d9ca02ca0e801fcbf88b6f9",
+      "selector": "0x179ea6dc",
+      "occurrences": 4,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x3ec49f8e1cf059088979eb9ea9221c7de20e8326",
+        "0x3f5f8dc7936d5f10e45b3a8e5a8eb87bf2e3b217",
+        "0x3f797b0ee6f743e415f02fb080276eb2f60a2f8a",
+        "0x4172a4b1dc6dbde7e56b29f7a1080b2342af8082"
+      ],
+      "sample": "0xbf217aab0fc98026d7cc19238d6e7e79b12622a6769da6d4eb60b309d10f0667",
+      "input": "0x179ea6dc0000000000000000000000003ec49f8e1cf059088979eb9ea9221c7de20e83260000000000000000000000000000000000000000000000000000000000000040",
+      "maxAmount": "7506341958396752925201896",
+      "medGas": 778980
+    },
+    {
+      "chain": "base",
+      "target": "0x6b82714e0e4964595a97fe2b1c3ad03dbb246fdf",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 4,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x81ff1926e0278e5e63156c0d37e5bc4aab8e7d45d9074514678316739c46c903",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000465752a",
+      "maxAmount": "222797644241687681",
+      "medGas": 328352
+    },
+    {
+      "chain": "base",
+      "target": "0xa83c9a64f017c7b600abcca9a746aea20ffa5ada",
+      "selector": "0x979b8736",
+      "occurrences": 4,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0xfa377b2871ebccdeb3c389769367766220bc20482f1a2b92dfce1a2a57bb4d36",
+      "input": "0x979b8736000000000000000000000000827922686190790b37229fd06084350e74485b7200000000000000000000000026b130316314259fa5047656c6bb16fe521ea082",
+      "maxAmount": "143323381256014353",
+      "medGas": 565572
+    },
+    {
+      "chain": "base",
+      "target": "0xf018ebe4e6b3ff169be0a25218ec14f417fcad1a",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xe53d4b4899735fce3e3b3cb74f062251c33fc4b57cf1ae8db0eddae85889ad13",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000000002dd9",
+      "maxAmount": "519864884219719855",
+      "medGas": 331854
+    },
+    {
+      "chain": "base",
+      "target": "0x9818b6c09f5ecc843060927e8587c427c7c93583",
+      "selector": "0x23b872dd",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x9818b6c09f5ecc843060927e8587c427c7c93583"
+      ],
+      "sample": "0x90d2fa5a9e661b32870d6deb12e767f47c834d2069ba285a846899c2df7cc9f0",
+      "input": "0x23b872dd000000000000000000000000a6ed6088b11a6cb48dbd2affbba48b5beb8e7c6100000000000000000000000002ac4617fe004cf8cd9c988ff9c905b2ec676c2d",
+      "maxAmount": "15000000000000000000000",
+      "medGas": 40202
+    },
+    {
+      "chain": "base",
+      "target": "0x381359c07a77e75942c8cb8d36de57fab25d1bab",
+      "selector": "0x83abd548",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x70c8392de9b39a1e48d12a70af6ff4be25d6d0a2",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xb51556457d665f4cbde4c34da41423010aa04c0effe97d51d024976b59dc7aa3",
+      "input": "0x83abd5480000000000000000000000000000000000000000000000000000000000354756000000000000000000000000a11fbd0f7112f2fad10f92f09b4a8d85e8ddd401",
+      "maxAmount": "33558115781610784322377",
+      "medGas": 616719
+    },
+    {
+      "chain": "base",
+      "target": "0x31505c6102e5945eddf0bd04e8330ab99796adc1",
+      "selector": "0x62e89cdc",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x26e6e2e7a9289b6485c53cd498de510d3a8c8ba3",
+        "0x67b4a3daf21ff597bb0929c96ffe584f9566588a",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x6177945219a12b06dd0b7e70c774bae625419d4735c73e590b44c9d02ab72793",
+      "input": "0x62e89cdc00000000000000000000000000000000000000000000000000000000000000c00000000000000000000000008b13cbf87a39078c9fc579ba86fc4f5fc00f7137",
+      "maxAmount": "42003867509929616062436",
+      "medGas": 216540
+    },
+    {
+      "chain": "base",
+      "target": "0xee096fdd7fe7a759f3e8b0855b02976cf0fd25f9",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x2f68aab5a97596907238e34bb1a5bdba952b3cf329326475796d9dcf7a180668",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000000c7aaf0",
+      "maxAmount": "134070667491411983",
+      "medGas": 324152
+    },
+    {
+      "chain": "base",
+      "target": "0x7d27cdfbfcc878f7e7349e216d44204bfd2afd55",
+      "selector": "0x38d07436",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "0x4200000000000000000000000000000000000006",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x2a1a86a5f5cbdaba7d5151cde043603e8e70493f8bcf29a5d2d6b98c25f0bcdf",
+      "input": "0x38d0743600000000000000000000000000000000000000000000000000000000046562d80000000000000000000000000000000000000000000000000000000000000000",
+      "maxAmount": "4157622062344546611",
+      "medGas": 812436
+    },
+    {
+      "chain": "base",
+      "target": "0xfd73ab1100a60ba64686ef9dcde36d0209773f6a",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xab3625bd900419dab8fcf6ecc4ea010aff1ad4fa0d64127b0812888b91221290",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000462e677",
+      "maxAmount": "1691440986381733",
+      "medGas": 326964
+    },
+    {
+      "chain": "base",
+      "target": "0x36aeae0e411a1e28372e0d66f02e57744ebe7599",
+      "selector": "0x78cc7644",
+      "occurrences": 3,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x4200000000000000000000000000000000000006",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0xa37bb78c130f0a7101359ec6c33023aba11372138c5ce10081970fa328ff93b0",
+      "input": "0x78cc7644000000000000000000000000000000000000000000000000000000000052a7a200000000000000000000000098ec492942090364ac0736ef1a741ae6c92ec790",
+      "maxAmount": "74301",
+      "medGas": 684610
+    },
+    {
+      "chain": "base",
+      "target": "0x658cef587d3d9e31def560c19c199914c07a4826",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xc58049983f9ae5c40693636ba2b8606e05f777c14e0e3d97e6f526a2b69a90ef",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000003a27e85",
+      "maxAmount": "2443629495279979080",
+      "medGas": 326964
+    },
+    {
+      "chain": "base",
+      "target": "0xd47b583a51522d340e5492100fd5a823fe3eb2f1",
+      "selector": "0xceafabdb",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xdfe23e2c07f8edf23eba9c9a45e23303417c6b07"
+      ],
+      "sample": "0xa5cacba19de38630b1dc5aecec54af3a403ba1dff7bf9a577ce8d77d3450954e",
+      "input": "0xceafabdb000000000000000000000000000000000000000000000000000000000000005400000000000000000000000000000000000000000000000000000000000f4d55",
+      "maxAmount": "1600000000000000000000",
+      "medGas": 98446
+    },
+    {
+      "chain": "base",
+      "target": "0xd62b33a7df4d0ca5edd373576e48f73366e36179",
+      "selector": "0x8896bd16",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x8b7dde054be9d180c1be7fae0874697374a49832"
+      ],
+      "sample": "0xaf167ca5a227e2a5765d5f3a421e993643503cdf2367f9cf7891e951a24244fe",
+      "input": "0x8896bd1600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000001800",
+      "maxAmount": "3470513531854289",
+      "medGas": 2654180
+    },
+    {
+      "chain": "base",
+      "target": "0xf354e449637080df5bac3cec194440afd4af860f",
+      "selector": "0x83abd548",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xcb111e6a2a3bde90856d299d61341ac302167d23",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xb683d8151028fac164502b04be55e66f57b09f5c813623c25eee596506b5cfbd",
+      "input": "0x83abd54800000000000000000000000000000000000000000000000000000000003547600000000000000000000000000150e3d89e161518c044ad191c4bdf6b40df6e83",
+      "maxAmount": "303908080692174661947694",
+      "medGas": 625785
+    },
+    {
+      "chain": "base",
+      "target": "0x6abe1d282f72b474e54527d93b979a4f64d3030a",
+      "selector": "0x42f77a31",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x7431ada8a591c955a994a21710752ef9b882b8e3"
+      ],
+      "sample": "0xb091a7c01115d8f6fcf1839f1c3d97063a5a441e8aabba4402c2855039aadebe",
+      "input": "0x42f77a3100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000140",
+      "maxAmount": "2974672784162502458871",
+      "medGas": 409434
+    },
+    {
+      "chain": "base",
+      "target": "0x16335c43bdc9dd70b4ab809f7882fbcd13722d29",
+      "selector": "0xe83e9e5a",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x07d15798a67253d76cea61f0ea6f57aedc59dffb"
+      ],
+      "sample": "0x67fc5fb80d58293ba421ae26484b9feada9eb6667d85f62bffaf76ef5914a45b",
+      "input": "0xe83e9e5a00000000000000000000000000000000000000000000000000000000000000e400000000000000000000000000000000000000000000034749d66c1da5bad039",
+      "maxAmount": "15482138836726688960569",
+      "medGas": 103221
+    },
+    {
+      "chain": "base",
+      "target": "0x0c1d14b66e74fbb35d53a0c97dbe93fa8a97bbe7",
+      "selector": "0x1c4b774b",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x73009b396647099a823fe7ecd8d595ba6b243bc1f16209f8e442829c49176d46",
+      "input": "0x1c4b774b00000000000000000000000000000000000000000000000000000000046571898779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "56522958547342",
+      "medGas": 133880
+    },
+    {
+      "chain": "base",
+      "target": "0x8df8235dbb531b3c6c2f71e703e5c3b215ba60d9",
+      "selector": "0x83abd548",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x13419e936aa5f596aebc3f4dc106efa2d8721beb89b8356f61d7b4d39295ad1d",
+      "input": "0x83abd54800000000000000000000000000000000000000000000000000000000003547610000000000000000000000007c7420dd105e2779316423ba3e973f434315efa9",
+      "maxAmount": "312416991039395137",
+      "medGas": 620488
+    },
+    {
+      "chain": "base",
+      "target": "0xbf61882674af255e4e951514ef1466fb485a597a",
+      "selector": "0x34fcd5be",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x28ebc79d3abd0d98400e8ec24d4ed090291e0675196e68f86b249f4d3bec12c0",
+      "input": "0x34fcd5be00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001",
+      "maxAmount": "4233063",
+      "medGas": 324037
+    },
+    {
+      "chain": "base",
+      "target": "0xa238dd80c259a72e81d7e4664a9801593f98d1c5",
+      "selector": "0xa415bcad",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x05e08702028de6aad395dc6478b554a56920b9ad",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"
+      ],
+      "sample": "0x6b215849b88748d8eff1681877fc511f3324ca7824395b3914e82c0c2263c186",
+      "input": "0xa415bcad000000000000000000000000cbb7c0000ab88b473b1f5afd9ef808440eed33bf0000000000000000000000000000000000000000000000000000000001c9c380",
+      "maxAmount": "30000001",
+      "medGas": 263650
+    },
+    {
+      "chain": "base",
+      "target": "0x527b83782b2ef0c5506e79333ca709d81644952f",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xf84c12799f38f7c807819fdcbcb2892ab2f222e99cfec1026e32eec908247422",
+      "input": "0x2e1a7d4d00000000000000000000000000000000000000000000000000000000026d0614",
+      "maxAmount": "228297522313560013",
+      "medGas": 318564
+    },
+    {
+      "chain": "base",
+      "target": "0x6f29b7b27e2043849a21e1e6ea9ed6d2678e11f3",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x31551ccd7ea6730d71649fdf2c36436f1decee89b99a63271769e427b39944bd",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000004657570",
+      "maxAmount": "1211742709860735360",
+      "medGas": 318764
+    },
+    {
+      "chain": "base",
+      "target": "0xca60d801b9b2330edadcb28793578705ecd77262",
+      "selector": "0x462528c4",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x85e90a5430af45776548adb82ee4cd9e33b08077"
+      ],
+      "sample": "0xfd0f858ab2a8cc4895d21058de56d97522dd1f357babf212a2d7c8895b52ff56",
+      "input": "0x462528c4",
+      "maxAmount": "17746141724408347186044",
+      "medGas": 68357
+    },
+    {
+      "chain": "base",
+      "target": "0x16613524e02ad97edfef371bc883f2f5d6c480a5",
+      "selector": "0x7715ee75",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006",
+        "0xa1832f7f4e534ae557f9b5ab76de54b1873e498b"
+      ],
+      "sample": "0xeb11a27d198a566ee9459885799fc28229c9fd0d915005dec392ffd669d32595",
+      "input": "0x7715ee75000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0",
+      "maxAmount": "2832083220516316258",
+      "medGas": 137064
+    },
+    {
+      "chain": "base",
+      "target": "0x8ef58803e5522986be1896c1ea024553a50e0940",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x1e3a02e0805cd57099b3f83356ddcd91d673086ccfc1ff52fb33be04760df431",
+      "input": "0x2e1a7d4d00000000000000000000000000000000000000000000000000000000004dfe30",
+      "maxAmount": "411886053364021774",
+      "medGas": 313664
+    },
+    {
+      "chain": "base",
+      "target": "0x6e9250ed7508a4d6cd8441e569134aeda6c9659b",
+      "selector": "0xf8125cb5",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x3e12b9d6a4d12cd9b4a6d613872d0eb32f68b380"
+      ],
+      "sample": "0x1ec5c535a94a9ddb12b071eb2e069b98e0fe13fe7270ab7ca93cae23405f8e8f",
+      "input": "0xf8125cb50000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000006a6d44a6",
+      "maxAmount": "300000000000000000000",
+      "medGas": 150959
+    },
+    {
+      "chain": "base",
+      "target": "0xba66d3b4fbcf472f6f11d6f9f96aace96516f09d",
+      "selector": "0xd5d80d53",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x28433f06b435007543da37f3b5a6b2cbeaf85f8468c2df672f575d4cb607649c",
+      "input": "0xd5d80d536b667c4ad94b694dbbb3c1d4d8595e70b5edd578bfbfe6c7c5aa4abbb88c95570000000000000000000000000000000000000000000000000000000000501e7e",
+      "maxAmount": "56384",
+      "medGas": 277976
+    },
+    {
+      "chain": "base",
+      "target": "0x7f84b6cd975db619e3f872e3f8734960353c7a09",
+      "selector": "0x916de905",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xc1addae61bc74a14971bfa48a0b7141aded4fb07",
+        "0x63345c7440f501b8519b3f95da94951d5c7c3b07"
+      ],
+      "sample": "0x0ac40b4fee1d3a9e901fa9c1043df29cad58f66380bd9d4a055ec7b61bee8d1c",
+      "input": "0x916de90500000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000ea873cef1a0f44d5a7bb8aaacc683533bd62db88",
+      "maxAmount": "17115990533624350064201",
+      "medGas": 148446
+    },
+    {
+      "chain": "base",
+      "target": "0xba66d3b4fbcf472f6f11d6f9f96aace96516f09d",
+      "selector": "0x45287fd8",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x12717e06cce110cf2fcdc2d9229cf40d2c8d87dfa19aaf76448bd935f4ee1325",
+      "input": "0x45287fd8492de31965014af98eef122c9ee97f739405a61e13ecb9de5bd9157c1712b48f00000000000000000000000000000000000000000000000000000000002200ec",
+      "maxAmount": "108872",
+      "medGas": 254333
+    },
+    {
+      "chain": "base",
+      "target": "0x28047b764d603a25146a0b8a8d414740dc1e650e",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x63214d8f2195cb33c123977a6838625587949f7c889f91dc56a2276ab041b33e",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000001a77a85",
+      "maxAmount": "383513189153465206",
+      "medGas": 328364
+    },
+    {
+      "chain": "base",
+      "target": "0x7aaf3992d0cf903e5288850c661b582365caf512",
+      "selector": "0x83abd548",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xe54a4c898f20055ad6e6d43474e24ae6ad079787a5b3392d46b181487b60683f",
+      "input": "0x83abd548000000000000000000000000000000000000000000000000000000000035470f000000000000000000000000717e174d5dae280802d1a2c15c1c0976561a3f61",
+      "maxAmount": "895290531100260188324",
+      "medGas": 595590
+    },
+    {
+      "chain": "base",
+      "target": "0x827922686190790b37229fd06084350e74485b72",
+      "selector": "0xfc6f7865",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006",
+        "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2"
+      ],
+      "sample": "0xd4103bde7946cf21c3c86d89a9db82025e589f25d427a7cf1df697d2ce0980b6",
+      "input": "0xfc6f7865000000000000000000000000000000000000000000000000000000000465738a000000000000000000000000dc5a80adbc2b0c909143d7642fe06d014be81269",
+      "maxAmount": "252754962060554873",
+      "medGas": 122301
+    },
+    {
+      "chain": "base",
+      "target": "0x7748c615311930098b58bdda84cb1b1615f2fa3c",
+      "selector": "0x83abd548",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x65e5dbf1788e076bf1f5291f7013013605ed97a491084817ba8232ce3ef99b25",
+      "input": "0x83abd548000000000000000000000000000000000000000000000000000000000035474c0000000000000000000000003fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "maxAmount": "2263980984563144606",
+      "medGas": 592472
+    },
+    {
+      "chain": "base",
+      "target": "0xebf3cef593a41f6226d8282cc32f1bca2aa1dc64",
+      "selector": "0x674fb1b4",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x056181ff54d0a2844e634828c14125518175e631219468588ee0a2e91f61e4e8",
+      "input": "0x674fb1b400000000000000000000000000000000000000000000000000000000000013ed0000000000000000000000000000000000000000000000000000000000000000",
+      "maxAmount": "7066124643718991722428",
+      "medGas": 630588
+    },
+    {
+      "chain": "base",
+      "target": "0x32919ae88e768212500ec7e9e33ec4eeaf823fe1",
+      "selector": "0xac2e4331",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0xdfe23e2c07f8edf23eba9c9a45e23303417c6b07"
+      ],
+      "sample": "0xc6f9db518a4f360a5e170c365c777147acbb983f15595842b6d6ea5b31f2aa23",
+      "input": "0xac2e433100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000120",
+      "maxAmount": "160878000000000000000000",
+      "medGas": 100999
+    },
+    {
+      "chain": "base",
+      "target": "0x27461e3bd492f7d8c08f21aab9c817ee00154eef",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x7d731df2cd14399faf577d38be9919b7accef6b123a056b4f669357020a42bbd",
+      "input": "0x1c4b774b000000000000000000000000000000000000000000000000000000000034fc858779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "235336874277368",
+      "medGas": 149022
+    },
+    {
+      "chain": "base",
+      "target": "0x37643e36357cc3eadfc440ff2d8bb543825c508e",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b"
+      ],
+      "sample": "0x40b17e3f71069c313a618859aeb5eb1f81066f780bb0d710333c39c00a7fceac",
+      "input": "0x2e1a7d4d00000000000000000000000000000000000000000000045c29c17f5d63a13200",
+      "maxAmount": "20589575212325000000000",
+      "medGas": 46073
+    },
+    {
+      "chain": "base",
+      "target": "0x8115881ded1edf38f2bf526a019c9cc76d3d0140",
+      "selector": "0x5ce62b83",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xf38671ea6290b43f30f2b685e86cdd125b86e13a"
+      ],
+      "sample": "0x715f1682e479b20d396d216581a7c3a361093d7d713ee92b705f03a7de7e2a28",
+      "input": "0x5ce62b83",
+      "maxAmount": "35867600877982907992",
+      "medGas": 353683
+    },
+    {
+      "chain": "base",
+      "target": "0xdd49c0ffabbdbf0042edc55787f3fb0828bc6cc3",
+      "selector": "0x51a8124d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x9a48915a0088a45696980c075b46c9d2b25c7da8"
+      ],
+      "sample": "0x73ff0d172746e473029517b38a368bf2a431fe826c61230df3110638b1acc2ab",
+      "input": "0x51a8124d6c756d656e2d7368656c660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "maxAmount": "47111118640201003649",
+      "medGas": 278941
+    },
+    {
+      "chain": "base",
+      "target": "0xc1062b7c5dc8e4b1df9f200fe360cdc0ed6e7741",
+      "selector": "0xdccedc74",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0xcf415ce4d5f69313bd6aee3c3ed3a3200b292b105f99f6acf8a0701b44b2f887",
+      "input": "0xdccedc74000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000002c0",
+      "maxAmount": "11038",
+      "medGas": 1099248
+    },
+    {
+      "chain": "base",
+      "target": "0x7b0f1103746648fbfce9222f1266f79b934e16b2",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xbc833f7e4011e2927b35a10f438ed5bb72e980b39d7d25f124ba66799cdb3afc",
+      "input": "0x1c4b774b00000000000000000000000000000000000000000000000000000000001eda3f8779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "10839323165075180264",
+      "medGas": 166122
+    },
+    {
+      "chain": "base",
+      "target": "0xb70b7ede996eb300e72496fb92fd30e5f36e6cd4",
+      "selector": "0x38926b6d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x07d15798a67253d76cea61f0ea6f57aedc59dffb"
+      ],
+      "sample": "0x03156c72939e4d727f1bb2e7732b8aac97792da98a5dc046007542797efeef0e",
+      "input": "0x38926b6d00000000000000000000000000000000000000000000a06f2d4f2a4908202f2a0000000000000000000000000000000000000000000000000000000000000040",
+      "maxAmount": "48543391032376598398674",
+      "medGas": 88301
+    },
+    {
+      "chain": "base",
+      "target": "0xb57ec27f68bd356e300d57079b6cdbe57d50830d",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x97c9e5deeb32351c3fd609b7d4640fdb8f6e4ced335666973c73706d3ff58f9e",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000463ebdf8779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "189503085017572994",
+      "medGas": 353404
+    },
+    {
+      "chain": "base",
+      "target": "0x96fa1a659f080067b554d1d60dff183edce0b027",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x7b36cc6c8421b1c7401146e78735033b04abc4fa1e714239c770a887ed8686ed",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000465755f",
+      "maxAmount": "383764679375015448",
+      "medGas": 344064
+    },
+    {
+      "chain": "base",
+      "target": "0xeee535e34a23fc13739cee363d39ae1f4aa6ce85",
+      "selector": "0xc7c6c86c",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x60221580574d7c439ef909ab23d0d3e9598c3cd2"
+      ],
+      "sample": "0x4c08e071881396fce2ad23c9aa41621913dbe732f45608b60333bd1401849057",
+      "input": "0xc7c6c86c00000000000000000000000073f2ea421b1d000e01d889ef46f659648df502aa0000000000000000000000000000000000000000000003c05019d6317d5df239",
+      "maxAmount": "17714646190666666603065",
+      "medGas": 86416
+    },
+    {
+      "chain": "base",
+      "target": "0x9632495bdb93fd6b0740ab69cc6c71c9c01da4f0",
+      "selector": "0x129d6cc0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x5c72992b83e74c4d5200a8e8920fb946214a5a5d"
+      ],
+      "sample": "0x63d003f9f8ae5a1a8b5b4336b44641e78d066673c36842291fa3d33289c128c3",
+      "input": "0x129d6cc0",
+      "maxAmount": "1614562100521777799",
+      "medGas": 91843
+    },
+    {
+      "chain": "base",
+      "target": "0x17064dd7489f93798016a1e2bf0702f24900cf41",
+      "selector": "0x50baa622",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x4dfe52e214e3c4aabf492638022643897faae680e64c565cbea354d0289f9d26",
+      "input": "0x50baa62200000000000000000000000000000000000000000000000000000005de097c00",
+      "maxAmount": "25200000000",
+      "medGas": 69874
+    },
+    {
+      "chain": "base",
+      "target": "0xfa7de3049ad98e7e2735897febd1a58ddd2747e1",
+      "selector": "0xfdb5a03e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x696aa0e4d8d15b61d3b0950d882c2a33b3e8abdc3f429d6c21824655994b86d4",
+      "input": "0xfdb5a03e",
+      "maxAmount": "18864811971121830",
+      "medGas": 593041
+    },
+    {
+      "chain": "base",
+      "target": "0x812e94d3d0ecf01221d611195ea6f804ecca705a",
+      "selector": "0x61519f42",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x5ab3d4c385b400f3abb49e80de2faf6a88a7b691"
+      ],
+      "sample": "0xcf8abafe9e1007d5d65acd13ce99d68aab391e2df8f887f369831acfc825ce31",
+      "input": "0x61519f420000000000000000000000005ab3d4c385b400f3abb49e80de2faf6a88a7b6910000000000000000000000000000000000000000000015a3d7faf36bb5175e0f",
+      "maxAmount": "2314075988742017393604",
+      "medGas": 74560
+    },
+    {
+      "chain": "base",
+      "target": "0x0251cbb9a752331d29031eec88c5a8bcbcdafffa",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x5a2f4b818d8cef4331b299b1b70c632cbe1ef34c6e94475b35ff351c2cf9c27d",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000000000000",
+      "maxAmount": "1007456",
+      "medGas": 103335
+    },
+    {
+      "chain": "base",
+      "target": "0x37a70295fcefebbb0a29735a53e2e6786a02f930",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x01784ef301d79e4b2df3a21ad9a536d4cf09a5ce"
+      ],
+      "sample": "0xfc299846889266344e38b26e25d56de995e0e9eb0cc655c76f20308c74e33372",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000030dd8192c5ec2323d",
+      "maxAmount": "56337807216950260285",
+      "medGas": 148255
+    },
+    {
+      "chain": "base",
+      "target": "0x37a70295fcefebbb0a29735a53e2e6786a02f930",
+      "selector": "0xc00007b0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xdfdef5e9d42637391ae04c28533ef2bec723df271cd7e70784f8da528d8b64d0",
+      "input": "0xc00007b0000000000000000000000000cd14819ce87f3468409433026d2a8ce40849a666",
+      "maxAmount": "836850739309737057",
+      "medGas": 61052
+    },
+    {
+      "chain": "base",
+      "target": "0x442be06bb5d13711a22ccd3fa382b72a874c5135",
+      "selector": "0xf7b5c341",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x95f9fbb6c539ddb6f57c93f4122309a0b4f68bc4b72fe42171bb3f13cdef8078",
+      "input": "0xf7b5c341000000000000000000000000d56be5d3c740eb4f737d1a371e3c028d9baba22b000000000000000000000000d56be5d3c740eb4f737d1a371e3c028d9baba22b",
+      "maxAmount": "3000",
+      "medGas": 468587
+    },
+    {
+      "chain": "base",
+      "target": "0x3808e53a5d0419d0670534c8918b7fd6a5b29cee",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xec8e7ba5ae41f399df8594a82eb56b7725d7829bcf9a1d3bffabd52e9082179b",
+      "input": "0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000ca51f",
+      "maxAmount": "638442214131645710",
+      "medGas": 341666
+    },
+    {
+      "chain": "base",
+      "target": "0x134ce8d4299df4b6b4938754a1d13a3ad2c24d54",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x5cec39afb7f35e3743aae7051ad6436132326809f6d2d86b13933f341b410078",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000004657493",
+      "maxAmount": "1579684973342553352",
+      "medGas": 322164
+    },
+    {
+      "chain": "base",
+      "target": "0x0b8179d83a3dbdcc024d1561636c6de00bab14f3",
+      "selector": "0x700126c0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4ed4e862860bed51a9570b96d89af5e1b0efefed"
+      ],
+      "sample": "0xa26d087a7a1acf82ee6b7ec254f97aedc76bbf7f60aa8219340228c69457432b",
+      "input": "0x700126c000000000000000000000000000000000000000000000000000000000000533fa000000000000000000000000b3877f40048bad437be3a0a05ccaeae102337c71",
+      "maxAmount": "5000000000000000000",
+      "medGas": 109725
+    },
+    {
+      "chain": "base",
+      "target": "0xc6a2db661d5a5690172d8eb0a7dea2d3008665a3",
+      "selector": "0x18fccc76",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x3055913c90fcc1a6ce9a358911721eeb942013a1"
+      ],
+      "sample": "0xec4e79b6d3ee4b9f4c5ea8ca36e260df71d0d0d49d7eb5f86d5fcecbeb9e28eb",
+      "input": "0x18fccc7600000000000000000000000000000000000000000000000000000000001f9afb000000000000000000000000cc6b10d1eb45dce2148e4afa4a83b2fdd6ae2f8c",
+      "maxAmount": "9497530070035171224",
+      "medGas": 120553
+    },
+    {
+      "chain": "base",
+      "target": "0x26b130316314259fa5047656c6bb16fe521ea082",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xa3e93879cf47d0b7a6b7c6996524fb52b09b1855139fc6e40e750c270e404ad3",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000004657569",
+      "maxAmount": "250101591800736908",
+      "medGas": 345464
+    },
+    {
+      "chain": "base",
+      "target": "0x546186f2e8efc407cea08cad33a55433fd531f8e",
+      "selector": "0xa52227b3",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x051024b653e8ec69e72693f776c41c2a9401fb07"
+      ],
+      "sample": "0x1db4ff3a963f576a49be394085226fd128a1687f3ff824296442b3594d6f0603",
+      "input": "0xa52227b300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000001ce7",
+      "maxAmount": "700000000000000000000",
+      "medGas": 94096
+    },
+    {
+      "chain": "base",
+      "target": "0xc6a2db661d5a5690172d8eb0a7dea2d3008665a3",
+      "selector": "0xac9650d8",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x69be3cb20dbf19a5b7cd6d890c4bbb327ff2ad3edbfdaa8c32262ca75817ca01",
+      "input": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003",
+      "maxAmount": "12324062",
+      "medGas": 225325
+    },
+    {
+      "chain": "base",
+      "target": "0xc2e94b700ada596bf431fc10558ba7ab0c639914",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x45dfe4aea942a99375d9845b3e9b5c20fea52689f79896bd763c6ff51ea57f4f",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000465503c8779ce964b87d3f8964386b18fb162635f7239717a66386f700b008021802180",
+      "maxAmount": "12230419285025254812",
+      "medGas": 384494
+    },
+    {
+      "chain": "base",
+      "target": "0x3808e53a5d0419d0670534c8918b7fd6a5b29cee",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x8ed2ffd5edf3f30569d83cc6d455543b607f1d7d4b40d4933796f789ef8d4776",
+      "input": "0x1c4b774b00000000000000000000000000000000000000000000000000000000003544608779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "89848421736557",
+      "medGas": 149022
+    },
+    {
+      "chain": "base",
+      "target": "0x3c2a9058d449e9ccee5bdbe0b57c8b69e6f2dbf6",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xc20cd8556ccfac3b6a540e4300f31f02831f4186e1c13e8a9bad75fe8532ffc2",
+      "input": "0x1c4b774b0000000000000000000000000000000000000000000000000000000000353ed48779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "2802376596567590",
+      "medGas": 149022
+    },
+    {
+      "chain": "base",
+      "target": "0x666c383e4eab3328660a85d1c41ffdce9d85d8ee",
+      "selector": "0xc00007b0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x70cf99078f2d083af6eff9645bcfdb497075b86b12e6d0b93e97de08e94ff4b9",
+      "input": "0xc00007b00000000000000000000000001334752203935d80bca8a89a378bbe36b88961af8779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "40431418355544",
+      "medGas": 75863
+    },
+    {
+      "chain": "base",
+      "target": "0xfb342a1a45db7d4ce426f1c55d1374604a3305b6",
+      "selector": "0x0b9252f0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x962c49fdb3f5af3095d25f39b61e9e01f63de419c17241c73e19fe68566361f1",
+      "input": "0x0b9252f0000000000000000000000000a48d4201030c09cea82f5b0955b9c837699d3c320000000000000000000000000000000000000000000000000000000000000040",
+      "maxAmount": "161197224920483510067",
+      "medGas": 782781
+    },
+    {
+      "chain": "base",
+      "target": "0x46060ddad805a2783dff4a536aa774da5a3eac89",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x97cc3a18948b8bf1024d388323f56f326421ed4925f701516eba153f06279998",
+      "input": "0x2e1a7d4d00000000000000000000000000000000000000000000000000000000046554d78779ce964b87d3f8964386b18fb162635f7239717a66386f700b008021802180",
+      "maxAmount": "11124287062896473875",
+      "medGas": 357794
+    },
+    {
+      "chain": "base",
+      "target": "0x502360e30ce9c088bbb3e78cc8c35250690fabbf",
+      "selector": "0xe97268e7",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x256c0915036cedffc45f43da6d2b3e01022d636256ae69bbca3d95152deb7f02",
+      "input": "0xe97268e70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000260d360",
+      "maxAmount": "44971177",
+      "medGas": 430712
+    },
+    {
+      "chain": "base",
+      "target": "0x27461e3bd492f7d8c08f21aab9c817ee00154eef",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x17fdcec2c6fd1852818c51fa50ef36ef11b2d1c15793a4f6f13b07448d6d8fc5",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000011c5b9",
+      "maxAmount": "836521757229093920",
+      "medGas": 340266
+    },
+    {
+      "chain": "base",
+      "target": "0x00f08ddeac2c2c97854cc6fb17b3a93f285c0424",
+      "selector": "0xb88a802f",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006"
+      ],
+      "sample": "0x54b499b48f7e28105b1ba17658053e896c2e5b0d39e3cb245ebf1e910e5bd1f4",
+      "input": "0xb88a802f42ecd332d47c91cbc83b39bd7f53cebe5e9734bba98e339f5a0f135792286d481b4e23d91a667d3f153905c7879cc6e8dc6d5638cec5b4148c6bc54c",
+      "maxAmount": "1328991004822",
+      "medGas": 921698
+    },
+    {
+      "chain": "base",
+      "target": "0x220a7036a815a1bd4a7998fb2bce608581fa2dbb",
+      "selector": "0x17b33ef0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xa2c22252cdc8b7cddee1b0b2e242818509fcf7b8"
+      ],
+      "sample": "0xfac4543f0d445f1466bb3ba3f4a2d760f2fc6515f75e5647990491da4fce83bb",
+      "input": "0x17b33ef000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000003a0",
+      "maxAmount": "100000000000000000000",
+      "medGas": 752016
+    },
+    {
+      "chain": "base",
+      "target": "0xecce253d45d14a8d8cdf230ad6de75d7da2e2151",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x694852fe5cbf7031cff2755d211ed31be5ca3bfc80940c238667f3c23fc736b5",
+      "input": "0x1c4b774b00000000000000000000000000000000000000000000000000000000004dfe178779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "32744809692653",
+      "medGas": 133890
+    },
+    {
+      "chain": "base",
+      "target": "0x042c37762d1d126bc61eac2f5ceb7a96318f5db9",
+      "selector": "0xfdb5a03e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xf75d380a8470941e9d33239f7925755526995bc64825512afd571ca58c77c520",
+      "input": "0xfdb5a03e",
+      "maxAmount": "13213712269031556",
+      "medGas": 440007
+    },
+    {
+      "chain": "base",
+      "target": "0x2c0cbf25bb64687d11ea2e4a3dc893d56ca39c10",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xf0c3c0eab9e9a800f775946bf3ecbc3a8816163239f562616f1e595909a01e70",
+      "input": "0x1c4b774b000000000000000000000000000000000000000000000000000000000465738a",
+      "maxAmount": "389318957491545173",
+      "medGas": 150298
+    },
+    {
+      "chain": "base",
+      "target": "0x57538a02972c01440113cc7a7ff8f1d954d01239",
+      "selector": "0xc00007b0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x7964f320e32774004cdbefa9c1af0f1e24a08a4c4aa145d96dacf06b3b368d80",
+      "input": "0xc00007b00000000000000000000000001334752203935d80bca8a89a378bbe36b88961af8779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "115241146072110",
+      "medGas": 75863
+    },
+    {
+      "chain": "base",
+      "target": "0x2c0cbf25bb64687d11ea2e4a3dc893d56ca39c10",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xdba45800c4569713e2d07cca6baf0247d0bae75a4643de190698f28828c1e45e",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000000000465738a",
+      "maxAmount": "2042176631607428",
+      "medGas": 362264
+    },
+    {
+      "chain": "base",
+      "target": "0xae48b34525f65ae988cd76c145d743ac98d2c52f",
+      "selector": "0x4e71d92d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x100ce3e3391c00b6a52911313a4ea8d23c8a38d8"
+      ],
+      "sample": "0x5316f359ba45fcbece995d2f6739be5f5b04aceef205065102e3e82033915964",
+      "input": "0x4e71d92d",
+      "maxAmount": "107520812325495064545872",
+      "medGas": 264284
+    },
+    {
+      "chain": "base",
+      "target": "0x74dc05b8fb6ebe3b604993cb3f63e25322880121",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x591f0c7b0607c45a362025fd1616d6e1de91dbf513b6246e73f020fe78235b16",
+      "input": "0x1c4b774b0000000000000000000000000000000000000000000000000000000000343cb68779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "73294151646188",
+      "medGas": 149022
+    },
+    {
+      "chain": "base",
+      "target": "0x776236aead8a58ac9ec3cf214cda3c6335f46b2d",
+      "selector": "0xfdb5a03e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xbb78d2086e8cb95d1908a50761aa2ec23d01f947a3574ec9714151f456990991",
+      "input": "0xfdb5a03e",
+      "maxAmount": "16848597428549010",
+      "medGas": 406967
+    },
+    {
+      "chain": "base",
+      "target": "0x7487eed4266c774b84db9f61b5f0222076db9676",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xba36ef4c102485715ebddfec7140575f712d083d543057583d4fccfc5a976d26",
+      "input": "0x1c4b774b0000000000000000000000000000000000000000000000000000000000345a798779ce964b87d3f8964386b18fb262635f7239717a66386f700b008021802180",
+      "maxAmount": "882744347138389",
+      "medGas": 149022
+    },
+    {
+      "chain": "base",
+      "target": "0x2b74b62c564456c48055bd515a62594742b3f545",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xca569156d0bdd3c951ff81b8e313e7c5a26b80af2764e0b7d701c641bbe99138",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000000c2ce90",
+      "maxAmount": "284727487731811730",
+      "medGas": 318552
+    },
+    {
+      "chain": "base",
+      "target": "0x208b443983d8bcc8578e9d86db23fba547071270",
+      "selector": "0x8e19899e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+      ],
+      "sample": "0x284079d354b4d2178e9b23c226061427de9c50ad5d5755716314b3ae0617600b",
+      "input": "0x8e19899e000000000000000001a07929833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "maxAmount": "27293993",
+      "medGas": 85060
+    },
+    {
+      "chain": "base",
+      "target": "0x2a1f7bf46bd975b5004b61c6040597e1b6117040",
+      "selector": "0x1c4b774b",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0xa59df8453df429ff16bf0b7741483d1d3ce870ddbd0cb28608cdfc830a68d7a6",
+      "input": "0x1c4b774b000000000000000000000000000000000000000000000000000000000463dafa",
+      "maxAmount": "27142863719817974696",
+      "medGas": 133198
+    },
+    {
+      "chain": "base",
+      "target": "0xc9b3fb6d908430023cce0fb66c8a7e2afbcd69ea",
+      "selector": "0x54dd1da4",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x16ee7ecac70d1028e7712751e2ee6ba808a7dd92"
+      ],
+      "sample": "0x3f3091d0638d0e55c1b88bd8c160973c17f18f6298fa816ec4ea0606804d7fb8",
+      "input": "0x54dd1da4",
+      "maxAmount": "7087128294159544159545",
+      "medGas": 85917
+    },
+    {
+      "chain": "base",
+      "target": "0x8c44e7f913d0893cd5a3cbbb2fcd59785a7801ab",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xb909f567c5c2bb1a4271349708cc4637d7318b4a"
+      ],
+      "sample": "0x9f85f3ed1a644f0f622e1221948eff2589eaa95c4029b814d7a522d9d8e7ca85",
+      "input": "0x2e1a7d4d000000000000000000000000000000000000000000000000000178af1a48dc52",
+      "maxAmount": "414168432303186",
+      "medGas": 126305
+    },
+    {
+      "chain": "base",
+      "target": "0x8c44e7f913d0893cd5a3cbbb2fcd59785a7801ab",
+      "selector": "0xc00007b0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x086b9b82cff45d1fc882fab66285a6851f720f623b77a2fb91d2fd7fb2ef0dde",
+      "input": "0xc00007b0000000000000000000000000cd14819ce87f3468409433026d2a8ce40849a666",
+      "maxAmount": "73736559903825905",
+      "medGas": 61052
+    },
+    {
+      "chain": "base",
+      "target": "0x42bb446eae6dca7723a9ebdb81ea88afe77ef4b9",
+      "selector": "0x96c144f0",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x7431ada8a591c955a994a21710752ef9b882b8e3"
+      ],
+      "sample": "0x0956ab8c9b7097f6d052fe6b26bda024bd6dc22e47eb87842334a6eea49cfd86",
+      "input": "0x96c144f0e9fba89ca97425c3389c8086a17a75785b04152c035b68b8108980375a60ad21000000000000000000000000459c674aa0d686ac03a245af70f5775e33ac323e",
+      "maxAmount": "9076491624314107375",
+      "medGas": 153300
+    },
+    {
+      "chain": "base",
+      "target": "0xfc0d4756fad40db4b71225def4eec42e9c9ef070",
+      "selector": "0x2e1a7d4d",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631"
+      ],
+      "sample": "0x7412af7da678bc35a61607b26081164b1dccb7947c2acfc03b7e44b8c0c0b8d6",
+      "input": "0x2e1a7d4d0000000000000000000000000000000000000000000000000000000004657517",
+      "maxAmount": "247914156086988773",
+      "medGas": 340648
+    },
+    {
+      "chain": "base",
+      "target": "0x85c5b6ec7c43e2831f69243d3f9fa3b9847d0241",
+      "selector": "0x15a0ea6a",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xa82138d538cf6e465d0b6915b0d072b1e6910f7d"
+      ],
+      "sample": "0xd10d62ed120225e08f63ced2e7408e849ad0d654fa84d798807ad6f1adbd8ffb",
+      "input": "0x15a0ea6a000000000000000000000000574ebcd795217fbf866898f066abbb254503f067",
+      "maxAmount": "1305111370038035261951",
+      "medGas": 184333
+    }
+  ]
+}

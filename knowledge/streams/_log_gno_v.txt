@@ -1,0 +1,7 @@
+verifying 2 leads on gnosis @47493631
+
+0xae8fbe656a77519a7490054274910129c9244fa3 0xfc6f7865 keepers=1 n=3 gas=174852  revert  (call reverts for an arbitrary caller)
+0xab25dbafd11b1eb606b2455eecec67e6746e409b 0xfcc17d24 keepers=1 n=1 gas=222104  revert  (call reverts for an arbitrary caller)
+
+=== ISOLATED PAYERS ===
+[]

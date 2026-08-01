@@ -1,0 +1,418 @@
+[
+  {
+    "fam": "morpho",
+    "id": "morpho-base-steakhouse-high-yield-usdc",
+    "strat": "0xD90ec9e27c47FDF0f766c0D6fC4f0f47376dAA47",
+    "callReward": "0",
+    "wei": "3670131799649",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "3670131799649"
+      }
+    ]
+  },
+  {
+    "fam": "morpho",
+    "id": "morpho-base-gauntlet-frontier-usdc",
+    "strat": "0x1FdD1C2533B0bABab328eb4bCB3c94b19a3a5cEB",
+    "callReward": "0",
+    "wei": "1440283735271",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "1440283735271"
+      }
+    ]
+  },
+  {
+    "fam": "aerodrome",
+    "id": "aerodrome-weth-lcap",
+    "strat": "0x16d722a0B394d8a402d64f7e43b5f75aCc445A59",
+    "callReward": "792183123524",
+    "wei": "968068348943",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "968068348943"
+      }
+    ]
+  },
+  {
+    "fam": "aerodrome",
+    "id": "aerodrome-aero-wsteth",
+    "strat": "0x68d24F7C60D316EB27e116A9910902Ff23CD8f1E",
+    "callReward": "533979715766",
+    "wei": "539601286529",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "539601286529"
+      }
+    ]
+  },
+  {
+    "fam": "morpho",
+    "id": "morpho-base-gauntlet-prime-usdc",
+    "strat": "0xAbcD8A94Db286949B3D725bd3bC4601BC71cb369",
+    "callReward": "0",
+    "wei": "183247300974",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "183247300974"
+      }
+    ]
+  },
+  {
+    "fam": "alienbase",
+    "id": "alienbase-usdc-usdbc-narrow",
+    "strat": "0xA28D5a576432687E9d6E8bEa54ab816a9a0f0293",
+    "callReward": "0",
+    "wei": "182903585387",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "182903585387"
+      }
+    ]
+  },
+  {
+    "fam": "curve",
+    "id": "curve-base-4pool",
+    "strat": "0xD345B2a911317CeD3A8d7A116F5AcD34A2073646",
+    "callReward": "0",
+    "wei": "125204737614",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "125204737614"
+      }
+    ]
+  },
+  {
+    "fam": "aerodrome",
+    "id": "aero-cow-tbtc-weth-vault",
+    "strat": "0x11dD6940AeA57aAC6aC4D204E13161BB6E5Bf0A8",
+    "callReward": "243690846212133",
+    "wei": "54554922611",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "54554922611"
+      }
+    ]
+  },
+  {
+    "fam": "aerodrome",
+    "id": "aerodrome-awe-usdc",
+    "strat": "0xD364f7A7a460742B29027B782e63583fAB95Fb2D",
+    "callReward": "41165071185",
+    "wei": "41744802681",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "41744802681"
+      }
+    ]
+  },
+  {
+    "fam": "morpho",
+    "id": "morpho-v2-base-gauntlet-balanced-weth",
+    "strat": "0x07421Db65caE0df71c5c173AdAB37282098eB6ef",
+    "callReward": "0",
+    "wei": "41437170372",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "41437170372"
+      }
+    ]
+  },
+  {
+    "fam": "pancakeswap",
+    "id": "pancake-cow-base-weth-eurc-vault",
+    "strat": "0xf7F28af8dfAe9Caefb446Dc7Ca627083E42B20Ec",
+    "callReward": "46442452130446",
+    "wei": "36132924359",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "36132924359"
+      }
+    ]
+  },
+  {
+    "fam": "aerodrome",
+    "id": "aerodrome-cow-base-hype-weth-vault",
+    "strat": "0xde0b782070B64ebB33f8FE94d227070319f92894",
+    "callReward": "132551506991613",
+    "wei": "29674232941",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "29674232941"
+      }
+    ]
+  },
+  {
+    "fam": "stakedao",
+    "id": "stakedao-base-superoethb",
+    "strat": "0x825d8fF2FC98Ef7551C726899B4Eb2e281d98C57",
+    "callReward": "0",
+    "wei": "23047166848",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "23047166848"
+      }
+    ]
+  },
+  {
+    "fam": "pancakeswap",
+    "id": "pancake-cow-base-usdc-cbbtc-vault",
+    "strat": "0xf698a0f0d2b0dD634b695d564c17b36556c348cF",
+    "callReward": "23755144060272",
+    "wei": "18481573802",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "18481573802"
+      }
+    ]
+  },
+  {
+    "fam": "curve",
+    "id": "curve-base-superoethb",
+    "strat": "0x85B2eb08740cdE8F8Fa29f60f6d6F12df54EE85F",
+    "callReward": "0",
+    "wei": "9217427670",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "9217427670"
+      }
+    ]
+  },
+  {
+    "fam": "morpho",
+    "id": "morpho-base-steakhouse-prime-eurc",
+    "strat": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+    "callReward": "0",
+    "wei": "7557824264",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "7557824264"
+      }
+    ]
+  },
+  {
+    "fam": "pancakeswap",
+    "id": "pancakeswap-cow-base-sol-jitosol-vault",
+    "strat": "0xAC3C1D42E3f26FC2c6fE3737b2665373304E1891",
+    "callReward": "8472331821884",
+    "wei": "6591319264",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "6591319264"
+      }
+    ]
+  },
+  {
+    "fam": "pancakeswap",
+    "id": "pancake-cow-base-cake-usdc-vault",
+    "strat": "0xd031FbbF7d5cEC2113FBD84d35471856a4D8b659",
+    "callReward": "3623159542190",
+    "wei": "2818910506",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "2818910506"
+      }
+    ]
+  },
+  {
+    "fam": "aerodrome",
+    "id": "aerodrome-cow-base-cbbtc-lbtc-vault",
+    "strat": "0xEef2dab4521841E420eAc7bB48caEC5a392FFCBD",
+    "callReward": "6925931911393",
+    "wei": "1550504985",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "1550504985"
+      }
+    ]
+  },
+  {
+    "fam": "pancakeswap",
+    "id": "pancake-cow-base-sol-weth-vault",
+    "strat": "0xd361Ee48307AdeC4447DfBe9fc6E67567f1a5Bba",
+    "callReward": "1903135912052",
+    "wei": "1480605443",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "1480605443"
+      }
+    ]
+  },
+  {
+    "fam": "curve",
+    "id": "curve-base-crv",
+    "strat": "0x898Cb1986dD94D1AFc709aE88d3B97ec837756C3",
+    "callReward": "0",
+    "wei": "1275639514",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "1275639514"
+      }
+    ]
+  },
+  {
+    "fam": "curve",
+    "id": "curve-base-cbeth",
+    "strat": "0x47bA57B0522bdd422B81f7a2e075B2fE1Db3f99B",
+    "callReward": "0",
+    "wei": "978960671",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "978960671"
+      }
+    ]
+  },
+  {
+    "fam": "morpho",
+    "id": "morpho-v2-base-clearstar-reactor-usdc",
+    "strat": "0x8839494227ff33fCb3a4f2338C7826Fbc396634a",
+    "callReward": "0",
+    "wei": "493077702",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "493077702"
+      }
+    ]
+  },
+  {
+    "fam": "curve",
+    "id": "curve-base-tricrypto",
+    "strat": "0xecD5b452e399e78f852809CD8a03C472947a1A97",
+    "callReward": "0",
+    "wei": "124629047",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "124629047"
+      }
+    ]
+  },
+  {
+    "fam": "stakedao",
+    "id": "stakedao-base-tricrypto",
+    "strat": "0x516b6e27632091cf6279f6A0b3c6FcdA39d1FdEB",
+    "callReward": "0",
+    "wei": "53470812",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "53470812"
+      }
+    ]
+  },
+  {
+    "fam": "aave",
+    "id": "aavev3-base-cbeth",
+    "strat": "0x0300A8b1bb5E55F834a3Ce65c757f599679BE115",
+    "callReward": "0",
+    "wei": "604789",
+    "token": "WETH",
+    "tokenAddr": "0x4200000000000000000000000000000000000006",
+    "all": [
+      {
+        "token": "WETH",
+        "address": "0x4200000000000000000000000000000000000006",
+        "wei": "604789"
+      }
+    ]
+  }
+]

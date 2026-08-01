@@ -1,0 +1,37 @@
+{
+  "chain": "gnosis",
+  "head": 47493628,
+  "nblocks": 60,
+  "rows": [
+    {
+      "chain": "gnosis",
+      "target": "0xae8fbe656a77519a7490054274910129c9244fa3",
+      "selector": "0xfc6f7865",
+      "occurrences": 3,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0",
+        "0x420ca0f9b9b604ce0fd9c18ef134c705e5fa3430",
+        "0xcb444e90d8198415266c6a2724b7900fb12fc56e"
+      ],
+      "sample": "0x0be4cbc54038db1493fae3e5744b29980451d6a0c4c73f3df855b672455fcb94",
+      "input": "0xfc6f786500000000000000000000000000000000000000000000000000000000000015e4000000000000000000000000d7295821ac21baafa398545f28f0b012daeb74f2",
+      "maxAmount": "263640732715131600",
+      "medGas": 174852
+    },
+    {
+      "chain": "gnosis",
+      "target": "0xab25dbafd11b1eb606b2455eecec67e6746e409b",
+      "selector": "0xfcc17d24",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x71850b7e9ee3f13ab46d67167341e4bdc905eef9"
+      ],
+      "sample": "0xfac44322784cec1d8367a7b3ebec1e9631549b847eaa3638750977abc7afbd74",
+      "input": "0xfcc17d2400000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000041",
+      "maxAmount": "42601004511753065",
+      "medGas": 222104
+    }
+  ]
+}

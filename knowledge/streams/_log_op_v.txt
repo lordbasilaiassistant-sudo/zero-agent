@@ -1,0 +1,105 @@
+verifying 14 leads on optimism @154973747
+
+0x7aaf3992d0cf903e5288850c661b582365caf512 0x83abd548 keepers=1 n=4 gas=596347  revert  (call reverts for an arbitrary caller)
+0x7748c615311930098b58bdda84cb1b1615f2fa3c 0x83abd548 keepers=1 n=4 gas=602203  revert  (call reverts for an arbitrary caller)
+0x80942a0066f72efff5900cf80c235dd32549b75d 0xfdb5a03e keepers=2 n=3 gas=879212  revert  (call reverts for an arbitrary caller)
+0x3b749be6ca33f27e2837138ede69f8c6c53f9207 0xfdb5a03e keepers=2 n=2 gas=838840  revert  (call reverts for an arbitrary caller)
+0x0b542f61199d2a01770b601efa0509244bdcee89 0x0e5c011e keepers=1 n=2 gas=2577794  PAYS-NAMED-RECIPIENT  safe+=11275237277 0x4200000000000000000000000000000000000006
+0x46da6890a808ce4e7367ee074c3d4276367e1398 0x83abd548 keepers=1 n=2 gas=609612  revert  (call reverts for an arbitrary caller)
+0xec16bd5874a10e5c171810fea8d7f6c9236a55b2 0x54d4fad3 keepers=1 n=1 gas=1323880  callable/0
+0xf368f535e329c6d08dff0d4b2da961c4e7f3fcaf 0xa262f5f8 keepers=1 n=1 gas=1784468  callable/0
+0xeaf7abe83c25d1a425b6022c46589891e435c604 0x0e5c011e keepers=1 n=1 gas=2715793  PAYS-NAMED-RECIPIENT  safe+=2165786644 0x4200000000000000000000000000000000000006
+0x969d802b313ff51a7cb1383e05e8529a6b5ab81f 0x0e5c011e keepers=1 n=1 gas=2433906  PAYS-NAMED-RECIPIENT  safe+=7700984444 0x4200000000000000000000000000000000000006
+0x0b95ae29f2f8c86706d7d465f3c022abed4f9078 0x0e5c011e keepers=1 n=1 gas=2579010  PAYS-NAMED-RECIPIENT  safe+=425948788 0x4200000000000000000000000000000000000006
+0xbccdd9e6bc7fe6e59bbca6d8475572f2d0c48726 0xfdb5a03e keepers=1 n=1 gas=1630106  revert  (call reverts for an arbitrary caller)
+0x994afa36b085d006a911ce28ba300e8ee71b8bc2 0x0e5c011e keepers=1 n=1 gas=2694063  PAYS-NAMED-RECIPIENT  safe+=7030831967 0x4200000000000000000000000000000000000006
+0xc1062b7c5dc8e4b1df9f200fe360cdc0ed6e7741 0xdccedc74 keepers=1 n=1 gas=493650  revert  (call reverts for an arbitrary caller)
+
+=== ISOLATED PAYERS ===
+[
+ {
+  "chain": "optimism",
+  "target": "0x0b542f61199d2a01770b601efa0509244bdcee89",
+  "selector": "0x0e5c011e",
+  "occurrences": 2,
+  "distinctKeepers": 1,
+  "gasObserved": 2577794,
+  "block": 154973747,
+  "verbatim": null,
+  "swappedToSafe": {
+   "wei": "11275237277",
+   "token": "0x4200000000000000000000000000000000000006",
+   "recipient": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+   "callData": "0x0e5c011e000000000000000000000000510601f59fda068d70ad6760c9d9085b0f42cbb1"
+  },
+  "sampleTx": "0x24cc8d988a65436eb64f17c2d412ccbf7c159b852ea12d3f71bc1c91e654da12"
+ },
+ {
+  "chain": "optimism",
+  "target": "0x969d802b313ff51a7cb1383e05e8529a6b5ab81f",
+  "selector": "0x0e5c011e",
+  "occurrences": 1,
+  "distinctKeepers": 1,
+  "gasObserved": 2433906,
+  "block": 154973747,
+  "verbatim": null,
+  "swappedToSafe": {
+   "wei": "7700984444",
+   "token": "0x4200000000000000000000000000000000000006",
+   "recipient": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+   "callData": "0x0e5c011e000000000000000000000000510601f59fda068d70ad6760c9d9085b0f42cbb1"
+  },
+  "sampleTx": "0x90bc9ed1833876f006fa9a1c83225f6e1027822c2dce8496a74bfaf7f7bcb1b0"
+ },
+ {
+  "chain": "optimism",
+  "target": "0x994afa36b085d006a911ce28ba300e8ee71b8bc2",
+  "selector": "0x0e5c011e",
+  "occurrences": 1,
+  "distinctKeepers": 1,
+  "gasObserved": 2694063,
+  "block": 154973747,
+  "verbatim": null,
+  "swappedToSafe": {
+   "wei": "7030831967",
+   "token": "0x4200000000000000000000000000000000000006",
+   "recipient": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+   "callData": "0x0e5c011e000000000000000000000000510601f59fda068d70ad6760c9d9085b0f42cbb1"
+  },
+  "sampleTx": "0x440592b8936afd197ac257b135f117fc0dbacd4e888a1ecf5c8a0a13df881014"
+ },
+ {
+  "chain": "optimism",
+  "target": "0xeaf7abe83c25d1a425b6022c46589891e435c604",
+  "selector": "0x0e5c011e",
+  "occurrences": 1,
+  "distinctKeepers": 1,
+  "gasObserved": 2715793,
+  "block": 154973747,
+  "verbatim": null,
+  "swappedToSafe": {
+   "wei": "2165786644",
+   "token": "0x4200000000000000000000000000000000000006",
+   "recipient": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+   "callData": "0x0e5c011e000000000000000000000000510601f59fda068d70ad6760c9d9085b0f42cbb1"
+  },
+  "sampleTx": "0x2a6bc1c90568f1fba2add60a65edfa055879aacd4749eb2621cd454167aa6f2b"
+ },
+ {
+  "chain": "optimism",
+  "target": "0x0b95ae29f2f8c86706d7d465f3c022abed4f9078",
+  "selector": "0x0e5c011e",
+  "occurrences": 1,
+  "distinctKeepers": 1,
+  "gasObserved": 2579010,
+  "block": 154973747,
+  "verbatim": null,
+  "swappedToSafe": {
+   "wei": "425948788",
+   "token": "0x4200000000000000000000000000000000000006",
+   "recipient": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+   "callData": "0x0e5c011e000000000000000000000000510601f59fda068d70ad6760c9d9085b0f42cbb1"
+  },
+  "sampleTx": "0x222cbf56bcfdbfa2ff2c18376ea63834c7d7a9e8d24950dc6a44da2b79985ac8"
+ }
+]

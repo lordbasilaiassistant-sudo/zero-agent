@@ -1,0 +1,14 @@
+{
+  "measuredAt": "2026-08-01T01:08:26.224Z",
+  "head": 49378519,
+  "blocksScanned": 100,
+  "recipientsSeen": 674,
+  "contractsHoldingWeth": 349,
+  "contractsProbed": 25,
+  "selectorsProbed": 260,
+  "payingContracts": 0,
+  "totalWei": "0",
+  "totalUsd": 0,
+  "note": "Each payment measured in its OWN aggregate3 — never batched, because shared state produced 94.7% false positives.",
+  "hits": []
+}

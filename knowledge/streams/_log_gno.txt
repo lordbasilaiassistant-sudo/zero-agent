@@ -1,0 +1,8 @@
+mining gnosis blocks 47493569..47493628
+...
+scanned 60 blocks / 1131 txs -> 4 sender-credited transfers
+
+2 distinct (contract, selector) pairs that paid their caller:
+
+  0xae8fbe656a77519a7490054274910129c9244fa3 0xfc6f7865 x  3 keepers=1 max=263640732715131600 gas=174852 tok=0x2a22f9c3b484c3629090feed35f17ff8f88f76f0,0x420ca0f9b9b604ce0fd9c18ef134c705e5fa3430
+  0xab25dbafd11b1eb606b2455eecec67e6746e409b 0xfcc17d24 x  1 keepers=1 max=42601004511753065 gas=222104 tok=0x71850b7e9ee3f13ab46d67167341e4bdc905eef9

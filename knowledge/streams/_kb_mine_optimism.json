@@ -1,0 +1,206 @@
+{
+  "chain": "optimism",
+  "head": 154973738,
+  "nblocks": 100,
+  "rows": [
+    {
+      "chain": "optimism",
+      "target": "0x7aaf3992d0cf903e5288850c661b582365caf512",
+      "selector": "0x83abd548",
+      "occurrences": 4,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000042",
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0xb5d677538697cb70e5ff360897d6cb7bbe07dfd5e877172cebaaa9b10ac0c725",
+      "input": "0x83abd54800000000000000000000000000000000000000000000000000000000000b993a000000000000000000000000443055d94d119c46b6d74cd68a04c933f17b6a78",
+      "maxAmount": "27919531680184437308295",
+      "medGas": 596347
+    },
+    {
+      "chain": "optimism",
+      "target": "0x7748c615311930098b58bdda84cb1b1615f2fa3c",
+      "selector": "0x83abd548",
+      "occurrences": 4,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0x59346f74a703da32df61107ce8999f199e2cf428ba5b15bcdd6045ce4fd046d8",
+      "input": "0x83abd54800000000000000000000000000000000000000000000000000000000000b9929000000000000000000000000e17105d7de09e9d532aa12c36190e3f64cf3f68e",
+      "maxAmount": "13302621500121210475",
+      "medGas": 602203
+    },
+    {
+      "chain": "optimism",
+      "target": "0x80942a0066f72efff5900cf80c235dd32549b75d",
+      "selector": "0xfdb5a03e",
+      "occurrences": 3,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0xc19393539123c90b4fe6b3b344f42891e48c77a60062a0e7a1b10619a832c7db",
+      "input": "0xfdb5a03e",
+      "maxAmount": "72406169309788197",
+      "medGas": 879212
+    },
+    {
+      "chain": "optimism",
+      "target": "0x3b749be6ca33f27e2837138ede69f8c6c53f9207",
+      "selector": "0xfdb5a03e",
+      "occurrences": 2,
+      "distinctKeepers": 2,
+      "tokens": [
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0x0a4335e5e45f678329a1b0bbe3ec17f48875e1df3c63d60396826688bdb3a1f8",
+      "input": "0xfdb5a03e",
+      "maxAmount": "64222834330799765",
+      "medGas": 838840
+    },
+    {
+      "chain": "optimism",
+      "target": "0x0b542f61199d2a01770b601efa0509244bdcee89",
+      "selector": "0x0e5c011e",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006"
+      ],
+      "sample": "0x24cc8d988a65436eb64f17c2d412ccbf7c159b852ea12d3f71bc1c91e654da12",
+      "input": "0x0e5c011e0000000000000000000000009edd211b2deb6176e19e4931dda3441171bfd35a",
+      "maxAmount": "24379299512",
+      "medGas": 2577794
+    },
+    {
+      "chain": "optimism",
+      "target": "0x46da6890a808ce4e7367ee074c3d4276367e1398",
+      "selector": "0x83abd548",
+      "occurrences": 2,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0x9937bd3c827ef56f4bd6530ccf158e1546bd80b6ccd513900bd41e44fd382c5a",
+      "input": "0x83abd54800000000000000000000000000000000000000000000000000000000000b992a000000000000000000000000c092e9cbdb4148837fc54bc5233c12c2fc83b4db",
+      "maxAmount": "131515240508033665272",
+      "medGas": 609612
+    },
+    {
+      "chain": "optimism",
+      "target": "0xec16bd5874a10e5c171810fea8d7f6c9236a55b2",
+      "selector": "0x54d4fad3",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0x9f6256e2b9b3654b9e5715224042afc257547866ede3c6ad2774ddf80eb69607",
+      "input": "0x54d4fad3000000000000000000000000000000000000000000000000000000000000003f000000000000000000000000c1c2240468c9299ff5098844b9e725035a83ed5f",
+      "maxAmount": "289065615697144307",
+      "medGas": 1323880
+    },
+    {
+      "chain": "optimism",
+      "target": "0xf368f535e329c6d08dff0d4b2da961c4e7f3fcaf",
+      "selector": "0xa262f5f8",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0xef4461891dfb3ac8572ccf7c794664a8dd927945"
+      ],
+      "sample": "0x30f48308f67e2ceb6bfe97e817fde690ba0bde6595f8130c599899a600107d35",
+      "input": "0xa262f5f80000000000000000000000009f21e76ce68b7dda32b6cfecbc6ea3764505ebec",
+      "maxAmount": "10534464520734385259",
+      "medGas": 1784468
+    },
+    {
+      "chain": "optimism",
+      "target": "0xeaf7abe83c25d1a425b6022c46589891e435c604",
+      "selector": "0x0e5c011e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006"
+      ],
+      "sample": "0x2a6bc1c90568f1fba2add60a65edfa055879aacd4749eb2621cd454167aa6f2b",
+      "input": "0x0e5c011e0000000000000000000000009edd211b2deb6176e19e4931dda3441171bfd35a",
+      "maxAmount": "23101977135",
+      "medGas": 2715793
+    },
+    {
+      "chain": "optimism",
+      "target": "0x969d802b313ff51a7cb1383e05e8529a6b5ab81f",
+      "selector": "0x0e5c011e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006"
+      ],
+      "sample": "0x90bc9ed1833876f006fa9a1c83225f6e1027822c2dce8496a74bfaf7f7bcb1b0",
+      "input": "0x0e5c011e0000000000000000000000009edd211b2deb6176e19e4931dda3441171bfd35a",
+      "maxAmount": "25275261533",
+      "medGas": 2433906
+    },
+    {
+      "chain": "optimism",
+      "target": "0x0b95ae29f2f8c86706d7d465f3c022abed4f9078",
+      "selector": "0x0e5c011e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006"
+      ],
+      "sample": "0x222cbf56bcfdbfa2ff2c18376ea63834c7d7a9e8d24950dc6a44da2b79985ac8",
+      "input": "0x0e5c011e0000000000000000000000009edd211b2deb6176e19e4931dda3441171bfd35a",
+      "maxAmount": "19277004872",
+      "medGas": 2579010
+    },
+    {
+      "chain": "optimism",
+      "target": "0xbccdd9e6bc7fe6e59bbca6d8475572f2d0c48726",
+      "selector": "0xfdb5a03e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x9560e827af36c94d2ac33a39bce1fe78631088db"
+      ],
+      "sample": "0x56d632196323b535d7b2ce767a965e23bee9924b040013ae7165675accf40677",
+      "input": "0xfdb5a03e",
+      "maxAmount": "33483668158115518",
+      "medGas": 1630106
+    },
+    {
+      "chain": "optimism",
+      "target": "0x994afa36b085d006a911ce28ba300e8ee71b8bc2",
+      "selector": "0x0e5c011e",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x4200000000000000000000000000000000000006"
+      ],
+      "sample": "0x440592b8936afd197ac257b135f117fc0dbacd4e888a1ecf5c8a0a13df881014",
+      "input": "0x0e5c011e0000000000000000000000009edd211b2deb6176e19e4931dda3441171bfd35a",
+      "maxAmount": "24608000459",
+      "medGas": 2694063
+    },
+    {
+      "chain": "optimism",
+      "target": "0xc1062b7c5dc8e4b1df9f200fe360cdc0ed6e7741",
+      "selector": "0xdccedc74",
+      "occurrences": 1,
+      "distinctKeepers": 1,
+      "tokens": [
+        "0x0b2c639c533813f4aa9d7837caf62653d097ff85"
+      ],
+      "sample": "0x0a2af6525dc649e88552855ec664ce36eb8fefe9cb1c615f4bc2680603cac911",
+      "input": "0xdccedc74000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000002c0",
+      "maxAmount": "3746",
+      "medGas": 493650
+    }
+  ]
+}
