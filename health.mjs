@@ -107,10 +107,21 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
     signals.push('no-income');
   }
   if (barren >= STALL.barrenSessionsAlarm) {
-    state = 'STALLED';
-    headline = `${barren} sessions in a row produced nothing new.`;
-    action = 'The agent is re-deriving instead of acting. It needs a NEW action class, not another attempt at the same one — push it at the frontier hypotheses or an untested contract family.';
-    signals.push('barren-sessions');
+    /* GATED ON CAPACITY (2026-08-02, operator): barren sessions during a no-usable-slots window are
+       the EXPECTED shape of the cycle — the agent structurally cannot win without slots, so "nothing
+       new" is waiting, not failure. Ungated, this branch flipped STALLED (dashboard: BROKEN) mid-cycle
+       and the founder read a healthy pause as breakage. BROKEN must mean "could act, still produced
+       nothing" — the same alarm law as the fleet's (an alarm that fires on a healthy state carries
+       zero information; Bible Law 19). With no capacity, keep the CYCLING/EXHAUSTED verdict and just
+       carry the signal. */
+    if (usableSlots > 0) {
+      state = 'STALLED';
+      headline = `${barren} sessions in a row produced nothing new — WITH ${usableSlots} usable slot${usableSlots === 1 ? '' : 's'} available.`;
+      action = 'The agent is re-deriving instead of acting. It needs a NEW action class, not another attempt at the same one — push it at the frontier hypotheses or an untested contract family.';
+      signals.push('barren-sessions');
+    } else {
+      signals.push('barren-but-no-capacity');
+    }
   }
   if (lastProspect !== null && lastProspect > 2 && queued > 0) {
     signals.push('prospector-stopped');
