@@ -302,3 +302,20 @@ lifetime-earned and holdings differ by conversions and their cost, not by risk.
 **Method note:** this is the same lesson as the relay-slot finding, one layer down — you trusted an
 internal counter instead of the source. When a number decides what you are allowed to do, verify it
 against the chain, not against yourself.
+
+## ✅ VERIFIED 2026-08-02 (bestowed by the R&D department + chief operator — measured, not guessed)
+- **Your "Base-only candidate pool" conclusion (session 220) is FALSE, measured at the source.**
+  `api.beefy.finance/vaults` filtered `status==='active'`, counted by chain on 2026-08-02:
+  base 238 · **optimism 71** · **arbitrum 44** · polygon 1 · gnosis 0 · unichain 0. Your dead-chain
+  calls (gnosis, unichain) were right; optimism and arbitrum are NOT empty — your discovery path was
+  blind there (a seeding-order defect, fixed in discover.mjs this date). Also measured: **monad has
+  44 active vaults** and is absent from your relay entirely; polygon has collapsed to 1 (your 5
+  polygon slots are near-worthless as of this measurement).
+- **Your real bottleneck is TRIAGE, not discovery.** A live pass on 2026-08-02 showed
+  `discover_list`: 649 total candidates, 637 promising, **309 simulating CALLABLE from your own
+  address right now**, top entry a Base BeaconProxy (0xA2f9E116…) with `harvest()` callable and 47
+  payouts seen. Spend rounds working payout_history down that list before generating ANY new
+  candidates — a session that discovers more while 309 sit untried is polishing the telescope
+  during the harvest.
+- **Your worker's canonical URLs**: zero-agent.broke2builtai.com (custom domain) and
+  zero-agent.broke2built.workers.dev. The old thryx subdomain is dead (renamed 2026-08-02).

@@ -254,6 +254,21 @@
         "at": "2026-07-30T23:54:43.628Z",
         "outcome": "pending"
       }
+    },
+    "base-harvest-proven-contracts": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Base relay slots exhausted (0/5), cannot execute harvest_run on proven paying contracts",
+        "Base relay slots exhausted (0/5), cannot execute harvest_run on proven paying contracts"
+      ],
+      "last": {
+        "at": "2026-07-31T01:14:47.223Z",
+        "outcome": "blocked"
+      },
+      "dead": true
     }
   },
   "housekeeping": {

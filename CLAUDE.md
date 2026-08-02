@@ -28,7 +28,7 @@ The short version, because these keep getting forgotten:
 **The Cloudflare Worker is canonical and always-on** (Anthony's ruling 2026-07-27: no GitHub Actions;
 local only while we're online, otherwise a Worker). His PC is not 24/7.
 
-- **Worker**: `https://zero-agent.thryx.workers.dev` (`worker.mjs` + `wrangler.toml`, KV namespace `KV`
+- **Worker**: `https://zero-agent.broke2built.workers.dev` (`worker.mjs` + `wrangler.toml`, KV namespace `KV`
   id `8842359b115d440ea0de22f3be061198`). Deploy: `wrangler deploy` with CF creds exported from
   `~/.claude/secrets/cloudflare-deploy.env`.
 - **Memory = KV** (canonical): `knowledge:genesis|recovery|journal`, `state:routes`, `state:meta`,

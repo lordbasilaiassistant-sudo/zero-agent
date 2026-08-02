@@ -329,12 +329,21 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
     } catch (e) { console.log('behaviourScan FAILED (' + chain + '): ' + String(e && e.message).slice(0, 140)); }
   }
   // Self-seed: a chain with no known keepers bootstraps from contracts we already know pay callers.
-  if (!seeds.length) {
+  // 2026-08-02 (R&D dept diagnosis): this used to run ONLY when `seeds` was empty — so a handful of
+  // weak blind-seed EOAs from a 12-block window would SHADOW the three optimism strategies we
+  // PERSONALLY harvested, and the pass returned 0 candidates on a chain where the upstream index
+  // showed 71 active vaults. Weak evidence must never block strong evidence: the bootstrap ALSO
+  // runs while the chain still has zero candidates in state, and its keepers go FIRST in the walk
+  // order (they are backed by our own settled harvests, the strongest evidence this file holds).
+  const chainCandidates = Object.values(state.candidates || {}).filter(c => c.chain === chain).length;
+  if (!seeds.length || chainCandidates === 0) {
     const known = (state.knownPayers && state.knownPayers[chain]) || KNOWN_PAYERS[chain] || [];
-    if (!known.length) return { skipped: 'no seed keepers and no known payers for ' + chain };
-    const found = await bootstrapKeepers(chain, known);
-    for (const k of found.slice(0, 6)) state.keepers[k.address] = chain;
-    seeds = found.slice(0, 4).map(k => k.address);
+    if (!known.length && !seeds.length) return { skipped: 'no seed keepers and no known payers for ' + chain };
+    if (known.length) {
+      const found = await bootstrapKeepers(chain, known);
+      for (const k of found.slice(0, 6)) state.keepers[k.address] = chain;
+      seeds = [...found.slice(0, 4).map(k => k.address), ...seeds];
+    }
     if (!seeds.length) return { skipped: 'bootstrap found no keepers on ' + chain };
   }
 

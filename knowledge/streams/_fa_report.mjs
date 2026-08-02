@@ -61,12 +61,24 @@ function whyNotDrained(row) {
 }
 
 export async function enrich(hits) {
-  const rows = [];
-  const gated = [];
+  // Flatten first, then enrich with a worker pool. Serially this is ~20 RPC calls per row against free
+  // endpoints; at 121 rows that is long enough to look like a hang, and a run with no progress output
+  // is indistinguishable from a stuck one.
+  const units = [];
   for (const h of hits) {
     if (h.verdict !== 'PAYS') continue;
-    for (const p of h.paying) {
-      for (const d of p.deltas) {
+    for (const p of h.paying) for (const d of p.deltas) units.push({ h, p, d });
+  }
+  const rows = [];
+  const gated = [];
+  let done = 0, cur = 0;
+  const CONC = Number(process.env.FA_ENRICH_CONC || 6);
+  await Promise.all(Array.from({ length: CONC }, async () => {
+    while (cur < units.length) {
+      const { h, p, d } = units[cur++];
+      if (++done % 10 === 0) console.log(`  enriched ${done}/${units.length}`);
+      {
+        {
         // Re-apply the domain gate HERE as well as in the probe: the long sweeps were launched before
         // the balance-poisoning class was discovered, and their hit files still contain it. A gate that
         // only runs in one of two places is not a gate.
@@ -131,6 +143,7 @@ export async function enrich(hits) {
       }
     }
   }
+  }));
   rows.sort((a, b) => b.estUsd - a.estUsd);
   if (gated.length) {
     fs.writeFileSync(path.join(HERE, '_fa_gated_out.json'), JSON.stringify(gated, null, 1));

@@ -142,3 +142,35 @@ PAYS gnosis 0x3111C94B9243a8A99D5A867e00609900e437E2c0 "FaucetToken" :: unknown0
   ..1850/2459 pays=68
   ..1875/2459 pays=68
   ..1900/2459 pays=68
+  ..1925/2459 pays=68
+  ..1950/2459 pays=68
+  ..1975/2459 pays=68
+  ..2000/2459 pays=68
+  ..2025/2459 pays=68
+  ..2050/2459 pays=68
+  ..2075/2459 pays=68
+  ..2100/2459 pays=68
+  ..2125/2459 pays=68
+  ..2150/2459 pays=68
+  ..2175/2459 pays=68
+  ..2200/2459 pays=68
+  ..2225/2459 pays=68
+  ..2250/2459 pays=68
+  ..2275/2459 pays=68
+  ..2300/2459 pays=68
+  ..2325/2459 pays=68
+  ..2350/2459 pays=68
+  ..2375/2459 pays=68
+  ..2400/2459 pays=68
+PAYS optimism 0x0b542f61199d2a01770b601efa0509244bdcee89 null :: harvest(address) -> 1824718379 WETH@0x510601f5
+PAYS optimism 0x969d802b313ff51a7cb1383e05e8529a6b5ab81f null :: harvest(address) -> 13811028990 WETH@0x510601f5
+PAYS optimism 0xeaf7abe83c25d1a425b6022c46589891e435c604 null :: harvest(address) -> 8287940369 WETH@0x510601f5
+PAYS optimism 0x2e0f95e2bf01b9039c65fd0af1476d91ed930f81 null :: harvest(address) -> 2457213555 WETH@0x510601f5
+PAYS optimism 0x994afa36b085d006a911ce28ba300e8ee71b8bc2 null :: harvest(address) -> 12885042294 WETH@0x510601f5
+  ..2425/2459 pays=73
+PAYS optimism 0xb2c27c8b3b76c79d523718efe17af695d1668f25 null :: harvest(address) -> 258489147360 WETH@0x510601f5
+PAYS optimism 0xba309f9687780c9748467fb0a316ca506db48944 null :: harvest(address) -> 10412018016 WETH@0x510601f5
+PAYS optimism 0x142595ff3c59639225db13caf5e48a52b07991be null :: harvest(address) -> 12694407736 WETH@0x510601f5
+  ..2450/2459 pays=76
+
+DONE 2459 probed, 76 pay -> C:\Users\drlor\OneDrive\Desktop\AutoGLMwallet\knowledge\streams\_fa_hits_other.json

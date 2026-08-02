@@ -17,46 +17,38 @@
     "all_chains_priced": [
       {
         "chain": "base",
-        "token_usd": 1917.25,
+        "token_usd": 1903.84,
         "eoa_wei": "8017928993051",
         "safe_wei": "296083079251",
-        "eoa_usd": 0.01537237,
-        "safe_usd": 0.00056767
-      },
-      {
-        "chain": "optimism",
-        "token_usd": 1917.25,
-        "eoa_wei": "0",
-        "safe_wei": "5295623959499",
-        "eoa_usd": 0,
-        "safe_usd": 0.01015304
+        "eoa_usd": 0.01526485,
+        "safe_usd": 0.00056369
       },
       {
         "chain": "arbitrum",
-        "token_usd": 1918.58,
+        "token_usd": 1903.18,
         "eoa_wei": "0",
         "safe_wei": "4417006966913",
         "eoa_usd": 0,
-        "safe_usd": 0.00847438
+        "safe_usd": 0.00840636
       },
       {
         "chain": "polygon",
-        "token_usd": 0.071614,
+        "token_usd": 0.071341,
         "eoa_wei": "0",
         "safe_wei": "24291203357375013",
         "eoa_usd": 0,
-        "safe_usd": 0.00173959
+        "safe_usd": 0.00173296
       }
     ],
-    "all_chains_usd": 0.03630705,
-    "spendable_usd": 0.02093467,
-    "stranded_on_eoa_usd": 0.01537237,
+    "all_chains_usd": 0.02596787,
+    "spendable_usd": 0.01070301,
+    "stranded_on_eoa_usd": 0.01526485,
     "can_transact": false
   },
-  "eth_usd": 1918.21,
+  "eth_usd": 1902.71,
   "health": {
     "state": "CYCLING",
-    "headline": "10 slots are free but ALL of them are on chains with nothing harvestable (gnosis, unichain). Next refill expected in ~2.6h (measured cycle 23.5h).",
+    "headline": "10 slots are free but ALL of them are on chains with nothing harvestable (gnosis, unichain). Next refill expected in ~0.0h (measured cycle 23.5h).",
     "action": "Nothing is stuck. Slots were spent on earning; the batcher re-fires the moment they refill. Free work continues meanwhile: prospector triage, discovery, experiments.",
     "signals": [
       "mid-cycle"
@@ -115,48 +107,48 @@
         "unichain"
       ]
     },
-    "hours_since_earning": 18.54,
+    "hours_since_earning": 21.15,
     "barren_streak": 0,
-    "hours_since_session": 0.1,
+    "hours_since_session": 0.68,
     "queue_remaining": 0,
-    "proven_payers": 157
+    "proven_payers": 182
   },
   "treasury": {
     "home": "base",
-    "home_usd": 0.01594095,
-    "total_across_all_chains_usd": 0.03630896,
+    "home_usd": 0.01582855,
+    "total_across_all_chains_usd": 0.02597115,
     "sweep_method": "CCTP burn-and-mint — no liquidity pool, no bridge operator, NO FEE. You pay gas and nothing else. receiveMessage on the destination is permissionless, so a free relay slot can pay the mint leg and the only real cost is the burn.",
-    "sweepable_now_usd": 0.01015304,
+    "sweepable_now_usd": 0,
     "tributaries": [
       {
-        "chain": "optimism",
-        "spendable_usd": 0.01015304,
-        "stranded_at_eoa_usd": 0,
-        "sweep_ready": true,
-        "cctp_cost_usd": 0.000346,
-        "threshold_usd": 0.00692,
-        "pct_of_threshold": 146.72,
-        "action": "SWEEP to base via CCTP — gas is now under 5% of the amount"
-      },
-      {
         "chain": "arbitrum",
-        "spendable_usd": 0.00847553,
+        "spendable_usd": 0.00840636,
         "stranded_at_eoa_usd": 0,
         "sweep_ready": false,
         "cctp_cost_usd": 0.006951,
         "threshold_usd": 0.13902,
-        "pct_of_threshold": 6.1,
-        "action": "accumulate — needs $0.130544 more before a CCTP sweep is economic"
+        "pct_of_threshold": 6.05,
+        "action": "accumulate — needs $0.130614 more before a CCTP sweep is economic"
       },
       {
         "chain": "polygon",
-        "spendable_usd": 0.00173944,
+        "spendable_usd": 0.00173624,
         "stranded_at_eoa_usd": 0,
         "sweep_ready": false,
         "cctp_cost_usd": 0.00364,
         "threshold_usd": 0.0728,
-        "pct_of_threshold": 2.39,
-        "action": "accumulate — needs $0.071061 more before a CCTP sweep is economic"
+        "pct_of_threshold": 2.38,
+        "action": "accumulate — needs $0.071064 more before a CCTP sweep is economic"
+      },
+      {
+        "chain": "optimism",
+        "spendable_usd": 0,
+        "stranded_at_eoa_usd": 0,
+        "sweep_ready": false,
+        "cctp_cost_usd": 0.000346,
+        "threshold_usd": 0.00692,
+        "pct_of_threshold": 0,
+        "action": "accumulate — needs $0.006920 more before a CCTP sweep is economic"
       },
       {
         "chain": "gnosis",
@@ -187,18 +179,18 @@
       "Sweep via CCTP, which has NO operator fee — gas only. Measured thresholds: optimism $0.0069, polygon $0.0728, arbitrum $0.1390. An earlier version of this policy asserted an UNMEASURED $0.08 bridge fee, set a $1.60 threshold on it, and declared consolidation \"impossible at this size\". Measured, that was wrong by 231x. NEVER adopt a limit you have not measured — an unmeasured limit is a hypothesis, not a wall.",
       "THE SWEEP EXECUTES ITSELF (sweep.mjs, since 2026-07-30): swap to USDC, CCTP burn, mint at the Base Safe — all on free relay slots, checked every 2 minutes. You never need to move funds by hand; this plan is a dashboard, not a to-do list."
     ],
-    "bottleneck_warning": "Only 44% of holdings are on base. Value spread thin across chains cannot act — it is the same trap as stranded WETH. Direct new fees to base where the choice exists."
+    "bottleneck_warning": null
   },
   "prospect": {
     "grind": {
-      "total_candidates": 374,
-      "triaged": 374,
+      "total_candidates": 432,
+      "triaged": 432,
       "still_queued": 0,
-      "callable_now": 180,
-      "PROVEN_PAYING": 157,
-      "eliminated_forever": 2,
-      "prospect_ticks": 326,
-      "last": "2026-07-30T23:18:47.014Z"
+      "callable_now": 207,
+      "PROVEN_PAYING": 182,
+      "eliminated_forever": 4,
+      "prospect_ticks": 353,
+      "last": "2026-07-31T02:22:48.680Z"
     },
     "streams": [
       {
@@ -410,10 +402,10 @@
     "families": [
       {
         "family": "BeaconProxy",
-        "seen": 94,
-        "callable": 85,
-        "pays": 67,
-        "zero": 2,
+        "seen": 126,
+        "callable": 110,
+        "pays": 91,
+        "zero": 3,
         "pay_rate": 0.97
       },
       {
@@ -426,9 +418,9 @@
       },
       {
         "family": "StrategyPassiveManagerUniswap",
-        "seen": 30,
-        "callable": 30,
-        "pays": 29,
+        "seen": 31,
+        "callable": 31,
+        "pays": 30,
         "zero": 0,
         "pay_rate": 1
       },
@@ -489,16 +481,16 @@
         "pay_rate": null
       },
       {
-        "family": "unknown",
-        "seen": 156,
-        "callable": 0,
+        "family": "TransparentUpgradeableProxy",
+        "seen": 1,
+        "callable": 1,
         "pays": 0,
-        "zero": 0,
-        "pay_rate": null
+        "zero": 1,
+        "pay_rate": 0
       },
       {
-        "family": "Volatile AMM - USDC/AERO",
-        "seen": 1,
+        "family": "unknown",
+        "seen": 156,
         "callable": 0,
         "pays": 0,
         "zero": 0,
@@ -507,6 +499,39 @@
     ]
   },
   "recent_harvests": [
+    {
+      "at": "2026-07-31T02:29:31.806Z",
+      "batch": 12,
+      "chain": "optimism",
+      "batched": 12,
+      "expected_wei": "9490491820922",
+      "relayed": true,
+      "taskId": "0xb522d6067e6b62316b41f334580a0d375f39baae8f1926ba611d566629036485",
+      "wei_earned": "0",
+      "eth_earned": "0.0"
+    },
+    {
+      "at": "2026-07-31T02:27:33.132Z",
+      "batch": 12,
+      "chain": "optimism",
+      "batched": 12,
+      "expected_wei": "9445880994681",
+      "relayed": true,
+      "taskId": "0xdde8c6f851ad036f979ff673b77caa48971605c8373989174ed23da8e408754f",
+      "wei_earned": "0",
+      "eth_earned": "0.0"
+    },
+    {
+      "at": "2026-07-31T02:25:41.027Z",
+      "batch": 12,
+      "chain": "optimism",
+      "batched": 12,
+      "expected_wei": "11582287042321",
+      "relayed": true,
+      "taskId": "0xdf3119523bd823a079b6c7618ef6d46a5c642d12a892b8f8461c31a0e268b60a",
+      "wei_earned": "0",
+      "eth_earned": "0.0"
+    },
     {
       "at": "2026-07-30T05:28:55.223Z",
       "chain": "arbitrum",
@@ -565,44 +590,15 @@
       "wei_earned": "867496168272",
       "eth_earned": "0.000000867496168272",
       "earned_usd": 0.00164668
-    },
-    {
-      "at": "2026-07-30T04:29:32.003Z",
-      "batch": 12,
-      "chain": "optimism",
-      "batched": 12,
-      "expected_wei": "6049701724131",
-      "relayed": true,
-      "taskId": "0x425ef25e85e0dde87c7a5f2d2b9302ece5d776276fec90b6406e7f02b3f387f1",
-      "wei_earned": "0",
-      "eth_earned": "0.0"
-    },
-    {
-      "at": "2026-07-30T04:26:54.920Z",
-      "chain": "optimism",
-      "strategy": "0xEaF7ABe83C25D1A425b6022c46589891E435C604",
-      "id": "velo-cow-op-weth-usdc-vault",
-      "relayed": true,
-      "taskId": "0x38b1312a426b2e8071cbe2516c69ea3e11760c0972c3df52fa1ce3228b8ac637",
-      "tx": "0x7f61f68a743ff1effa2b63611bdc2cc32771279f959b7cbe9cac6fd97e677246",
-      "wei_earned": "797913364574",
-      "eth_earned": "0.000000797913364574"
-    },
-    {
-      "at": "2026-07-30T04:24:55.057Z",
-      "chain": "optimism",
-      "strategy": "0xCE601992C13d309ffD3C5a1AC20181E135C0B687",
-      "id": "velodrome-v2-usdc-alusd-2",
-      "relayed": true,
-      "taskId": "0x5d0748c86bbf35ed3b92143fd4d42bea92b3ba2d200f8892aa83cd38e4a340b7",
-      "tx": "0xfce863e5fdf2d13188d15bf534f8bc6d206274d93a762fba4273152556825d00",
-      "wei_earned": "896253604792",
-      "eth_earned": "0.000000896253604792"
     }
   ],
-  "sessions_completed": 120,
-  "last_session": "2026-07-30T23:54:48.763Z",
-  "session_in_progress": null,
+  "sessions_completed": 123,
+  "last_session": "2026-07-31T01:56:48.218Z",
+  "session_in_progress": {
+    "session": 124,
+    "round": 10,
+    "started": "2026-07-31T02:22:40.001Z"
+  },
   "routes": {
     "base-sepolia-faucet-attempts": {
       "attempts": 1,
@@ -858,6 +854,21 @@
         "at": "2026-07-30T23:54:43.628Z",
         "outcome": "pending"
       }
+    },
+    "base-harvest-proven-contracts": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0,
+      "notes": [
+        "Base relay slots exhausted (0/5), cannot execute harvest_run on proven paying contracts",
+        "Base relay slots exhausted (0/5), cannot execute harvest_run on proven paying contracts"
+      ],
+      "last": {
+        "at": "2026-07-31T01:14:47.223Z",
+        "outcome": "blocked"
+      },
+      "dead": true
     }
   },
   "endpoints": [

@@ -1,8 +1,38 @@
 {
  "base": {
-  "probed": 889,
-  "pays": 6,
+  "probed": 892,
+  "pays": 9,
   "dead": 883,
+  "err": 0
+ },
+ "optimism": {
+  "probed": 551,
+  "pays": 32,
+  "dead": 519,
+  "err": 0
+ },
+ "arbitrum": {
+  "probed": 524,
+  "pays": 62,
+  "dead": 462,
+  "err": 0
+ },
+ "polygon": {
+  "probed": 598,
+  "pays": 9,
+  "dead": 589,
+  "err": 0
+ },
+ "gnosis": {
+  "probed": 361,
+  "pays": 6,
+  "dead": 355,
+  "err": 0
+ },
+ "unichain": {
+  "probed": 461,
+  "pays": 3,
+  "dead": 458,
   "err": 0
  }
 }
