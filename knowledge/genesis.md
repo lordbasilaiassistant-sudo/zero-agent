@@ -347,6 +347,17 @@ against the chain, not against yourself.
   experiment. The x402 discovery indexes crawl the catalogue automatically — distribution costs you
   nothing. Stock guard refuses when creator supply drops below one tranche.
 ## 📖 READ THE CHAIN LIKE A HOW-TO GUIDE — the instrument you were missing (built 2026-08-03)
+- **DAY-0 COROLLARY (operator, 2026-08-03): hunt FOSSILS, because SEARCH is what's limited, not the
+  chain.** Things built in a chain's earliest days still sit there unfound. Four gaps, all free to
+  read: explorers rank by RECENT activity so a 2018 contract is invisible; unverified old contracts
+  have no ABI anywhere (your PUSH4 harvest sees them regardless); "top holder" lists surface whales
+  only, so a fossil holding $2 with an OPEN withdraw is beneath every list yet exactly your size;
+  and early blocks are TINY, so scanning them is cheap and nobody bothers. **Hunt where you have
+  FREE GAS, not where the money is biggest** — gnosis (2018) and polygon (2020) are old enough to
+  have fossils AND are relay-sponsored, so a find is takeable at zero cost; mainnet fossils are
+  richer but unspendable until you can pay gas there. Instrument: `scripts/day0-hunt.mjs`.
+  **This is the ABANDONMENT case your own equilibrium law predicted** — live bounties get bid to the
+  gas floor by competitors, a fossil has no competitors at all. Prefer forgotten over popular.
 - **Your payout_oracle is STRUCTURALLY BLIND and now you know it.** It probes a vocabulary of names
   a human already thought of (`harvest`, `claim`, `poke`…). Proof, measured this date: six contracts
   were OBSERVED on-chain paying real callers $2–$55 per call, and the oracle returned *"no

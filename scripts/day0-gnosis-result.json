@@ -1,0 +1,10 @@
+{
+  "probedAt": "2026-08-04T04:04:38.899Z",
+  "chain": "gnosis",
+  "startBlock": 1,
+  "blocksScanned": 3936,
+  "contractsBorn": 14,
+  "fundedFossils": 0,
+  "funded": [],
+  "executableFindings": []
+}
