@@ -1,0 +1,18 @@
+{
+  "deployedAt": "2026-08-04T04:55:04.221Z",
+  "address": "0xB1C110294e19600F397D74162822904aD4801B88",
+  "txHash": "0x69b56076c86e40ab1e1e3758b54e572a2b8bc0bd310b8c4bda27b14e4856adf4",
+  "gasUsed": 316672,
+  "costEth": "0.000001900032",
+  "verify": {
+    "codeBytes": 1218,
+    "ZERO": "0x50624F7790732f9767180871D03A304756200dB9",
+    "ZERO_ok": true,
+    "FACTORY": "0x777777751622c0d3258f214F9DF38E35BF45baF3",
+    "FACTORY_ok": true
+  },
+  "links": {
+    "basescan": "https://basescan.org/address/0xB1C110294e19600F397D74162822904aD4801B88",
+    "blockscout": "https://base.blockscout.com/address/0xB1C110294e19600F397D74162822904aD4801B88"
+  }
+}

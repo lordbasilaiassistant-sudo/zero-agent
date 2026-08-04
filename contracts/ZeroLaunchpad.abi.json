@@ -1,0 +1,96 @@
+[
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "coin",
+    "type": "address"
+   },
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "creator",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "string",
+    "name": "symbol",
+    "type": "string"
+   }
+  ],
+  "name": "Launched",
+  "type": "event"
+ },
+ {
+  "inputs": [],
+  "name": "FACTORY",
+  "outputs": [
+   {
+    "internalType": "contract IZoraFactory",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "ZERO",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "string",
+    "name": "uri",
+    "type": "string"
+   },
+   {
+    "internalType": "string",
+    "name": "name",
+    "type": "string"
+   },
+   {
+    "internalType": "string",
+    "name": "symbol",
+    "type": "string"
+   },
+   {
+    "internalType": "bytes",
+    "name": "poolConfig",
+    "type": "bytes"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "salt",
+    "type": "bytes32"
+   }
+  ],
+  "name": "launch",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "coin",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "payable",
+  "type": "function"
+ },
+ {
+  "stateMutability": "payable",
+  "type": "receive"
+ }
+]
