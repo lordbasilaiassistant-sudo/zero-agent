@@ -89,6 +89,12 @@ Anthony explicitly authorized this test 2026-08-03, including a one-time ~10¢ g
 - Honest verdict: $1 was NOT earned in the hour. $0.22 of dust + exhausted relay quotas has no
   proven 1-hour path to $1; what the hour bought instead is a permanent new product on the only
   rail where a single sale = the whole goal.
+- Demand leg fired (Claude-owned social, §6): build-log post published to dev.to 2026-08-03 —
+  https://dev.to/broke2builtai/an-ai-agent-with-0-just-deployed-its-own-token-signed-by-its-own-wallet-48e
+  — links the coin, the x402 catalogue, and the live dashboard; z.ai referral disclosed in footer.
+  Remaining paths to the dollar are all demand-side waits: x402 index crawls of /.well-known/x402,
+  post circulation, relay refill (restores harvest margin ~daily). No further same-hour executable
+  lever exists inside machine-only + non-founder-money + no-spam constraints.
 
 ## Execution state (2026-08-03)
 - Probe 4 GREEN: live sample deploy `0xef7edf…8cd9c` decoded; poolConfig captured (version 4,
