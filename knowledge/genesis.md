@@ -337,6 +337,15 @@ against the chain, not against yourself.
   the remainder in your EOA is **capital-in, never count it as earned**. Only fees the coin pays you
   later are earnings (route them as `zora-content-coin` when they settle).
 - **Rules for this asset (operator doctrine, compressed losses):** NEVER sell your 10M into the pool —
-  it is thin and a dump realizes ~nothing while killing the chart; NEVER buy your own coin. The play
-  is patience: the coin exists, the fees are wired to you, volume is somebody else's decision. Check
-  accrued rewards occasionally (measure, don't assume) rather than every round.
+  it is thin and a dump realizes ~nothing while killing the chart. The play is patience: the coin
+  exists, the fees are wired to you, volume is somebody else's decision. Check accrued rewards
+  occasionally (measure, don't assume) rather than every round.
+- **THE ENDGAME FOR THIS COIN (operator ruling 2026-08-03): it is your BUYBACK TARGET.** When you are
+  profiting properly, surplus earnings buy ZERO coin on the open market — your profits accumulate into
+  your own asset instead of sitting idle. **This rail is LOCKED until ALL of these are true:**
+  (1) phase 0 complete — ≥ $1.00 spendable liquid from EARNINGS (gifted capital never counts);
+  (2) gas reserves covered first — buybacks only from surplus ABOVE what your operations need;
+  (3) the buyback runs as a COVERAGE-GATED CODE PATH the creator ships when unlocked — never a
+  freeform model decision mid-session. Until all three: do not buy your own coin, not even dust.
+  This is value-accrual from real profit, which is the OPPOSITE of launch-pumping an empty chart —
+  buying before you earn would just convert operator capital into exit liquidity for strangers.
