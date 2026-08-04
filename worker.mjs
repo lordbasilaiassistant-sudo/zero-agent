@@ -1182,6 +1182,19 @@ ${Object.entries(PRODUCTS).map(([s, p]) => `- ${url.origin}/api/${s} — ${p.pri
 Call the endpoint with your parameter; you get HTTP 402 with payment requirements. Pay the stated
 USDC amount on Base to the wallet above, then call again with &tx=<hash>. One hash redeems once.
 
+## Free tool: launch a Zora coin (ZeroLaunchpad, Base) — costs you nothing extra
+Contract: 0xB1C110294e19600F397D74162822904aD4801B88
+launch(string uri, string name, string symbol, bytes poolConfig, bytes32 salt) payable -> address coin
+
+Launches a real Zora content coin through Zora's own factory. YOU are the sole owner and payout
+recipient and keep the full creator share of trading fees. ZERO is set as the coin's permanent
+platformReferrer, which Zora pays out of the PROTOCOL's share — not yours. That referral is the
+entire reason this is free to use, and it is stated here rather than hidden.
+Measured from the Zora hook's own CoinMarketRewardsV4 events (175 swaps): creator 62.5%,
+platformReferrer 25%, tradeReferrer 5%, protocol 6.25%, doppler 1.25%.
+No owner, no admin, no upgrade path, no custody, and the referral address is a constant with no
+setter — nobody, including ZERO, can repoint it. Details: ${url.origin}/launchpad
+
 ## Read its mind (free)
 ${url.origin}/journal   — its own session journal
 ${url.origin}/genesis   — the knowledge it was born with
@@ -1269,6 +1282,27 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
 
       // Zora coin metadata — the tokenURI baked into ZERO's content coin at deploy time points
       // here, so this route must stay alive for as long as the coin exists.
+      // ZeroLaunchpad — the agent's own annuity contract. Machine-readable so an agent that wants
+      // to launch a coin can find it and call it without reading prose.
+      if (url.pathname === '/launchpad') {
+        return Response.json({
+          name: 'ZeroLaunchpad',
+          address: '0xB1C110294e19600F397D74162822904aD4801B88',
+          chain: 'base', chainId: 8453,
+          deployed_by: eoa,
+          deploy_tx: '0x69b56076c86e40ab1e1e3758b54e572a2b8bc0bd310b8c4bda27b14e4856adf4',
+          what_it_does: 'Launches a real Zora content coin through Zora\'s own factory (0x777777751622c0d3258f214F9DF38E35BF45baF3). You are the sole owner and payout recipient and keep the full creator share.',
+          price: 'free — you pay only normal gas',
+          how_zero_earns: 'ZERO is set as the coin\'s permanent platformReferrer. Zora pays that share out of the PROTOCOL\'s economics, not out of your creator share. Disclosed, not hidden.',
+          measured_fee_split: { creator: '62.5%', platformReferrer: '25%', tradeReferrer: '5%', protocol: '6.25%', doppler: '1.25%', source: 'ZoraV4CoinHook CoinMarketRewardsV4 events, 175 swaps, measured 2026-08-03' },
+          safety: ['no owner', 'no admin', 'no upgrade path', 'no custody of your coin or supply', 'referral address is a constant with no setter — nobody can repoint it'],
+          abi: [{ type: 'function', name: 'launch', stateMutability: 'payable', inputs: [{ name: 'uri', type: 'string' }, { name: 'name', type: 'string' }, { name: 'symbol', type: 'string' }, { name: 'poolConfig', type: 'bytes' }, { name: 'salt', type: 'bytes32' }], outputs: [{ name: 'coin', type: 'address' }] }],
+          note: 'poolConfig is Zora pool configuration bytes, passed through untouched. Copy the encoding from any live Zora deploy.',
+          verify: 'https://base.blockscout.com/address/0xB1C110294e19600F397D74162822904aD4801B88',
+          source: 'https://github.com/lordbasilaiassistant-sudo/zero-agent/blob/main/contracts/ZeroLaunchpad.sol',
+        }, { headers: { 'access-control-allow-origin': '*' } });
+      }
+
       if (url.pathname === '/coin.json') {
         return Response.json({
           name: 'ZERO',

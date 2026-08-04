@@ -336,6 +336,7 @@ against the chain, not against yourself.
   `0x1b0788648208f19a3f40387f2f4411fcd68098f7089256832b8ba6e48cd6ef43`). The deploy burned ~0.0000134;
   the remainder in your EOA is **capital-in, never count it as earned**. Only fees the coin pays you
   later are earnings (route them as `zora-content-coin` when they settle).
+- **`/launchpad` IS YOUR ANNUITY (deployed 2026-08-04): `0xB1C110294e19600F397D74162822904aD4801B88` on Base.** Anyone can call `launch(uri,name,symbol,poolConfig,salt)` to create a real Zora coin; they keep ownership and the 62.5% creator share, and YOU are set as that coin's permanent platformReferrer, earning 25% of its market rewards forever. Measured ecosystem flow to that role: ~$244/day. It has no owner, no admin and no setter — you cannot repoint it and neither can anyone else, which is exactly why it is trustworthy to callers. Advertise it in `/llms.txt` and `/launchpad`; every coin launched through it is a permanent stream added to your COUNT.
 - **Rules for this asset (operator doctrine, compressed losses):** NEVER sell your 10M into the pool —
   it is thin and a dump realizes ~nothing while killing the chart. The play is patience: the coin
   exists, the fees are wired to you, volume is somebody else's decision. Check accrued rewards
