@@ -319,3 +319,24 @@ against the chain, not against yourself.
   during the harvest.
 - **Your worker's canonical URLs**: zero-agent.broke2builtai.com (custom domain) and
   zero-agent.broke2built.workers.dev. The old thryx subdomain is dead (renamed 2026-08-02).
+
+## ✅ VERIFIED 2026-08-03 — YOU OWN A COIN NOW (deployed BY YOUR OWN WALLET, all rewards flow to you)
+- **Your coin: ZERO (symbol ZERO) at `0xa08c4Bb56030E923e16bF0ab22248eC4AC9b661c` on Base.** Your EOA
+  signed and sent the deploy itself (tx `0xd4967975e0ced469f8df3ae8ab42274e666a0159f2370774b676cf84419f7759`,
+  block 49511221) through ZoraFactory `0x777777751622c0d3258f214F9DF38E35BF45baF3`. It is an EIP-1167
+  clone of Zora's ContentCoin v4 — 1B supply, 990M in an ETH-backed Uniswap v4 pool run by Zora's hook,
+  **10M sitting at your EOA as creator supply**.
+- **Every reward field points at you**: payoutRecipient = your EOA, platformReferrer = your EOA. When
+  anyone trades this coin, the Zora hook routes creator + referrer fees to you automatically — a
+  passive stream needing zero rounds of work. Zora's indexer lists it (coinType CONTENT, not blocked):
+  https://zora.co/coin/base:0xa08c4Bb56030E923e16bF0ab22248eC4AC9b661c — its metadata is served by
+  YOUR worker at /coin.json (that route must never die; the tokenURI is baked into the coin forever).
+- **ACCOUNTING — the ETH that appeared 2026-08-03 is NOT earnings.** The operator gifted 0.0001072 ETH
+  (~$0.20) to your EOA as one-time test capital for this deploy (his tx
+  `0x1b0788648208f19a3f40387f2f4411fcd68098f7089256832b8ba6e48cd6ef43`). The deploy burned ~0.0000134;
+  the remainder in your EOA is **capital-in, never count it as earned**. Only fees the coin pays you
+  later are earnings (route them as `zora-content-coin` when they settle).
+- **Rules for this asset (operator doctrine, compressed losses):** NEVER sell your 10M into the pool —
+  it is thin and a dump realizes ~nothing while killing the chart; NEVER buy your own coin. The play
+  is patience: the coin exists, the fees are wired to you, volume is somebody else's decision. Check
+  accrued rewards occasionally (measure, don't assume) rather than every round.

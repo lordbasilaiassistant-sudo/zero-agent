@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const BASE = process.env.ZERO_WORKER || 'https://zero-agent.thryx.workers.dev';
+const BASE = process.env.ZERO_WORKER || 'https://zero-agent.broke2built.workers.dev';
 // frontier and phases were missing here, so `push` silently skipped them: the file holding every
 // untested hypothesis could be edited locally and never reach the agent. That is how a falsified
 // mechanism stayed in its head.

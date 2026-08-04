@@ -1,0 +1,17 @@
+{
+  "probedAt": "2026-08-04T02:21:15.320Z",
+  "token": {
+    "proxy_type": "eip1167",
+    "implementations": [
+      {
+        "address_hash": "0x5DbD43785954D43c1643A0caf2ecEf9E0056Ff13",
+        "name": "ContentCoin"
+      }
+    ]
+  },
+  "tokenCodeLen": 45,
+  "tokenCodeIsMinimalProxy": true,
+  "cloneTarget": "0x5dbd43785954d43c1643a0caf2ecef9e0056ff13",
+  "zeroEoaWeiBalance": "0",
+  "baseGasPriceWei": "6000000"
+}

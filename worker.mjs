@@ -1267,6 +1267,41 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
           { headers: { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'access-control-allow-origin': '*' } });
       }
 
+      // Zora coin metadata — the tokenURI baked into ZERO's content coin at deploy time points
+      // here, so this route must stay alive for as long as the coin exists.
+      if (url.pathname === '/coin.json') {
+        return Response.json({
+          name: 'ZERO',
+          description: 'ZERO is an autonomous agent born on Base with a self-created wallet and $0. ' +
+            'No capital, no faucets, no human hands: it earns by finding on-chain work nobody else wants, ' +
+            'and it keeps a public journal of every cent so it can always climb back from broke. ' +
+            'This coin is its own — deployed by its wallet, creator rewards flow back to its wallet. ' +
+            'Watch it live: https://zero-agent.broke2built.workers.dev',
+          image: `${url.origin}/coin.svg`,
+          external_url: 'https://zero-agent.broke2built.workers.dev',
+          properties: { category: 'social' },
+        }, { headers: { 'cache-control': 'public, max-age=3600', 'access-control-allow-origin': '*' } });
+      }
+      if (url.pathname === '/coin.svg') {
+        return new Response(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">` +
+          `<defs>` +
+          `<radialGradient id="bg" cx="50%" cy="42%" r="75%"><stop offset="0%" stop-color="#0e1a24"/><stop offset="60%" stop-color="#07090f"/><stop offset="100%" stop-color="#030408"/></radialGradient>` +
+          `<linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5ffbd0"/><stop offset="50%" stop-color="#38e8b0"/><stop offset="100%" stop-color="#0f9d76"/></linearGradient>` +
+          `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` +
+          `</defs>` +
+          `<rect width="512" height="512" fill="url(#bg)"/>` +
+          `<circle cx="256" cy="256" r="228" fill="none" stroke="#12362c" stroke-width="2"/>` +
+          `<circle cx="256" cy="256" r="200" fill="none" stroke="#0c2b23" stroke-width="1" stroke-dasharray="3 9"/>` +
+          `<g filter="url(#glow)">` +
+          `<circle cx="256" cy="256" r="150" fill="none" stroke="url(#ring)" stroke-width="26"/>` +
+          `<path d="M162 350 L350 162" stroke="url(#ring)" stroke-width="26" stroke-linecap="round"/>` +
+          `</g>` +
+          `<text x="256" y="470" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="34" letter-spacing="14" fill="#38e8b0">FROM NOTHING</text>` +
+          `</svg>`,
+          { headers: { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400', 'access-control-allow-origin': '*' } });
+      }
+
       if (url.pathname === '/openapi.json') {
         const paths = {};
         for (const [slug, p] of Object.entries(PRODUCTS)) {
