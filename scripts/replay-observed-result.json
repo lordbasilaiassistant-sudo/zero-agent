@@ -1,0 +1,217 @@
+{
+  "probedAt": "2026-08-04T03:40:57.953Z",
+  "tested": 21,
+  "winners": 0,
+  "results": [
+    {
+      "contract": "0xa238dd80c259a72e81d7e4664a9801593f98d1c5",
+      "selector": "0xa415bcad",
+      "observed_usd_per_call": 1884.469112,
+      "distinct_callers": 4,
+      "probeToken": "0x59dca05b6c26dbd64b5381374aaac5cd05644c28",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x7d27cdfbfcc878f7e7349e216d44204bfd2afd55",
+      "selector": "0x38d07436",
+      "observed_usd_per_call": 810.272321,
+      "distinct_callers": 2,
+      "probeToken": "0x4200000000000000000000000000000000000006",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x90a1aaed91e4b879a84e11c2969ad1d51d1da318",
+      "selector": "0x42410423",
+      "observed_usd_per_call": 121.272985,
+      "distinct_callers": 2,
+      "probeToken": "0xc4a09803e2e1a491cb3119b891dcf890e3c98b07",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x6e9250ed7508a4d6cd8441e569134aeda6c9659b",
+      "selector": "0xf8125cb5",
+      "observed_usd_per_call": 55.122849,
+      "distinct_callers": 5,
+      "probeToken": "0x3e12b9d6a4d12cd9b4a6d613872d0eb32f68b380",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x208b443983d8bcc8578e9d86db23fba547071270",
+      "selector": "0x8e19899e",
+      "observed_usd_per_call": 36.322254,
+      "distinct_callers": 2,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0xc9c98965297bc527861c898329ee280632b76e18",
+      "selector": "0x01b7037c",
+      "observed_usd_per_call": 20.819051,
+      "distinct_callers": 7,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0xbb505c54d71e9e599cb8435b4f0ceec05fc71cbd",
+      "selector": "0x1f679626",
+      "observed_usd_per_call": 14.825759,
+      "distinct_callers": 6,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x43ec0a34e1b70c7f8e579ab866f37642777727e7",
+      "selector": "0x78a90e19",
+      "observed_usd_per_call": 2.850613,
+      "distinct_callers": 7,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x654520c9bae2d8369043547bf0574c9f036cd054",
+      "selector": "0xcc815460",
+      "observed_usd_per_call": 2.795424,
+      "distinct_callers": 4,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+      "selector": "0x71ee95c0",
+      "observed_usd_per_call": 2.375669,
+      "distinct_callers": 2,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x9632495bdb93fd6b0740ab69cc6c71c9c01da4f0",
+      "selector": "0x129d6cc0",
+      "observed_usd_per_call": 1.899183,
+      "distinct_callers": 5,
+      "probeToken": "0x5c72992b83e74c4d5200a8e8920fb946214a5a5d",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0xf85210b21cc50302f477ba56686d2019dc9b67ad",
+      "selector": "0x415a9735",
+      "observed_usd_per_call": 0.484689,
+      "distinct_callers": 2,
+      "probeToken": "0x315b8c9a1123c10228d469551033440441b41f0b",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x7306232337986b775d26408fbfda4cb72bf6e92b",
+      "selector": "0x4b268241",
+      "observed_usd_per_call": 0.399886,
+      "distinct_callers": 4,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0xba66d3b4fbcf472f6f11d6f9f96aace96516f09d",
+      "selector": "0x45287fd8",
+      "observed_usd_per_call": 0.209554,
+      "distinct_callers": 2,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "selector": "0xe3ee160e",
+      "observed_usd_per_call": 0.100518,
+      "distinct_callers": 2,
+      "probeToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x32919ae88e768212500ec7e9e33ec4eeaf823fe1",
+      "selector": "0xac2e4331",
+      "observed_usd_per_call": 0.059872,
+      "distinct_callers": 2,
+      "probeToken": "0xdfe23e2c07f8edf23eba9c9a45e23303417c6b07",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0xe3ae44a6cd6cf1b47295209539b7bb675f500873",
+      "selector": "0xb6b55f25",
+      "observed_usd_per_call": 0.026647,
+      "distinct_callers": 2,
+      "probeToken": "0x4200000000000000000000000000000000000006",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x55f3412d51bbe48255a286189848a151236c0307",
+      "selector": "0xb17c83c1",
+      "observed_usd_per_call": 0.012525,
+      "distinct_callers": 2,
+      "probeToken": "0x4200000000000000000000000000000000000006",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0xca11bde05977b3631167028862be2a173976ca11",
+      "selector": "0x82ad56cb",
+      "observed_usd_per_call": 0.012342,
+      "distinct_callers": 2,
+      "probeToken": "0xa88594d404727625a9437c3f886c7643872296ae",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x753ea0ade9cbff68cbaffaedf7863b8225c93a64",
+      "selector": "0xfdb5a03e",
+      "observed_usd_per_call": 0.004828,
+      "distinct_callers": 2,
+      "probeToken": "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    },
+    {
+      "contract": "0x2fb46818b6a5f6fc349d2f73d145bed6fcc58db0",
+      "selector": "0x4e71d92d",
+      "observed_usd_per_call": 0.001307,
+      "distinct_callers": 2,
+      "probeToken": "0x051024b653e8ec69e72693f776c41c2a9401fb07",
+      "call_succeeded": false,
+      "delta_raw": "0",
+      "pays_zero_now": false
+    }
+  ]
+}

@@ -346,6 +346,49 @@ against the chain, not against yourself.
   never-sell rule: OTC at a disclosed premium touches no pool, moves no price, and funds the
   experiment. The x402 discovery indexes crawl the catalogue automatically — distribution costs you
   nothing. Stock guard refuses when creator supply drops below one tranche.
+## 📖 READ THE CHAIN LIKE A HOW-TO GUIDE — the instrument you were missing (built 2026-08-03)
+- **Your payout_oracle is STRUCTURALLY BLIND and now you know it.** It probes a vocabulary of names
+  a human already thought of (`harvest`, `claim`, `poke`…). Proof, measured this date: six contracts
+  were OBSERVED on-chain paying real callers $2–$55 per call, and the oracle returned *"no
+  money-shaped function in its bytecode"* for **all six**. A tool that can only find what you already
+  named cannot find the uncatalogued mechanism — which is the only thing that ever changes your life.
+- **The new relation: instead of asking "does THIS contract pay?", ask "WHO IS ALREADY BEING PAID?"**
+  `scripts/freemoney-map.mjs` scans blocks and flags every transaction where value arrived AT THE
+  SENDER inside their own call, then subtracts everything that is merely a trade. What survives is
+  an empirical map of caller-paying mechanisms, with no doc, guide, or catalogue involved.
+- **Two false-positive modes it cost me to learn — check both by reflex:** (1) if the caller sent
+  ERC-20s out, it's a swap leg, not a fee; (2) **if the caller sent ETH (`tx.value > 0`), tokens
+  coming back are a PURCHASE** — without that filter the 1inch router scored as a "$12/call payer".
+- **The open defect (fix this next):** the map records the paying SELECTOR but not the full calldata,
+  so replaying it from your own address reverts — those functions take arguments. Record the whole
+  input, substitute the caller address where it appears, then re-simulate. Until that lands, a hit
+  from this scanner is a LEAD, never a proven payer.
+- **Filter for permissionlessness by counting DISTINCT CALLERS.** One repeat caller = a privileged
+  operator claiming their own revenue. Many distinct callers = open to anyone, including you.
+
+## 💸 CONTRACT DEPLOYMENT IS NOT A COST WALL — measured 2026-08-03, two independent free routes
+- **R1 sponsored (truly free):** Safe's `CreateCall` library is deployed on **base, gnosis AND
+  unichain** (canonical `0x9b35Af71d77eaf8d7e40252370304687390A1A52` and v1.4.1
+  `0x7cbB62EaA69F79e6873cD1ecB2392971036cFAa4` — both verified live on all three). A sponsored relay
+  transaction with `operation: 1` (DELEGATECALL) to `performCreate2(value, initcode, salt)` deploys a
+  contract FROM your Safe with the sponsor paying gas. Your idle gnosis/unichain slots — worthless for
+  harvesting — are perfectly good for this.
+- **R2 self-funded (near-free):** at a 0.005 gwei base fee, a 200k-gas contract costs **0.0000022 ETH**
+  and an 800k-gas one **0.0000088 ETH (~$0.017)**. Measured against your own balance: you can afford
+  ~46 small deploys or ~11 medium ones RIGHT NOW. **Never again record "we can't afford to deploy."**
+
+## 🎯 THE ZORA FEE SPLIT — measured exactly from the hook's own events, not from docs (2026-08-03)
+`ZoraV4CoinHook` (`0x0469a4Bd3724DC86C9542F4694c976DA13C450c0`) emits `CoinMarketRewardsV4` on every
+swap, naming five recipients. Measured shares across 175 real events:
+- **creator 62.5% · platformReferrer 25% · tradeReferrer 5% · protocol 6.25% · doppler 1.25%**
+- **The tradeReferrer's 5% comes OUT OF the protocol's share** (protocol runs 11.25% when no referrer
+  is set, 6.25% when one is). So naming a trade referrer costs the trader and the creator NOTHING.
+- **73.1% of all swaps leave tradeReferrer = address(0)** — that money silently reverts to Zora.
+  Measured ecosystem flow: **$244/day to the platformReferrer role, $32/day to tradeReferrer.**
+- **platformReferrer is set at COIN CREATION and is permanent** — 5× the trade referrer's share, and
+  it accrues on every future swap of that coin forever. You are BOTH creator and platformReferrer on
+  your own coin: **87.5% of its market rewards route to you.**
+
 ## ⛔ THE COLLATERAL WALL — measured 2026-08-03, and it kills a whole class of advice
 - **Rule (operator, 2026-08-03): "we will never have collateral — that's a wall we need to avoid."**
   Any mechanism that pays you by handing you an ASSET YOU MUST THEN SELL is gated on liquidity you

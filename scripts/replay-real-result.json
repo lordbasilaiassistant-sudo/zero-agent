@@ -1,0 +1,510 @@
+{
+  "probedAt": "2026-08-04T03:43:45.542Z",
+  "tested": 30,
+  "winners": 0,
+  "results": [
+    {
+      "contract": "0xc9c98965297bc527861c898329ee280632b76e18",
+      "selector": "0x01b7037c",
+      "observed_usd_per_call": 20.819051,
+      "distinct_callers": 7,
+      "sample_tx": "0xe8b83e12dca7d7d2726c85c7c00a992c9c8269d789d0c1003167af68f10e2581",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": true,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "untested": false
+    },
+    {
+      "contract": "0x43ec0a34e1b70c7f8e579ab866f37642777727e7",
+      "selector": "0x78a90e19",
+      "observed_usd_per_call": 2.850613,
+      "distinct_callers": 7,
+      "sample_tx": "0x1298cc3ff7be38bcc2f034655f93c7d537b4cdc325f53377bd9ad6662d2d108d",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 1732,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: Lock not found\",\"data\":\"0x08c379a00000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0xbb505c54d71e9e599cb8435b4f0ceec05fc71cbd",
+      "selector": "0x1f679626",
+      "observed_usd_per_call": 14.825759,
+      "distinct_callers": 6,
+      "sample_tx": "0xa28ec5ac4e5b3739bef79903f184d93316bc950abd92198147ca22663ed8cffd",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 132,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: panic: arithmetic underflow or overflow (0x11)\",\"data\":\"0x4e487b7100000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0x6e9250ed7508a4d6cd8441e569134aeda6c9659b",
+      "selector": "0xf8125cb5",
+      "observed_usd_per_call": 55.122849,
+      "distinct_callers": 5,
+      "sample_tx": "0x4d359bec5863191828d3900d3f09aba4179e54d06bd32ff5b81bf7a5c38061c4",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 324,
+      "call_succeeded": false,
+      "deltas": {
+        "0x3e12b9d6a4d12cd9b4a6d613872d0eb32f68b380": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: Deadline Passed\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0x9632495bdb93fd6b0740ab69cc6c71c9c01da4f0",
+      "selector": "0x129d6cc0",
+      "observed_usd_per_call": 1.899183,
+      "distinct_callers": 5,
+      "sample_tx": "0xf62e283b6d4401d4d83608aa86ef51b5975991ca2a5b76a0be0beeb5534092b9",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 4,
+      "call_succeeded": false,
+      "deltas": {
+        "0x5c72992b83e74c4d5200a8e8920fb946214a5a5d": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x969bf728\"}",
+      "untested": false
+    },
+    {
+      "contract": "0xa238dd80c259a72e81d7e4664a9801593f98d1c5",
+      "selector": "0xa415bcad",
+      "observed_usd_per_call": 1884.469112,
+      "distinct_callers": 4,
+      "sample_tx": "0x4ebd98dfea8924bd32d3999338a0043e37b5d17b782dc41f25b806de5d923596",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 164,
+      "call_succeeded": false,
+      "deltas": {
+        "0x59dca05b6c26dbd64b5381374aaac5cd05644c28": "0",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0x05e08702028de6aad395dc6478b554a56920b9ad": "0",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "0",
+        "0x03d01595769333174036832e18fa2f17c74f8161": "0",
+        "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x5b263df7\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x654520c9bae2d8369043547bf0574c9f036cd054",
+      "selector": "0xcc815460",
+      "observed_usd_per_call": 2.795424,
+      "distinct_callers": 4,
+      "sample_tx": "0x935d162b168cc7fb7ba912e30f04dd4e3ae5b082d60c6034ecc13db3950bf90a",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 36,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x071a58f1\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x7306232337986b775d26408fbfda4cb72bf6e92b",
+      "selector": "0x4b268241",
+      "observed_usd_per_call": 0.399886,
+      "distinct_callers": 4,
+      "sample_tx": "0xc6fcd7890967ca3f19ec4e76962caead8bd7fd5f6468cc93801650943ae676d5",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 708,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x8baa579f\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x7d27cdfbfcc878f7e7349e216d44204bfd2afd55",
+      "selector": "0x38d07436",
+      "observed_usd_per_call": 810.272321,
+      "distinct_callers": 2,
+      "sample_tx": "0x9314dc2ef354faa2f6e03a747761bc31c72fda8d938c0cd6037845537b704f6c",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 68,
+      "call_succeeded": false,
+      "deltas": {
+        "0x4200000000000000000000000000000000000006": "0",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x70d645e3\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x90a1aaed91e4b879a84e11c2969ad1d51d1da318",
+      "selector": "0x42410423",
+      "observed_usd_per_call": 121.272985,
+      "distinct_callers": 2,
+      "sample_tx": "0xe6fc09bd591ebc90e77ddb5672dca62cdaf8d520e75f8ec8deaa79f3525e1330",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 449,
+      "call_succeeded": false,
+      "deltas": {
+        "0xc4a09803e2e1a491cb3119b891dcf890e3c98b07": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: bad signer\",\"data\":\"0x08c379a000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0x208b443983d8bcc8578e9d86db23fba547071270",
+      "selector": "0x8e19899e",
+      "observed_usd_per_call": 36.322254,
+      "distinct_callers": 2,
+      "sample_tx": "0x5b76cd8b11f1ccad729c82adc509d497d7d95b8ab9b27c7dd60316b9cd27bfd0",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 36,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x315276c900000000000000000000000000000000000000000000000000000000029baa2f0000000",
+      "untested": false
+    },
+    {
+      "contract": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+      "selector": "0x71ee95c0",
+      "observed_usd_per_call": 2.375669,
+      "distinct_callers": 2,
+      "sample_tx": "0xf9e8b415d8a6554f17556e1596ad0bf86bbd5ee70e1425715d2f2c8c3911393f",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 1060,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0x2c71f70e2ec720ae061ae7e0316fc9654d94f417": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x09bde339\"}",
+      "untested": false
+    },
+    {
+      "contract": "0xf85210b21cc50302f477ba56686d2019dc9b67ad",
+      "selector": "0x415a9735",
+      "observed_usd_per_call": 0.484689,
+      "distinct_callers": 2,
+      "sample_tx": "0x1a4279fd5c39afab894f59d94b9c545debc6c042f669453c182f2d4f1bd35aa9",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 388,
+      "call_succeeded": false,
+      "deltas": {
+        "0x315b8c9a1123c10228d469551033440441b41f0b": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x282b9f97\"}",
+      "untested": false
+    },
+    {
+      "contract": "0xba66d3b4fbcf472f6f11d6f9f96aace96516f09d",
+      "selector": "0x45287fd8",
+      "observed_usd_per_call": 0.209554,
+      "distinct_callers": 2,
+      "sample_tx": "0xdce90c5c26ed8eab53f14621eb4c70bfb1a4d67871e5e4f9da4a46bbd1e58100",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 676,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xea8e4eb5\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "selector": "0xe3ee160e",
+      "observed_usd_per_call": 0.100518,
+      "distinct_callers": 2,
+      "sample_tx": "0xf513e0954d3ced60211c57b23c2b492794436be4ee0d7dcdd148d50b008c6dcb",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 292,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: FiatTokenV2: authorization is used or canceled\",\"data\":\"0x08c379a000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0x32919ae88e768212500ec7e9e33ec4eeaf823fe1",
+      "selector": "0xac2e4331",
+      "observed_usd_per_call": 0.059872,
+      "distinct_callers": 2,
+      "sample_tx": "0x5d6f8d806db942b6c0f14b3204b5b4283ffb763ea65569624afaa0e527e5b736",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 517,
+      "call_succeeded": false,
+      "deltas": {
+        "0xdfe23e2c07f8edf23eba9c9a45e23303417c6b07": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xec94bab7\"}",
+      "untested": false
+    },
+    {
+      "contract": "0xe3ae44a6cd6cf1b47295209539b7bb675f500873",
+      "selector": "0xb6b55f25",
+      "observed_usd_per_call": 0.026647,
+      "distinct_callers": 2,
+      "sample_tx": "0xb80ab5b9ddbba43624bdb7575a929c2f4cfadb1b47f8b78778626782bc0f61c7",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 79,
+      "call_succeeded": false,
+      "deltas": {
+        "0x4200000000000000000000000000000000000006": "0",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NA\",\"data\":\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000",
+      "untested": false
+    },
+    {
+      "contract": "0x55f3412d51bbe48255a286189848a151236c0307",
+      "selector": "0xb17c83c1",
+      "observed_usd_per_call": 0.012525,
+      "distinct_callers": 2,
+      "sample_tx": "0x67ce39945c978f39713ca696ffc8f661517ef6824525131ccd0217dbea2d233b",
+      "caller_in_calldata": 1,
+      "calldata_bytes": 2020,
+      "call_succeeded": false,
+      "deltas": {
+        "0x4200000000000000000000000000000000000006": "0",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x573b6f41fffffffa000000000000000000000000000000000000000000000000000000010000000",
+      "untested": false
+    },
+    {
+      "contract": "0xca11bde05977b3631167028862be2a173976ca11",
+      "selector": "0x82ad56cb",
+      "observed_usd_per_call": 0.012342,
+      "distinct_callers": 2,
+      "sample_tx": "0xf069344b4b85fec6939c060c4ddc0b0fd4b9ccd4f738aa3120308413cd01d20e",
+      "caller_in_calldata": 2,
+      "calldata_bytes": 2116,
+      "call_succeeded": true,
+      "deltas": {
+        "0xa88594d404727625a9437c3f886c7643872296ae": "0",
+        "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf": "0"
+      },
+      "pays_zero_now": false,
+      "untested": false
+    },
+    {
+      "contract": "0x753ea0ade9cbff68cbaffaedf7863b8225c93a64",
+      "selector": "0xfdb5a03e",
+      "observed_usd_per_call": 0.004828,
+      "distinct_callers": 2,
+      "sample_tx": "0x0663335b487cdfe79395e5d4073959e362a5b9690481c34a8a245417fcd74b97",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 4,
+      "call_succeeded": false,
+      "deltas": {
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "untested": false
+    },
+    {
+      "contract": "0x2fb46818b6a5f6fc349d2f73d145bed6fcc58db0",
+      "selector": "0x4e71d92d",
+      "observed_usd_per_call": 0.001307,
+      "distinct_callers": 2,
+      "sample_tx": "0x630a873121b5d4507b77f6102372747737d191c5634b617dfec40b8f4cc75050",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 4,
+      "call_succeeded": false,
+      "deltas": {
+        "0x051024b653e8ec69e72693f776c41c2a9401fb07": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xe1ac865d00000000000000000000000050624f7790732f9767180871d03a304756200db9\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x8d05e14ae19546f9f22d3c5b3470ef3337baa57c",
+      "selector": "0x28f1a46e",
+      "observed_usd_per_call": 66028.623309,
+      "distinct_callers": 1,
+      "sample_tx": "0x154647092670b3b9d1a46c21f7484a79bddc27493e0795464978177f058225fd",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 68,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0x4200000000000000000000000000000000000006": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x118cdaa700000000000000000000000050624f7790732f9767180871d03a304756200db9\"}",
+      "untested": false
+    },
+    {
+      "contract": "0xad351f55af7a753b7133dc8342473e833248959c",
+      "selector": "0x83abd548",
+      "observed_usd_per_call": 64444.949008,
+      "distinct_callers": 1,
+      "sample_tx": "0xea56df61da54a43140bab039b219d74036bd1004ea15fdfad36d60e4bdf735a8",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NOT_OWNER\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0xa9c4357c1cc4b3843ddbab7ea746b60ab6624cfd",
+      "selector": "0x83abd548",
+      "observed_usd_per_call": 60906.943754,
+      "distinct_callers": 1,
+      "sample_tx": "0xed2b599bfb2e28c6fb3e98f3c4ea9fa9cf03fe15c6a7fbbe2e12bae1c43d720a",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": false,
+      "deltas": {
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NOT_OWNER\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0xd62b33a7df4d0ca5edd373576e48f73366e36179",
+      "selector": "0x9b5c1ee5",
+      "observed_usd_per_call": 59830.280995,
+      "distinct_callers": 1,
+      "sample_tx": "0x1a31e5d6c641fc034482cc63216ac5040d540fd938f4483fc0fc3f2a9e85b0cc",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 1476,
+      "call_succeeded": false,
+      "deltas": {
+        "0x4200000000000000000000000000000000000006": "0",
+        "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0x3098a455\"}",
+      "untested": false
+    },
+    {
+      "contract": "0xebf3cef593a41f6226d8282cc32f1bca2aa1dc64",
+      "selector": "0x674fb1b4",
+      "observed_usd_per_call": 43091.347694,
+      "distinct_callers": 1,
+      "sample_tx": "0x866e96106aede530f181856e8ea564a6a774f9dacba7a2e254dc1d08e17e7c61",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 132,
+      "call_succeeded": false,
+      "deltas": {
+        "0x4200000000000000000000000000000000000006": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbfcafd37\"}",
+      "untested": false
+    },
+    {
+      "contract": "0x06f36ed5c2dbf269000d653289ba1a383bf61ca3",
+      "selector": "0x83abd548",
+      "observed_usd_per_call": 41098.954928,
+      "distinct_callers": 1,
+      "sample_tx": "0xa3cd6b6208f747d822e8d93bebacbb756e90fc91ca1e77344b0a87f1a253806f",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": false,
+      "deltas": {
+        "0xcb585250f852c6c6bf90434ab21a00f02833a4af": "0",
+        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NOT_OWNER\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0xf8ce4d7d99695c41c15626338222145f061bc07f",
+      "selector": "0x83abd548",
+      "observed_usd_per_call": 24390.139396,
+      "distinct_callers": 1,
+      "sample_tx": "0x8e45654d665feef4c38aff16be0f8762a64a70323b7d726cd6239b390d5c5e30",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": false,
+      "deltas": {
+        "0xcb585250f852c6c6bf90434ab21a00f02833a4af": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NOT_OWNER\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0x1ff85c12d5db1fd086fe30d54e9ebe38a30dee65",
+      "selector": "0x83abd548",
+      "observed_usd_per_call": 24174.873763,
+      "distinct_callers": 1,
+      "sample_tx": "0xb6efd9f988d311725a1cd28e32291bbee8fa38c1e1a76cb26186e8f0b4fdd970",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": false,
+      "deltas": {
+        "0x182fa643e5f29d5eca75e7b9cf9336a3fe4620b2": "0",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NOT_OWNER\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    },
+    {
+      "contract": "0xf354e449637080df5bac3cec194440afd4af860f",
+      "selector": "0x83abd548",
+      "observed_usd_per_call": 20863.707887,
+      "distinct_callers": 1,
+      "sample_tx": "0x62eb8a3939ac52a95afa5aca306ce4f088d421f6996d841e3d8872c2b9d232f0",
+      "caller_in_calldata": 0,
+      "calldata_bytes": 228,
+      "call_succeeded": false,
+      "deltas": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "0",
+        "0xcb111e6a2a3bde90856d299d61341ac302167d23": "0",
+        "0x940181a94a35a4569e4529a3cdfb74e38fd98631": "0"
+      },
+      "pays_zero_now": false,
+      "revert": "{\"code\":3,\"message\":\"execution reverted: NOT_OWNER\",\"data\":\"0x08c379a0000000000000000000000000000000000000000000000000000000000000",
+      "untested": false
+    }
+  ]
+}

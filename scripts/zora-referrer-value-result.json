@@ -1,0 +1,57 @@
+{
+  "probedAt": "2026-08-04T03:34:25.148Z",
+  "spanBlocks": 20000,
+  "spanHours": 11.11,
+  "rewardEvents": 2430,
+  "eventsWithTradeReferrer": 761,
+  "tradeReferrerCoverage": 0.313,
+  "measuredSplitPct": {
+    "creator": 62.5,
+    "platformReferrer": 25,
+    "tradeReferrer": 5,
+    "protocol": 6.25,
+    "doppler": 1.25,
+    "note": "tradeReferrer 5% is taken FROM the protocol share (protocol 11.25% -> 6.25%), so it costs trader and creator NOTHING"
+  },
+  "usd_in_window": {
+    "creatorPayout": 282.6033,
+    "platformReferrer": 113.0413,
+    "tradeReferrer": 15.2112,
+    "protocol": 35.6612,
+    "doppler": 5.6521
+  },
+  "usd_per_day_ecosystem": {
+    "creatorPayout": 610.42,
+    "platformReferrer": 244.17,
+    "tradeReferrer": 32.86,
+    "protocol": 77.03,
+    "doppler": 12.21
+  },
+  "zeroIsRecipient": {
+    "creator": 1,
+    "platformReferrer": 1,
+    "tradeReferrer": 0
+  },
+  "topCoinsByCreatorPlusPlatform": [
+    {
+      "coin": "0x2dFd9eDD7f8C6A27408CF564C01E6d94b9DFd04a",
+      "usd_in_window": 259.2255
+    },
+    {
+      "coin": "0x9b5B5e634B1b072615542c9C6Ce932DA38D2546c",
+      "usd_in_window": 26.5447
+    },
+    {
+      "coin": "0xc61797D648e98E9b73B2dDa925b2e7197588A734",
+      "usd_in_window": 17.146
+    },
+    {
+      "coin": "0x7a954Da1D02B684403904C0595fE3F8D4DEBa4D6",
+      "usd_in_window": 10.6821
+    },
+    {
+      "coin": "0x00A3395F30E81818302C1E33983e888E2FebD059",
+      "usd_in_window": 2.2618
+    }
+  ]
+}
