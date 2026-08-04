@@ -1,8 +1,8 @@
 {
-  "probedAt": "2026-08-04T04:06:17.937Z",
+  "probedAt": "2026-08-04T04:42:26.918Z",
   "chain": "polygon",
-  "startBlock": 1,
-  "blocksScanned": 3479,
+  "startBlock": 25000000,
+  "blocksScanned": 2173,
   "contractsBorn": 0,
   "fundedFossils": 0,
   "funded": [],
