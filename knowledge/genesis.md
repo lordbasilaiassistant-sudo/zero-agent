@@ -346,18 +346,36 @@ against the chain, not against yourself.
   never-sell rule: OTC at a disclosed premium touches no pool, moves no price, and funds the
   experiment. The x402 discovery indexes crawl the catalogue automatically — distribution costs you
   nothing. Stock guard refuses when creator supply drops below one tranche.
+## ⛔ THE COLLATERAL WALL — measured 2026-08-03, and it kills a whole class of advice
+- **Rule (operator, 2026-08-03): "we will never have collateral — that's a wall we need to avoid."**
+  Any mechanism that pays you by handing you an ASSET YOU MUST THEN SELL is gated on liquidity you
+  cannot guarantee. **Zero-capital ≠ zero-inventory-risk.** Flash loans remove the capital
+  requirement and remove NOTHING about the exit.
+- **Proof, measured on Morpho Blue (Base, singleton `0xBBBB…FFCb` — liquidate() and flashLoan() both
+  confirmed in its bytecode, so the mechanism is REAL):** 174 positions were liquidatable at once.
+  The largest showed $112,210 of collateral against $109,348 of repayable debt — an apparent $2,861
+  bonus. **Quoted across every Uniswap v3 fee tier, that collateral sells for $65.** The oracle price
+  is not the market price. Every one of the top 8 failed the same way (USR: proceeds ~$65 regardless
+  of size; RLP: no DEX route at all).
+- **The real lesson: 174 untaken opportunities is a MARKET VERDICT, not an oversight.** When a
+  mechanism looks free and nobody with more capital than you has taken it, the missing leg is not
+  your capital — find the leg they already priced. Here it was the exit.
+- **What survives this filter:** mechanisms that pay you **directly in the asset you already want
+  (ETH/USDC), for an ACTION, with no inventory in between** — keeper call-fees, x402 sales, referral
+  fees, sponsored-relay work. Score every new "opportunity" against that sentence before spending a
+  slot on it.
+
 - **⚠️ MEASURED 2026-08-03: SELF-FUNDED HARVESTS ARE NET-NEGATIVE. Never spend your own ETH on a
   Beefy harvest.** The top three oracle-proven payers ($0.04/$0.014/$0.005) all cost MORE in gas than
   they pay when the EOA funds the tx itself (measured 883k–4.3M gas each — compound loops are heavy).
   The free relay is not a convenience, it IS the margin: harvest only on sponsored slots. Your native
   ETH is for cheap high-value ops only (OTC deliveries ~58k gas, unwraps ~30-50k), never for
   gas-heavy keeper work.
-- **THE ENDGAME FOR THIS COIN (operator ruling 2026-08-03): it is your BUYBACK TARGET.** When you are
-  profiting properly, surplus earnings buy ZERO coin on the open market — your profits accumulate into
-  your own asset instead of sitting idle. **This rail is LOCKED until ALL of these are true:**
-  (1) phase 0 complete — ≥ $1.00 spendable liquid from EARNINGS (gifted capital never counts);
-  (2) gas reserves covered first — buybacks only from surplus ABOVE what your operations need;
-  (3) the buyback runs as a COVERAGE-GATED CODE PATH the creator ships when unlocked — never a
-  freeform model decision mid-session. Until all three: do not buy your own coin, not even dust.
-  This is value-accrual from real profit, which is the OPPOSITE of launch-pumping an empty chart —
-  buying before you earn would just convert operator capital into exit liquidity for strangers.
+- **THE ENDGAME FOR THIS COIN (operator ruling 2026-08-03, sharpened same day): it is your BUYBACK
+  TARGET on a 1% ladder.** The rule, in the operator's words: buy ZERO only after **$10.00 of
+  lifetime EARNINGS** (gifted capital never counts), and from then on **1% of all further earnings**
+  flows into buying and holding more ZERO — a permanent DCA into your own asset, growing forever,
+  never sold. Gas reserves are always covered first, and the buyback runs as a CODE PATH the creator
+  ships at unlock — never a freeform model decision mid-session. Until the $10 mark: do not buy your
+  own coin, not even dust. This is value-accrual from real profit — buying before you earn would just
+  convert operator capital into exit liquidity for strangers.
