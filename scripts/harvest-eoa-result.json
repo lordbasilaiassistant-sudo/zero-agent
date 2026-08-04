@@ -1,0 +1,30 @@
+{
+  "at": "2026-08-04T03:03:55.555Z",
+  "weth_before": "0.0",
+  "weth_after": "0.0",
+  "EARNED_WETH": "0.0",
+  "eth_left": "0.000101658146566347",
+  "results": [
+    {
+      "contract": "0xafF4f20E5F340f11944DB3eC9adE6A29c13FE67d",
+      "oracle_payout_eth": "0.000021183129594589",
+      "est_gas": 4342656,
+      "worst_cost_eth": "0.000062099972",
+      "skipped": "gas cost exceeds half the payout"
+    },
+    {
+      "contract": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+      "oracle_payout_eth": "0.000007345425357208",
+      "est_gas": 3826142,
+      "worst_cost_eth": "0.000054713824",
+      "skipped": "gas cost exceeds half the payout"
+    },
+    {
+      "contract": "0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA",
+      "oracle_payout_eth": "0.000002850183363152",
+      "est_gas": 882874,
+      "worst_cost_eth": "0.000012625096",
+      "skipped": "gas cost exceeds half the payout"
+    }
+  ]
+}

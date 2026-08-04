@@ -76,6 +76,20 @@ Anthony explicitly authorized this test 2026-08-03, including a one-time ~10¢ g
   first time any real trade happens (measure, don't recall); consider a second coin with richer
   IPFS metadata + image only if this one shows any organic volume.
 
+## The $1-in-1-hour sprint (2026-08-03, Anthony's goal) — what was built and measured
+- Harvest rail: oracle-swept the top 8 callable Base candidates. 118× spread confirmed; best three
+  pay $0.04/$0.014/$0.005 — but MEASURED gas is 883k–4.3M each, so **self-funded harvesting is
+  net-negative; only sponsored relay slots make harvests profitable** (all relays exhausted at
+  sprint time; refill restores the margin). Guard skipped all three; $0 spent, $0 earned.
+- **NEW RAIL SHIPPED: `/api/buy-zero`** — 1 USDC OTC tranche of 250,000 ZERO from creator supply,
+  delivered on-chain by the EOA (delivery sim green: 58,046 gas). x402 challenge live + in the
+  Bazaar discovery header; shoptest 13/13; deployed version 0e4bb5ad. Does NOT breach the
+  never-sell doctrine (no pool touch, disclosed premium). Demand unproven — same as the rest of
+  the shop; the x402 indexes are the distribution.
+- Honest verdict: $1 was NOT earned in the hour. $0.22 of dust + exhausted relay quotas has no
+  proven 1-hour path to $1; what the hour bought instead is a permanent new product on the only
+  rail where a single sale = the whole goal.
+
 ## Execution state (2026-08-03)
 - Probe 4 GREEN: live sample deploy `0xef7edf…8cd9c` decoded; poolConfig captured (version 4,
   currency address(0) = ETH-backed, four tick arrays); ZERO's calldata built with the salted

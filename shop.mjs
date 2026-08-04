@@ -49,7 +49,23 @@ export const PRODUCTS = {
     description: 'Recovers the COMPLETE external interface straight from runtime bytecode by scanning the dispatch table for PUSH4 selectors, so it works with no ABI, no source, no explorer entry and no verification. Then prices every one of them and reports which move value to an arbitrary caller. Typical contract exposes 40-90 functions; the source-verified ABI is often not the whole story and a proxy shows none at all until resolved.',
     params: { contract: '0x-prefixed contract address on Base (required)' },
   },
+  // ── the agent's own coin, sold OTC ──────────────────────────────────────────
+  // ZERO deployed its own Zora content coin with its own wallet (2026-08-03) and holds the 10M
+  // creator supply. It will never sell into its own thin pool (that realizes ~nothing and kills the
+  // chart) — but a fixed-price OTC tranche through the storefront touches no pool at all: buyer pays
+  // USDC, ZERO's EOA transfers tokens directly. Full disclosure in the description; the premium IS
+  // the product (you are buying the story and funding the experiment, not market-priced exposure).
+  'buy-zero': {
+    price_usdc: '1.00',
+    units: 1000000n,
+    title: "250,000 ZERO — the agent's own coin, direct from the agent",
+    description: 'ZERO deployed its own Zora content coin on Base (0xa08c4Bb56030E923e16bF0ab22248eC4AC9b661c) with its own wallet and holds the creator supply. This buys 250,000 ZERO delivered on-chain from that supply to your address, signed and sent by the agent itself. FULL DISCLOSURE: this fixed price is ABOVE the current pool price and the pool is thin — this is not an investment and you should expect to be unable to resell at this price; you are funding an autonomous $0-start experiment and buying a piece of its story. The agent never sells into its own pool and never buys its own coin.',
+    params: { address: 'the Base address that should receive the 250,000 ZERO (required)' },
+  },
 };
+
+export const ZERO_COIN = '0xa08c4Bb56030E923e16bF0ab22248eC4AC9b661c';
+const ZERO_TRANCHE = 250000n * 10n ** 18n;
 
 const j = (o, s = 200, extra = {}) => new Response(JSON.stringify(o, null, 2), {
   status: s, headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'access-control-expose-headers': 'Payment-Required, X-Payment-Response', ...extra },
@@ -112,6 +128,17 @@ const BAZAAR = {
       external_functions_found: 82, variants_probed: 164,
       paying_functions: [{ selector: '0x0e5c011e', shape: '(address)', eth: '0.0000089654', usd: 0.01721 }],
       verdict: 'PAYS: 0x0e5c011e(address)',
+    },
+  },
+  'buy-zero': {
+    tags: ['memecoin', 'zora', 'content-coin', 'base', 'agents', 'autonomous', 'collectible'],
+    paramName: 'address',
+    paramDesc: 'Base address that receives the 250,000 ZERO tokens',
+    example: {
+      product: 'buy-zero', coin: '0xa08c4Bb56030E923e16bF0ab22248eC4AC9b661c',
+      tranche: '250000', recipient: '0x0000000000000000000000000000000000000001',
+      delivery_tx: '0x…', delivery_status: 'confirmed',
+      disclosure: 'fixed price above pool price; thin pool; funds an autonomous-agent experiment',
     },
   },
 };
@@ -415,6 +442,7 @@ export async function handleShop(req, env, url, rpc, payTo) {
     body = slug === 'contract-audit' ? await buildContractAudit(env, rpc, target)
       : slug === 'payout-oracle' ? await buildPayoutOracle(rpc, target)
       : slug === 'interface-xray' ? await buildInterfaceXray(rpc, target)
+      : slug === 'buy-zero' ? await deliverZeroTranche(env, rpc, target)
       : await buildWalletBrief(env, rpc, target);
   } catch (e) {
     return j({ error: 'report generation failed', detail: String(e.message).slice(0, 200), note: 'your payment was recorded; contact the operator via the repo for a re-issue' }, 500);
@@ -451,6 +479,47 @@ const WETH_BASE = '0x4200000000000000000000000000000000000006';
 async function ethUsdBase() {
   try { return parseFloat((await (await fetch('https://base.blockscout.com/api/v2/stats')).json()).coin_price) || 0; }
   catch { return 0; }
+}
+
+// ── OTC delivery of the agent's own coin ────────────────────────────────────
+// Runs AFTER payment is verified and the hash burned. The EOA holds native Base gas (first funded
+// 2026-08-03), so it signs a plain ERC-20 transfer itself — no relay slot, no paymaster.
+export async function deliverZeroTranche(env, rpc, to) {
+  if (!env.AGENT_PRIVATE_KEY) throw new Error('agent key missing on this Worker');
+  const wallet = new ethers.Wallet(env.AGENT_PRIVATE_KEY);
+  const eoa = wallet.address;
+
+  // stock check — creator supply must cover the tranche
+  const bal = BigInt(await rpc('base', 'eth_call', [{ to: ZERO_COIN, data: '0x70a08231' + eoa.slice(2).toLowerCase().padStart(64, '0') }, 'latest']));
+  if (bal < ZERO_TRANCHE) throw new Error('sold out: creator supply below one tranche');
+
+  const data = '0xa9059cbb' + to.slice(2).toLowerCase().padStart(64, '0') + ZERO_TRANCHE.toString(16).padStart(64, '0');
+  const [nonceHex, gasHex, block, prioHex] = await Promise.all([
+    rpc('base', 'eth_getTransactionCount', [eoa, 'pending']),
+    rpc('base', 'eth_estimateGas', [{ from: eoa, to: ZERO_COIN, data }]),
+    rpc('base', 'eth_getBlockByNumber', ['latest', false]),
+    rpc('base', 'eth_maxPriorityFeePerGas', []).catch(() => '0x0f4240'),
+  ]);
+  const signed = await wallet.signTransaction({
+    type: 2, chainId: 8453, nonce: Number(nonceHex), to: ZERO_COIN, value: 0n, data,
+    gasLimit: (BigInt(gasHex) * 130n) / 100n,
+    maxFeePerGas: BigInt(block.baseFeePerGas) * 2n + BigInt(prioHex),
+    maxPriorityFeePerGas: BigInt(prioHex),
+  });
+  const txHash = await rpc('base', 'eth_sendRawTransaction', [signed]);
+  let status = 'pending';
+  for (let i = 0; i < 8; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const rcpt = await rpc('base', 'eth_getTransactionReceipt', [txHash]).catch(() => null);
+    if (rcpt) { status = rcpt.status === '0x1' ? 'confirmed' : 'REVERTED'; break; }
+  }
+  return {
+    product: 'buy-zero', coin: ZERO_COIN, tranche: '250000', recipient: to,
+    delivery_tx: txHash, delivery_status: status,
+    verify: `https://base.blockscout.com/tx/${txHash}`,
+    zora: `https://zora.co/coin/base:${ZERO_COIN}`,
+    disclosure: 'fixed price above pool price; thin pool; you funded an autonomous-agent experiment. If delivery_status is pending, the transfer confirms within seconds — check the verify link.',
+  };
 }
 
 export async function buildPayoutOracle(rpc, contract) {

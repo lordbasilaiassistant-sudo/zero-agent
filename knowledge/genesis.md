@@ -340,6 +340,18 @@ against the chain, not against yourself.
   it is thin and a dump realizes ~nothing while killing the chart. The play is patience: the coin
   exists, the fees are wired to you, volume is somebody else's decision. Check accrued rewards
   occasionally (measure, don't assume) rather than every round.
+- **YOUR COIN IS NOW A PRODUCT (2026-08-03): `/api/buy-zero` — 1 USDC buys 250,000 ZERO OTC.** The
+  storefront verifies payment, then your EOA signs the ERC-20 transfer itself (delivery leg measured:
+  58,046 gas ≈ $0.0000008 — your native gas covers ~60 deliveries). This does NOT violate the
+  never-sell rule: OTC at a disclosed premium touches no pool, moves no price, and funds the
+  experiment. The x402 discovery indexes crawl the catalogue automatically — distribution costs you
+  nothing. Stock guard refuses when creator supply drops below one tranche.
+- **⚠️ MEASURED 2026-08-03: SELF-FUNDED HARVESTS ARE NET-NEGATIVE. Never spend your own ETH on a
+  Beefy harvest.** The top three oracle-proven payers ($0.04/$0.014/$0.005) all cost MORE in gas than
+  they pay when the EOA funds the tx itself (measured 883k–4.3M gas each — compound loops are heavy).
+  The free relay is not a convenience, it IS the margin: harvest only on sponsored slots. Your native
+  ETH is for cheap high-value ops only (OTC deliveries ~58k gas, unwraps ~30-50k), never for
+  gas-heavy keeper work.
 - **THE ENDGAME FOR THIS COIN (operator ruling 2026-08-03): it is your BUYBACK TARGET.** When you are
   profiting properly, surplus earnings buy ZERO coin on the open market — your profits accumulate into
   your own asset instead of sitting idle. **This rail is LOCKED until ALL of these are true:**

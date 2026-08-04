@@ -1,0 +1,357 @@
+{
+  "at": "2026-08-04T03:03:06.174Z",
+  "chain": "base",
+  "rows": [
+    {
+      "contract": "0x8a311D7048c35985aa31C131B9A13e03a5f7422d",
+      "name": "TransparentUpgradeableProxy",
+      "fn": "claimRebate()",
+      "payouts_seen": 98,
+      "oracle": {
+        "contract": "0x8a311D7048c35985aa31C131B9A13e03a5f7422d",
+        "chain": "base",
+        "exposed": 0,
+        "paying": [],
+        "verdict": "no money-shaped function in its bytecode"
+      }
+    },
+    {
+      "contract": "0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA",
+      "name": "BeaconProxy",
+      "fn": "harvest(address)",
+      "payouts_seen": 47,
+      "oracle": {
+        "contract": "0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000002850183363152",
+            "paid_wei": "2850183363152"
+          }
+        ],
+        "best_wei": "2850183363152",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000002850183363152"
+      }
+    },
+    {
+      "contract": "0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA",
+      "name": "BeaconProxy",
+      "fn": "harvest()",
+      "payouts_seen": 47,
+      "oracle": {
+        "contract": "0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000002850183363152",
+            "paid_wei": "2850183363152"
+          }
+        ],
+        "best_wei": "2850183363152",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000002850183363152"
+      }
+    },
+    {
+      "contract": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+      "name": "StrategyERC4626",
+      "fn": "claim()",
+      "payouts_seen": 4,
+      "oracle": {
+        "contract": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+        "chain": "base",
+        "exposed": 3,
+        "callable_now": [
+          "harvest()",
+          "claim()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000032014163652",
+            "paid_wei": "32014163652"
+          }
+        ],
+        "best_wei": "32014163652",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000032014163652"
+      }
+    },
+    {
+      "contract": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+      "name": "StrategyERC4626",
+      "fn": "harvest(address)",
+      "payouts_seen": 4,
+      "oracle": {
+        "contract": "0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a",
+        "chain": "base",
+        "exposed": 3,
+        "callable_now": [
+          "harvest()",
+          "claim()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000032014163652",
+            "paid_wei": "32014163652"
+          }
+        ],
+        "best_wei": "32014163652",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000032014163652"
+      }
+    },
+    {
+      "contract": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+      "name": "StrategyMerkl",
+      "fn": "harvest(address)",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000007345425357208",
+            "paid_wei": "7345425357208"
+          }
+        ],
+        "best_wei": "7345425357208",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000007345425357208"
+      }
+    },
+    {
+      "contract": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+      "name": "StrategyMerkl",
+      "fn": "harvest()",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0x6aEa497106845bCE2CCe35E770a12a63288c5B65",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000007345425357208",
+            "paid_wei": "7345425357208"
+          }
+        ],
+        "best_wei": "7345425357208",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000007345425357208"
+      }
+    },
+    {
+      "contract": "0xd38301cB6882489125Bc1c52EcCeE27671797F50",
+      "name": "StrategyPassiveManagerPancake",
+      "fn": "claimEarnings()",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0xd38301cB6882489125Bc1c52EcCeE27671797F50",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000724279824546",
+            "paid_wei": "724279824546"
+          }
+        ],
+        "best_wei": "724279824546",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000724279824546"
+      }
+    },
+    {
+      "contract": "0xd38301cB6882489125Bc1c52EcCeE27671797F50",
+      "name": "StrategyPassiveManagerPancake",
+      "fn": "harvest(address)",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0xd38301cB6882489125Bc1c52EcCeE27671797F50",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000724279824546",
+            "paid_wei": "724279824546"
+          }
+        ],
+        "best_wei": "724279824546",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000724279824546"
+      }
+    },
+    {
+      "contract": "0xafF4f20E5F340f11944DB3eC9adE6A29c13FE67d",
+      "name": "StrategyMerkl",
+      "fn": "harvest(address)",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0xafF4f20E5F340f11944DB3eC9adE6A29c13FE67d",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000021183129594589",
+            "paid_wei": "21183129594589"
+          }
+        ],
+        "best_wei": "21183129594589",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000021183129594589"
+      }
+    },
+    {
+      "contract": "0xafF4f20E5F340f11944DB3eC9adE6A29c13FE67d",
+      "name": "StrategyMerkl",
+      "fn": "harvest()",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0xafF4f20E5F340f11944DB3eC9adE6A29c13FE67d",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000021183129594589",
+            "paid_wei": "21183129594589"
+          }
+        ],
+        "best_wei": "21183129594589",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000021183129594589"
+      }
+    },
+    {
+      "contract": "0xfE08B292A99Ac8A2DE20CD73d66723816A907E51",
+      "name": "StrategyPassiveManagerPancake",
+      "fn": "claimEarnings()",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0xfE08B292A99Ac8A2DE20CD73d66723816A907E51",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000039732891962",
+            "paid_wei": "39732891962"
+          }
+        ],
+        "best_wei": "39732891962",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000039732891962"
+      }
+    },
+    {
+      "contract": "0xfE08B292A99Ac8A2DE20CD73d66723816A907E51",
+      "name": "StrategyPassiveManagerPancake",
+      "fn": "harvest(address)",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0xfE08B292A99Ac8A2DE20CD73d66723816A907E51",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000039732891962",
+            "paid_wei": "39732891962"
+          }
+        ],
+        "best_wei": "39732891962",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000039732891962"
+      }
+    },
+    {
+      "contract": "0x780e6E54b23D8A97F17aAdF8c435948cD8Bf65DD",
+      "name": "StrategyPassiveManagerPancake",
+      "fn": "claimEarnings()",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0x780e6E54b23D8A97F17aAdF8c435948cD8Bf65DD",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000015954422364",
+            "paid_wei": "15954422364"
+          }
+        ],
+        "best_wei": "15954422364",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000015954422364"
+      }
+    },
+    {
+      "contract": "0x780e6E54b23D8A97F17aAdF8c435948cD8Bf65DD",
+      "name": "StrategyPassiveManagerPancake",
+      "fn": "harvest(address)",
+      "payouts_seen": 3,
+      "oracle": {
+        "contract": "0x780e6E54b23D8A97F17aAdF8c435948cD8Bf65DD",
+        "chain": "base",
+        "exposed": 2,
+        "callable_now": [
+          "harvest()",
+          "harvest(address)"
+        ],
+        "paying": [
+          {
+            "sig": "harvest(address)",
+            "paid": "0.000000015954422364",
+            "paid_wei": "15954422364"
+          }
+        ],
+        "best_wei": "15954422364",
+        "verdict": "PAYS AN ARBITRARY CALLER RIGHT NOW: harvest(address) → 0.000000015954422364"
+      }
+    }
+  ]
+}
