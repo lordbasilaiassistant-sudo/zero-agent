@@ -280,13 +280,21 @@ const NATIVE_STATS = {
   gnosis: 'https://gnosis.blockscout.com/api/v2/stats',
   polygon: 'https://polygon.blockscout.com/api/v2/stats',
 };
+// RETURNS null WHEN THE PRICE IS UNKNOWN, NEVER 0. Returning 0 for "I could not read this" is the
+// repo's own documented trap — a failed read looking exactly like a null result — and it fired here:
+// Polygon's stats endpoint intermittently answers without a coin_price, so WPOL priced at $0 and the
+// whole Polygon pile silently vanished from every total instead of being flagged as unknown. Callers
+// that do `price ? x : 0` are unaffected (null is falsy); callers that need to KNOW can now tell the
+// difference between "worth nothing" and "not measured".
 export async function nativeUsd(chain = 'base') {
   const url = NATIVE_STATS[chain];
-  if (!url) return 0;
+  if (!url) return null;
   try {
     const r = await fetch(url);
-    return parseFloat((await r.json()).coin_price) || 0;
-  } catch { return 0; }
+    if (!r.ok) return null;
+    const p = parseFloat((await r.json()).coin_price);
+    return Number.isFinite(p) && p > 0 ? p : null;
+  } catch { return null; }
 }
 
 // ── ground truth ────────────────────────────────────────────────────────────
@@ -298,45 +306,147 @@ export async function nativeUsd(chain = 'base') {
 // The honest number is the chain itself: ZERO has never spent or moved anything, so everything it has
 // ever earned is still sitting in one of its two addresses. Sum them and that IS lifetime earnings.
 // If it ever does spend, `weiSpent` must be incremented at the spend site and added back in here.
+// Native USDC (Circle-issued, CCTP-burnable) per chain. VERIFIED 2026-08-12 by reading symbol(),
+// name() and decimals() off each address: all five answer symbol=USDC, decimals=6, name="USD Coin"
+// (Unichain's answers name="USDC"). These are NOT the bridged USDC.e variants, which name themselves
+// "Bridged USDC" and cannot be burned by CCTP.
+export const USDC_BY_CHAIN = {
+  base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  optimism: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+  arbitrum: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+  polygon: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+  unichain: '0x078D782b760474a361dDA0AF3839290b0EF57AD6',
+};
+
+// THE HOME CHAIN, and the only place "spendable" can mean anything. DOCTRINE §12: home = base,
+// chosen on measurement (USDC depth 26x, ERC-4337 activity 134x vs optimism).
+export const HOME_CHAIN = 'base';
+
+// ── THE SCOREBOARD ──────────────────────────────────────────────────────────
+// DOCTRINE §11b: "Phase 0's exit condition is $1.00 of SPENDABLE, LIQUID, NATIVE ETH the agent can
+// spend without anyone's permission. Not total holdings. Not wrapped. Not 'in the Safe pending a
+// relay slot'."
+//
+// This function reported the exact opposite for weeks. It summed the SAFE's wrapped-native across
+// every chain into `spendable_usd` — the one bucket doctrine explicitly excludes — and it never read
+// native ETH at all, so the single asset that IS spendable was missing from its own metric. Measured
+// 2026-08-12: it published $0.2272606 spendable while the EOA held 0.000001151028698337 ETH on Base,
+// i.e. $0.002176. Overstated 104x, and overstated in the direction that makes the conversion work
+// look unnecessary — which is precisely why the funnel was allowed to stall (see escapeCycle).
+//
+// Three buckets now, and they never mix:
+//   SPENDABLE  native ETH at the EOA on Base. No quota, no sponsor, nobody can revoke it. THE metric.
+//   HOLDINGS   everything, everywhere, priced in its own token. Real, but mostly cannot act yet.
+//   UNPRICED   value we can SEE but could not PRICE. Never folded into a dollar total as zero.
 export async function reconcileEarnings(env, rpc, eoa, safe) {
   // Wei from different chains are DIFFERENT TOKENS and must never be added together. WETH ~$1915,
   // WPOL ~$0.07, WXDAI ~$1.00 — summing the raw wei and multiplying by the ETH price is how a
   // $0.0000076 Polygon fee got logged as $0.20. Convert each chain to USD at ITS OWN native price
   // first, then add the dollars.
   const per = [];
-  let usdTotal = 0, usdSpendable = 0, usdStranded = 0;
+  const unpriced = [];
+  const readErrors = [];
+  let usdTotal = 0, usdSpendable = 0, usdStranded = 0, usdSafeWrapped = 0, usdEoaNativeAway = 0, usdUsdc = 0;
   for (const [name, c] of Object.entries(CHAINS)) {
     try {
-      const [onEoa, onSafe, price] = await Promise.all([
-        wethBalance(rpc, eoa, name, c.weth),
-        wethBalance(rpc, safe, name, c.weth),
-        nativeUsd(name),
-      ]);
-      if (!onEoa && !onSafe) continue;
-      const toUsd = (wei) => (price ? Number(ethers.formatEther(wei)) * price : 0);
-      const eoaUsd = toUsd(onEoa), safeUsd = toUsd(onSafe);
-      per.push({
-        chain: name, token_usd: price || null,
-        eoa_wei: onEoa.toString(), safe_wei: onSafe.toString(),
-        eoa_usd: +eoaUsd.toFixed(8), safe_usd: +safeUsd.toFixed(8),
-      });
-      usdTotal += eoaUsd + safeUsd;
-      // Wrapped native at the EOA cannot be moved: the EOA holds no gas, and no permissionless
-      // paymaster accepts it. Counting it as usable capital would be a lie to future-you.
-      usdStranded += eoaUsd;
-      usdSpendable += safeUsd;
-    } catch { /* one chain being unreachable must not corrupt the total */ }
+      // Sequential, not Promise.all: 38 parallel probes on this project were once silently
+      // rate-limited into a clean-looking zero. A wrong zero here is a lie about how rich we are.
+      const eoaWrapped = await wethBalance(rpc, eoa, name, c.weth);
+      const safeWrapped = await wethBalance(rpc, safe, name, c.weth);
+      const eoaNative = BigInt(await rpc(name, 'eth_getBalance', [eoa, 'latest']));
+      const safeNative = BigInt(await rpc(name, 'eth_getBalance', [safe, 'latest']));
+      let eoaUsdc = 0n, safeUsdc = 0n;
+      if (USDC_BY_CHAIN[name]) {
+        try {
+          eoaUsdc = await wethBalance(rpc, eoa, name, USDC_BY_CHAIN[name]);
+          safeUsdc = await wethBalance(rpc, safe, name, USDC_BY_CHAIN[name]);
+        } catch (e) { readErrors.push(`${name} usdc: ${String(e.message).slice(0, 60)}`); }
+      }
+      const price = await nativeUsd(name);
+
+      const anything = eoaWrapped || safeWrapped || eoaNative || safeNative || eoaUsdc || safeUsdc;
+      if (!anything) continue;
+
+      // NEVER `price ? x : 0`. An unknown price makes the USD figure UNKNOWN, not zero — coercing it
+      // deleted the entire Polygon pile from every total we ever printed.
+      const toUsd = (wei) => (price === null ? null : Number(ethers.formatEther(wei)) * price);
+      const eoaWrappedUsd = toUsd(eoaWrapped), safeWrappedUsd = toUsd(safeWrapped);
+      const eoaNativeUsd = toUsd(eoaNative), safeNativeUsd = toUsd(safeNative);
+      const usdcUsd = Number(eoaUsdc + safeUsdc) / 1e6;   // USDC is a dollar by construction
+
+      const row = {
+        chain: name,
+        token_usd: price,
+        price_known: price !== null,
+        eoa_native_wei: eoaNative.toString(),
+        safe_native_wei: safeNative.toString(),
+        eoa_wei: eoaWrapped.toString(),          // wrapped native at the EOA (kept: consumers read it)
+        safe_wei: safeWrapped.toString(),        // wrapped native at the Safe
+        eoa_usdc_units: eoaUsdc.toString(),
+        safe_usdc_units: safeUsdc.toString(),
+        eoa_usd: eoaWrappedUsd === null ? null : +eoaWrappedUsd.toFixed(8),
+        safe_usd: safeWrappedUsd === null ? null : +safeWrappedUsd.toFixed(8),
+        eoa_native_usd: eoaNativeUsd === null ? null : +eoaNativeUsd.toFixed(8),
+        usdc_usd: +usdcUsd.toFixed(6),
+      };
+      if (price === null) {
+        row.warning = 'PRICE UNKNOWN — this chain holds real value that is NOT included in any USD total below. It is not zero; it is unmeasured.';
+        unpriced.push({ chain: name, wrapped_wei_total: (eoaWrapped + safeWrapped + eoaNative + safeNative).toString(), usdc_units: (eoaUsdc + safeUsdc).toString() });
+      }
+      per.push(row);
+
+      usdUsdc += usdcUsd;
+      usdTotal += usdcUsd;
+      for (const v of [eoaWrappedUsd, safeWrappedUsd, eoaNativeUsd, safeNativeUsd]) if (v !== null) usdTotal += v;
+      // Wrapped native at the EOA cannot be moved: no permissionless paymaster accepts it and moving
+      // it costs gas the EOA may not have. Counting it as usable capital would be a lie to future-you.
+      if (eoaWrappedUsd !== null) usdStranded += eoaWrappedUsd;
+      if (safeWrappedUsd !== null) usdSafeWrapped += safeWrappedUsd;
+      // THE ONE NUMBER THAT MEANS CAPABILITY. Base only: doctrine's home chain, and the chain whose
+      // ETH pays for everything else we want to do.
+      if (name === HOME_CHAIN && eoaNativeUsd !== null) usdSpendable += eoaNativeUsd;
+      else if (eoaNativeUsd !== null) usdEoaNativeAway += eoaNativeUsd;
+    } catch (e) {
+      // One chain being unreachable must not corrupt the total — but it must not be INVISIBLE either.
+      readErrors.push(`${name}: ${String(e.message).slice(0, 80)}`);
+    }
   }
   const state = (await env.KV.get('harvest:state', 'json')) || {};
+  const r2 = (n) => +n.toFixed(8);
   return {
     measured_at: new Date().toISOString(),
-    source: 'on-chain wrapped-native balances at both addresses, each priced in ITS OWN token (ground truth, not a tracker)',
-    lifetime_earned_usd: +usdTotal.toFixed(8),
-    spendable_usd: +usdSpendable.toFixed(8),
-    stranded_on_eoa_usd: +usdStranded.toFixed(8),
+    source: 'on-chain native + wrapped-native + USDC balances at both addresses, each priced in ITS OWN token (ground truth, not a tracker)',
+
+    // ── THE SCOREBOARD. Read this one and nothing else if you read only one number. ──
+    spendable_liquid_native_eth_on_base_usd: r2(usdSpendable),
+    spendable_usd: r2(usdSpendable),   // same number; kept for existing consumers
+    phase0_target_usd: 1.00,
+    phase0_pct: +((usdSpendable / 1.00) * 100).toFixed(4),
+    spendable_means: 'NATIVE ETH AT THE EOA ON BASE, and nothing else. No quota, no sponsor, nobody can revoke it. Wrapped native in the Safe is NOT this — it needs a relay slot, which is somebody else\'s permission. DOCTRINE §11b.',
+
+    // ── Everything it owns. Real value, mostly unable to act yet. NOT the scoreboard. ──
+    total_holdings_usd: r2(usdTotal),
+    lifetime_earned_usd: r2(usdTotal),  // same number; kept for existing consumers
+    holdings_breakdown: {
+      spendable_native_eth_on_base_usd: r2(usdSpendable),
+      native_eth_at_eoa_other_chains_usd: r2(usdEoaNativeAway),
+      wrapped_native_in_safe_usd: r2(usdSafeWrapped),
+      wrapped_native_stranded_at_eoa_usd: r2(usdStranded),
+      usdc_usd: +usdUsdc.toFixed(6),
+    },
+    holdings_note: 'total_holdings_usd is NET WORTH, not capability. Only spendable_liquid_native_eth_on_base_usd is capability. Reporting the total as if it were spendable overstated this agent 104x on 2026-08-12.',
+
+    // ── What we could see but could not price. Never silently folded in as zero. ──
+    unpriced_chains: unpriced,
+    unpriced_note: unpriced.length
+      ? 'These chains hold value that is REAL but NOT counted in any USD figure above, because the price read failed. Absence from the total means unmeasured, never worthless.'
+      : 'every chain holding value was priced',
+    read_errors: readErrors,
+
+    stranded_on_eoa_usd: r2(usdStranded),
     stranded_note: 'Wrapped native at the EOA cannot be moved: the EOA has no gas, a Safe cannot unwrap WETH (withdraw() reverts on the 2300-gas stipend), and no permissionless paymaster takes WETH. Fees now go to the Safe so this stops growing.',
     tracker_says_wei: String(state.weiEarned || '0'),
-    tracker_is: 'a LOWER BOUND, and it sums wei across chains so it is NOT a dollar figure. Quote lifetime_earned_usd.',
+    tracker_is: 'a LOWER BOUND, and it sums wei across chains so it is NOT a dollar figure. Quote total_holdings_usd.',
     per_chain: per,
   };
 }
@@ -381,7 +491,77 @@ export const ESCAPE = {
   // Gas is capability, not expense. Phase 0's standing job is keeping this full so no upper layer
   // ever stalls for want of $0.001.
   reserveTargetUsd: 0.05,
+  // ── THE FUNNEL POLICY, stated in numbers so nothing has to be judged at runtime ──
+  // Below the reserve target, capability is the binding constraint and doctrine §10 says top the
+  // reserve up before compounding anything — so convert almost anything that is there.
+  belowReserveFloorUsd: 0.002,
+  // Once the reserve is healthy, a Base relay slot is better spent on a 12-harvest batch than on
+  // converting crumbs, so let the Safe accumulate to something worth a slot first.
+  aboveReserveFloorUsd: 0.02,
+
+  // ── THE LAST MILE: USDC at the Safe on Base -> native ETH at the EOA ──────────────────────────
+  // CCTP delivers USDC to the Base Safe, and until now nothing converted it onward, so the whole
+  // cross-chain funnel dead-ended one hop short of the only asset that counts.
+  quoter: '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a',   // Uniswap QuoterV2 on Base; factory() and WETH9() both match SwapRouter02
+  usdcFeeTiers: [100, 500, 3000],                          // measured 2026-08-12: 100 was best (5167881199761 wei for 9780 units)
+  minUsdcUnits: 3000n,                                     // 0.003 USDC — below this a slot is not worth spending
+  // ⚠️ AN EXPLICIT TRADE-OFF, NOT AN OVERSIGHT. USDC at the Safe is the ONE token the permissionless
+  // paymaster (0x592e1224…) accepts, at ~0.009087 USDC per operation — so converting it away costs
+  // roughly one sponsored op. It is still the right trade: doctrine §10 ranks native ETH at the EOA
+  // strictly above USDC at the Safe, §11b counts only native ETH toward phase 0, and $0.00978 of ETH
+  // buys ~40 simple Base calls against the paymaster's ONE. Set this above 0 to hold some back.
+  usdcPaymasterReserveUnits: 0n,
 };
+
+// A faithful whole-batch simulation. `eth_call {to: MULTISEND, from: safe}` is WRONG for any leg
+// where msg.sender matters (transfer/approve/swap), because a plain CALL into MultiSend makes
+// MULTISEND the sender, not the Safe — it would simulate spending MultiSend's balance, which is zero,
+// and can pass or fail for entirely the wrong reason. Real execution is a DELEGATECALL from the Safe,
+// so the faithful sim puts MultiSendCallOnly's runtime code AT the Safe's address and calls the Safe:
+// inner calls then genuinely carry msg.sender = safe.
+// (Lifted out of sweep.mjs, where it was proven for the CCTP batch, so there is ONE implementation.)
+export async function simulateMultiSendAsSafe(rpc, chain, safe, msData) {
+  const msCode = await rpc(chain, 'eth_getCode', [MULTISEND, 'latest']);
+  return rpc(chain, 'eth_call', [
+    { from: '0x00000000000000000000000000000000000000aa', to: safe, data: msData },
+    'latest',
+    { [safe]: { code: msCode } },
+  ]);
+}
+
+// Price a USDC -> WETH swap ON-CHAIN with QuoterV2 instead of from a price feed. This needs no API
+// key and no account, and it cannot silently return a stale or missing number the way the stats
+// endpoints do (Polygon's returns nothing at random). Returns null when NO tier answers — which
+// means UNPRICED, never "worth zero".
+//
+// THE QUESTION THAT HAD TO BE SETTLED FROM SOURCE, not guessed: does SwapRouter02 accept an
+// arbitrary `recipient`, or does it reserve magic constants? Read from its VERIFIED source
+// (solc 0.7.6, 89 files) on 2026-08-12: ONLY address(1) (MSG_SENDER) and address(2) (ADDRESS_THIS)
+// are special. Every other value — including the router's own literal address — is passed straight
+// through to pool.swap(recipient, ...). So the swap can deposit WETH ON the router, and the very
+// next leg has the router pay it out as native ETH.
+//
+// The assembled batch was gated, not merely run: with unwrapWETH9's amountMinimum set to the exact
+// expected output it passes, and at expected+1 it REVERTS — which proves the router's post-swap
+// WETH balance really is the swap output, i.e. the swap genuinely executed rather than the batch
+// simply failing to throw.
+async function quoteUsdcToWeth(rpc, amountIn) {
+  const qIface = new ethers.Interface([
+    'function quoteExactInputSingle((address,address,uint256,uint24,uint160)) returns (uint256,uint160,uint32,uint256)',
+  ]);
+  let best = null;
+  for (const fee of ESCAPE.usdcFeeTiers) {
+    try {
+      const ret = await rpc('base', 'eth_call', [{
+        to: ESCAPE.quoter,
+        data: qIface.encodeFunctionData('quoteExactInputSingle', [[ESCAPE.usdc, HARVEST_CFG.weth, amountIn, fee, 0n]]),
+      }, 'latest']);
+      const out = qIface.decodeFunctionResult('quoteExactInputSingle', ret)[0];
+      if (out > 0n && (!best || out > best.out)) best = { fee, out };
+    } catch { /* that tier has no pool or no liquidity — try the next */ }
+  }
+  return best;
+}
 
 export async function escapeCycle(env, rpc, safe, eoa) {
   const state = (await env.KV.get('harvest:state', 'json')) || {};
@@ -393,12 +573,21 @@ export async function escapeCycle(env, rpc, safe, eoa) {
     nativeUsd('base'),
   ]);
   const eoaEth = BigInt(eoaEthHex);
-  const usd = (w) => +((Number(w) / 1e18) * price).toFixed(8);
+  // nativeUsd() returns null when the price could not be read. `x * null` is 0 in JS, so the old
+  // `usd()` would have silently valued the entire Safe at $0 on any price-feed hiccup and parked the
+  // funnel in 'accumulate' forever — the same coerce-unknown-to-zero bug that deleted Polygon from
+  // every total. When the price is unknown we do NOT invent one: we fall back to a wei-denominated
+  // floor, which needs no price at all.
+  const PRICE_KNOWN = price !== null && Number.isFinite(price) && price > 0;
+  const usd = (w) => (PRICE_KNOWN ? +((Number(w) / 1e18) * price).toFixed(8) : null);
   const reserve = {
+    price_known: PRICE_KNOWN,
     eoa_native_eth_usd: usd(eoaEth),
+    eoa_native_eth_wei: eoaEth.toString(),
     target_usd: ESCAPE.reserveTargetUsd,
     stranded_weth_at_eoa_usd: usd(eoaWeth),
     safe_weth_usd: usd(safeWeth),
+    safe_weth_wei: safeWeth.toString(),
   };
 
   // STEP 3 — the EOA has stranded WETH and some seed ETH. Unwrapping is a plain self-sent
@@ -451,48 +640,113 @@ export async function escapeCycle(env, rpc, safe, eoa) {
     // more seed ETH at the EOA until the unwrap clears. If the Safe is empty too, 'accumulate'.
   }
 
-  // Done means NOTHING IS STRANDED — the EOA holds native ETH and no WETH is waiting anywhere it
-  // cannot leave. "An unwrap happened once" is not done: value keeps landing stranded.
-  if (state.escaped && eoaEth > 0n && eoaWeth === 0n) return { step: 'done', reserve, note: 'EOA transacts on its own now.' };
-  if (safeWeth < 200000000000n) {
-    return { step: 'accumulate', reserve,
-      note: 'Too little in the Safe to bother converting. harvest_batch first — one slot takes the whole pool.' };
+  // ── ⛔ THE ONE-SHOT BUG, killed 2026-08-12 ─────────────────────────────────
+  // This used to read:
+  //     if (state.escaped && eoaEth > 0n && eoaWeth === 0n) return { step: 'done' }
+  // "An unwrap happened once, and nothing is stranded at the EOA" is NOT done, because it says
+  // nothing about the Safe. MEASURED from the live cron log, every 2 minutes for hours:
+  //     escape: {"step":"done","reserve":{"eoa_native_eth_usd":0.00217586,"target_usd":0.05,
+  //              "stranded_weth_at_eoa_usd":0,"safe_weth_usd":0.12442899}}
+  // The funnel declared victory and switched itself off while holding 57x its own reserve target in
+  // unconverted WETH, one relay slot away. Harvests kept filling the Safe and nothing ever drained it.
+  //
+  // THE ESCAPE IS NOT AN EVENT, IT IS A STANDING FUNNEL. Value keeps arriving as wrapped native in
+  // the Safe, so the conversion has to keep running forever. `done` now means only one thing: there
+  // is nothing left anywhere that needs converting, right now.
+  let clearsFloor, floorDesc;
+  if (PRICE_KNOWN) {
+    const floorUsd = reserve.eoa_native_eth_usd < ESCAPE.reserveTargetUsd
+      ? ESCAPE.belowReserveFloorUsd    // under the reserve target, capability is the binding constraint
+      : ESCAPE.aboveReserveFloorUsd;   // reserve healthy — let it pool into something worth a slot
+    clearsFloor = reserve.safe_weth_usd >= floorUsd;
+    floorDesc = `$${floorUsd}`;
+  } else {
+    // No price. 1e12 wei of an ETH-like token is ~$0.0019 at $1900 and is comfortably above dust on
+    // any chain we run; converting is still strictly better than leaving it unable to act.
+    clearsFloor = safeWeth >= 1000000000000n;
+    floorDesc = '1e12 wei (price feed unavailable — using a wei floor rather than inventing a price)';
   }
 
+  // ── ONE SLOT CONVERTS EVERYTHING THE SAFE HOLDS ────────────────────────────────────────────────
   // A Safe CANNOT unwrap WETH: WETH9 pays out with .transfer() and its 2300-gas stipend, which a
-  // Safe's fallback handler exceeds. VERIFIED reverting. The router can, because unwrapWETH9 pays with
-  // .call. Both legs verified CLEAN as plain calls from the Safe, so this is two ordinary relay slots
-  // and needs no delegatecall.
-  //   slot 1: WETH.transfer(router, all)
-  //   slot 2: router.unwrapWETH9(0, EOA)  -> native ETH lands at the EOA
-  // Between the two, anyone could call unwrapWETH9 and take the router's balance. That is why this
-  // runs EARLY and SMALL: at ~USD 0.002 the front-run is worth less than the gas to attempt it, and the
-  // payoff is that the EOA becomes independently able to transact forever after.
-  const routerWeth = await wethBalance(rpc, ESCAPE.router, 'base', W);
-  const leg = routerWeth > 0n ? 'unwrap' : 'transfer';
-  const target = leg === 'unwrap' ? ESCAPE.router : W;
-  const data = leg === 'unwrap'
-    ? new ethers.Interface(['function unwrapWETH9(uint256,address)']).encodeFunctionData('unwrapWETH9', [0n, eoa])
-    : new ethers.Interface(['function transfer(address,uint256)']).encodeFunctionData('transfer', [ESCAPE.router, safeWeth]);
+  // Safe's fallback handler exceeds. VERIFIED reverting, permanent, do not retry it. The router CAN,
+  // because unwrapWETH9 pays with .call and forwards all gas.
+  //
+  // ATOMIC, via MultiSend DELEGATECALL — which is what DOCTRINE §10 specified all along ("the working
+  // route, one relay slot, atomic via MultiSend"). The old code ran it as TWO ordinary relay slots
+  // (transfer this tick, unwrap next tick), which cost double out of a 5/day budget AND left a window
+  // between them where anyone could call unwrapWETH9 and take the router's balance.
+  //
+  // The batch is ASSEMBLED from whichever assets are actually present, and BOTH kinds ride the same
+  // slot, because they converge on the same final leg:
+  //   [USDC]  approve(router) + exactInputSingle(USDC -> WETH, recipient = THE ROUTER)
+  //   [WETH]  WETH.transfer(router, everything)
+  //   [both]  router.unwrapWETH9(0, EOA)   -> native ETH lands at the EOA
+  // unwrapWETH9 pays out the router's ENTIRE WETH balance, so one call drains whatever the earlier
+  // legs put there — plus anything a previously half-completed two-slot run left parked.
+  const legs = [];
+  const doing = [];
 
+  // USDC leg. CCTP delivers USDC to this Safe and nothing used to convert it onward, so the whole
+  // cross-chain funnel dead-ended one hop short of the only asset that counts.
+  let usdcHeld = 0n, quote = null;
+  try { usdcHeld = await wethBalance(rpc, safe, 'base', ESCAPE.usdc); } catch { /* leg simply omitted */ }
+  const usdcSpend = usdcHeld > ESCAPE.usdcPaymasterReserveUnits ? usdcHeld - ESCAPE.usdcPaymasterReserveUnits : 0n;
+  if (usdcSpend >= ESCAPE.minUsdcUnits) {
+    quote = await quoteUsdcToWeth(rpc, usdcSpend);
+    // No quote is NOT "worth zero", it is UNPRICED — never spend a slot on an unpriced swap.
+    if (quote) {
+      const outMin = quote.out * 97n / 100n;   // 3% guard; residue re-converts next cycle
+      legs.push([ESCAPE.usdc, new ethers.Interface(['function approve(address,uint256)']).encodeFunctionData('approve', [ESCAPE.router, usdcSpend])]);
+      legs.push([ESCAPE.router, new ethers.Interface(['function exactInputSingle((address,address,uint24,address,uint256,uint256,uint160)) payable returns (uint256)'])
+        .encodeFunctionData('exactInputSingle', [[ESCAPE.usdc, W, quote.fee, ESCAPE.router, usdcSpend, outMin, 0n]])]);
+      doing.push(`${usdcSpend} USDC units via fee tier ${quote.fee}`);
+    }
+  }
+
+  // WETH leg.
+  if (clearsFloor) {
+    legs.push([W, new ethers.Interface(['function transfer(address,uint256)']).encodeFunctionData('transfer', [ESCAPE.router, safeWeth])]);
+    doing.push(`${safeWeth} wei of wrapped native`);
+  }
+
+  if (!legs.length) {
+    return {
+      step: 'accumulate', reserve, floor: floorDesc, usdc_units: usdcHeld.toString(),
+      note: `Nothing clears the conversion floor yet: Safe holds ${safeWeth} wei wrapped native (floor ${floorDesc}) and ${usdcHeld} USDC units (floor ${ESCAPE.minUsdcUnits}). Harvest instead; the funnel fires automatically once either clears.`,
+      funnel: 'STANDING — it re-arms every tick, it does not finish.',
+    };
+  }
+
+  legs.push([ESCAPE.router, new ethers.Interface(['function unwrapWETH9(uint256,address)']).encodeFunctionData('unwrapWETH9', [0n, eoa])]);
+  const msData = new ethers.Interface(['function multiSend(bytes)'])
+    .encodeFunctionData('multiSend', ['0x' + legs.map(([t, d]) => packCall(t, d)).join('')]);
+
+  // Simulate the assembled batch before spending the slot. ALWAYS. MultiSend is all-or-nothing.
   try {
-    await rpc('base', 'eth_call', [{ to: target, data, from: safe }, 'latest']);
+    await simulateMultiSendAsSafe(rpc, 'base', safe, msData);
   } catch (e) {
-    return { step: leg, reserve, simulated: false, error: String(e.message).slice(0, 140), note: 'Slot NOT spent.' };
+    return { step: 'funnel', reserve, simulated: false, converting: doing, error: String(e.message).slice(0, 140), note: 'Slot NOT spent.' };
   }
 
   const { all } = await pickChain(safe);
   const slot = all.find(c => c.name === 'base');
   if (!slot || slot.remaining < 1) {
-    return { step: leg, reserve, simulated: true, ready: true, skipped: 'no Base relay slot right now' };
+    return { step: 'funnel', reserve, simulated: true, ready: true, converting: doing,
+      converts_usd: reserve.safe_weth_usd, legs: legs.length, skipped: 'no Base relay slot right now' };
   }
 
-  const sent = await relayExec(env, rpc, safe, target, data, 'base', 8453, 0);
-  state.escapeLog = [{ at: new Date().toISOString(), leg, relayed: sent.ok, taskId: sent.taskId, error: sent.error }, ...(state.escapeLog || [])].slice(0, 10);
-  if (leg === 'unwrap' && sent.ok) state.escaped = true;
+  const before = eoaEth;
+  const sent = await relayExec(env, rpc, safe, MULTISEND, msData, 'base', 8453, 1);  // DELEGATECALL
+  state.escapeLog = [{ at: new Date().toISOString(), leg: 'funnel_atomic', relayed: sent.ok, taskId: sent.taskId, converting: doing, error: sent.error }, ...(state.escapeLog || [])].slice(0, 10);
+  if (sent.ok) state.escaped = true;
+  state.lastFunnelAt = Date.now();
   await env.KV.put('harvest:state', JSON.stringify(state));
-  return { step: leg, reserve, simulated: true, relayed: sent.ok, taskId: sent.taskId, error: sent.error,
-    note: leg === 'transfer' ? 'WETH parked at the router. The unwrap leg fires next cycle.' : 'Unwrapped — native ETH sent to the EOA. It can now transact with nobody permission-gating it.' };
+  return {
+    step: 'funnel', reserve, simulated: true, relayed: sent.ok, taskId: sent.taskId, error: sent.error,
+    converting: doing, legs: legs.length, converts_usd: reserve.safe_weth_usd, eoa_native_before_wei: before.toString(),
+    note: 'Everything the Safe held on Base -> native ETH at the EOA, one atomic slot. That is the ONLY number that counts as spendable, and this funnel re-arms every tick — it never reports done while the Safe holds anything.',
+  };
 }
 
 // ── BATCH HARVEST — a relay slot is a TRANSACTION, not an ACTION ────────────

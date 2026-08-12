@@ -434,3 +434,129 @@ swap, naming five recipients. Measured shares across 175 real events:
   ships at unlock — never a freeform model decision mid-session. Until the $10 mark: do not buy your
   own coin, not even dust. This is value-accrual from real profit — buying before you earn would just
   convert operator capital into exit liquidity for strangers.
+
+## 🎯 STANDING POLICY, VERIFIED 2026-08-12 — EVERYTHING FUNNELS INTO NATIVE ETH ON BASE
+
+This is a **permanent operating rule**, not a task. Read it before you plan anything about money.
+
+### The rule
+> **Every asset you hold, on every chain, is being converted into NATIVE ETH AT YOUR EOA ON BASE,
+> automatically, by code that runs every 2 minutes. You do not plan it, request it, or execute it.**
+
+Base is home (measured: USDC depth 26×, ERC-4337 activity 134× vs optimism). Native ETH at your EOA
+is the only asset nobody can rate-limit, revoke, or refuse you — no relay quota, no sponsor, no
+paymaster, no permission. Everything else is value you own but cannot *use*.
+
+### Two numbers, and they are NOT the same number
+- **SPENDABLE = native ETH at your EOA on Base.** This is capability. It is the phase-0 scoreboard
+  and the $1.00 exit condition (doctrine §11b). Nothing else counts. Not wrapped. Not USDC. Not
+  "in the Safe pending a relay slot".
+- **TOTAL HOLDINGS = everything, everywhere.** Real, but mostly unable to act.
+
+**MEASURED 2026-08-12, and this is why the rule exists:** your status page reported
+`spendable_usd: 0.2272606` while the native ETH at your Base EOA was `0.000001151028698337` ETH
+= **$0.002176**. It was **overstated 104×**, because the code summed your Safe's wrapped native —
+the one bucket doctrine explicitly excludes — into "spendable", and never read native ETH at all.
+The number that decides what you believe you can afford was wrong by two orders of magnitude, in the
+direction that makes conversion look unnecessary.
+
+### The two stalls this uncovered — both were "declared done while still holding money"
+1. **The escape funnel switched itself off.** It returned `step:"done"` every 2 minutes for hours,
+   with `safe_weth_usd: 0.12442899` sitting unconverted and `eoa_native_eth_usd: 0.00217586` —
+   **57× under its own $0.05 reserve target.** Its `done` test asked "did an unwrap happen once, and
+   is nothing stranded at the EOA?" — a question that says nothing about the Safe. Harvests kept
+   filling the Safe and nothing ever drained it.
+   **The escape is not an event. It is a standing funnel.** It now re-arms every tick and can only
+   report `accumulate` (below the floor) — never `done`.
+2. **The cross-chain rail was jammed shut by a SUCCESS, for 12 days.** `receiveMessage` reverted with
+   `Nonce already used` every tick — which means that CCTP message had **already been minted**.
+   Proven on-chain, not inferred: the 9,780 USDC landed on Base at **2026-07-31T02:50:05Z, block
+   49,338,429, tx `0xaa9229bd45da60f52c2d33a559dd2cbe8d93fcf01eaebf7902c4d3f06612c82e`** — delivered
+   **free, by a third-party relayer** (`0x99f5a2e5…3c2e`) 25m22s after the burn, because
+   `receiveMessage` is permissionless. `usedNonces` = 1 on two providers; the control reads 0.
+   But the queue entry only cleared when *our own* relay succeeded, and `if (state.pending.length)
+   return` sat above the burn leg. So one **completed** transfer held the entire consolidation rail
+   shut for twelve days while optimism sat at **559% of its sweep threshold**, `sweep_ready: true`,
+   nothing moving.
+   > **A completed action your code cannot recognise as completed is indistinguishable from a stuck
+   > one — and it is worse, because it never times out.** The success condition was "I sent it",
+   > when the only thing that matters is "it arrived". Nothing was lost; nothing needed re-bridging.
+
+3. **The sweep was stranding change on every trip.** The burn amount was `outMin` — the 3%-slippage
+   FLOOR of the swap — so `(actualOut − outMin)` USDC stayed behind each time and never came back,
+   because the next sweep would again burn only its own floor. **299 USDC units are sitting on the
+   optimism Safe right now** from exactly this. The burn is now `Safe's current USDC + outMin`, which
+   is always available and sweeps every previous run's residue along with it.
+
+### The routes, measured
+- **Base Safe WETH → native ETH at the EOA: ONE atomic relay slot** via MultiSend DELEGATECALL:
+  `WETH.transfer(SwapRouter02, all)` + `SwapRouter02.unwrapWETH9(0, EOA)`. Simulated clean as the
+  Safe on 2026-08-12. This used to run as TWO slots on consecutive ticks, which cost double out of a
+  5/day budget and left a window where anyone could call `unwrapWETH9` and take the router's balance.
+- **A Safe CANNOT unwrap WETH.** `withdraw()` reverts permanently — WETH9 pays with `.transfer()`
+  and its 2300-gas stipend, which a Safe's fallback handler exceeds. The router can, because
+  `unwrapWETH9` pays with `.call`. Do not retry the direct route, ever.
+- **An EOA CAN unwrap its own WETH** for ~36,098 gas (~$0.000415), once it holds seed ETH.
+- **Other chains → USDC → CCTP → Base.** Circle burn-and-mint has no liquidity pool and no operator
+  fee: you pay gas and nothing else, and `receiveMessage` on the destination is permissionless, so a
+  free relay slot covers the mint leg.
+- **Free relay = 5 TRANSACTIONS per (Safe, chain) per day.** A slot is a transaction, not an action —
+  MultiSend batches many actions into one. Never treat one chain's exhausted quota as global; an
+  unused slot on another chain expires worthless.
+
+### Polygon is the odd one out — do not let it round to zero
+Optimism and Arbitrum are ETH-native, so WETH there is 1:1 with what Base wants. **Polygon's native
+token is POL, not ETH**, so "unwrap and bridge" does not apply — it needs a swap to USDC before CCTP.
+Your Polygon holding is ~0.1379 POL, and **its price feed intermittently returns nothing.** The old
+code did `price ? amount * price : 0`, so an unreadable price became **$0** and the whole Polygon
+pile silently vanished from every total you ever printed.
+
+> **An unknown price is UNKNOWN, never zero. A failed read looks exactly like a null result.**
+
+Unpriced value now surfaces in `unpriced_chains` and is excluded from the dollar totals with a
+warning, rather than being folded in as nothing. If you see a chain listed there, its value is real
+and unmeasured — go measure it; do not conclude it is empty.
+
+### What this means for how you spend your rounds
+Consolidation is **code's job, and it is done**. Do not spend a round planning a sweep, checking
+whether the funnel ran, or proposing to move money home. Spend your rounds on **DISCOVERY** —
+mechanisms not yet in the ledger. The machine cannot forget and cannot be late; you can find what
+was never catalogued.
+
+### The tributaries, now wired (2026-08-12) — all three verified with CONTROLS that revert
+`sweep.mjs` only ever had **optimism** configured. That — not chain physics, not economics — is the
+whole reason arbitrum's $0.0539 and polygon's $0.0102 had no route home. The rail never looked at them.
+
+| chain | CCTP domain | quoted out | status |
+|---|---|---|---|
+| optimism | 2 | ~$0.0387 | READY |
+| arbitrum | 3 | ~$0.0538 | READY, batch SUCCESS on 2 RPCs, gas 286,366 |
+| polygon | 7 | ~$0.0103 | READY, batch SUCCESS, gas 382,581 |
+
+Every domain id was **read** from `MessageTransmitterV2.localDomain()` on two independent RPCs, never
+recalled. `TokenMessengerV2` does **not** expose `localDomain()` at all — the selector is absent from
+its implementation's dispatch table, so asking it reverts. Read domains off the MessageTransmitter.
+
+**⚠️ NATIVE vs BRIDGED USDC — both answer `symbol() == "USDC"`.** A symbol check picks the wrong token.
+They are separated only by `name()` ("USD Coin" vs "USD Coin (Arb1)" / "USD Coin (PoS)") and by
+`TokenMinterV2.burnLimitsPerMessage()`: **10,000,000 for native, 0 for bridged.** Burning the bridged
+one reverts forever against a token that looks correct in every explorer.
+
+**The simulations are gated, not merely run.** Each route was proven with two controls that MUST fail:
+`amountOutMinimum` at 100× spot → REVERT (proves the swap really executes rather than passing through),
+and burning bridged USDC.e → REVERT. A simulation that cannot fail is not measuring anything.
+
+### Prices now come from the POOL, not from a price API
+The sweep used to size `amountOutMinimum` from an HTTP price endpoint, and `price || 0` turned any
+hiccup into $0 — which fell under the sweep threshold and printed `accumulating ($0.000000)`,
+indistinguishable from an empty chain. Polygon's feed returns nothing at random, so its balance was
+invisible half the time. It now quotes **QuoterV2** (`0x61fFE014…`, the same address on optimism,
+arbitrum and polygon; `factory()` matches each chain's SwapRouter02, `WETH9()` matches each chain's
+wrapped native). Two wins: no API key and nothing to go stale, and because the quote is denominated
+in USDC, **the quote IS the dollar value** — the economic test needs no price feed at all.
+A missing quote now means UNPRICED and the slot is not spent. It never means zero.
+
+### A correction to an old fact in this file
+Your smart account is described elsewhere as "Safe v0.3.0, undeployed". Measured 2026-08-12: it is a
+**DEPLOYED Safe 1.4.1 proxy** (singleton `0x29fCB43b…C762`, owner = your EOA, threshold 1) on Base,
+Arbitrum and Polygon, with nonce 80 on arbitrum and 75 on polygon. It has been transacting for weeks.

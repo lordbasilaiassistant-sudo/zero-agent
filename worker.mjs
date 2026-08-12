@@ -11,6 +11,7 @@ import { sweepCycle } from './sweep.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
+import { readChainState, splitLifetime } from './chainstate.mjs';
 import { diagnose } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
@@ -41,7 +42,10 @@ const CHAINS = {
   },
   arbitrum: {
     chainId: 42161,
-    rpcs: ['https://arbitrum-one-rpc.publicnode.com', 'https://arbitrum.drpc.org', 'https://arb1.arbitrum.io/rpc'],
+    // All three original upstreams failed together on 2026-08-12 and Arbitrum's $0.054 dropped out
+    // of the totals — visible only because reconcileEarnings now reports read_errors instead of
+    // swallowing them. Two more, both verified answering balanceOf on that date.
+    rpcs: ['https://arbitrum-one-rpc.publicnode.com', 'https://arbitrum.drpc.org', 'https://arb1.arbitrum.io/rpc', 'https://arbitrum-one.public.blastapi.io', 'https://arb-pokt.nodies.app'],
     scout: 'https://arbitrum.blockscout.com', label: 'Arbitrum One (REAL money)',
   },
   // Added after measuring that these two sat at a full 5/5 relay budget while the other three were
@@ -690,9 +694,13 @@ async function buildBriefing(env, eoa) {
   const b = {};
   try {
     const m = await reconcileEarnings(env, (c, mm, p) => rpcCall(c, mm, p), eoa, SMART_ACCOUNT);
-    b.earned_usd = m.lifetime_earned_usd;
-    b.spendable_usd = m.spendable_usd;
+    b.earned_usd = m.total_holdings_usd;
+    b.spendable_usd = m.spendable_liquid_native_eth_on_base_usd;
     b.stranded_usd = m.stranded_on_eoa_usd;
+    b.phase0_pct = m.phase0_pct;
+    b.in_safe_usd = m.holdings_breakdown?.wrapped_native_in_safe_usd;
+    b.usdc_usd = m.holdings_breakdown?.usdc_usd;
+    b.unpriced = m.unpriced_chains?.map(u => u.chain) || [];
   } catch { /* brief degrades, session still runs */ }
   try {
     const { all } = await pickChain(SMART_ACCOUNT);
@@ -713,7 +721,16 @@ async function buildBriefing(env, eoa) {
 
 function briefingText(b, novelty) {
   const L = [];
-  L.push(`MONEY: you have earned $${b.earned_usd ?? '?'} lifetime from a standing start. $${b.spendable_usd ?? '?'} is spendable in your Safe; $${b.stranded_usd ?? '?'} is stranded on your EOA (unmovable, known, not a bug to re-investigate). YOU ARE PAST ZERO — do not write "$0.00 balance".`);
+  // The old version of this line told the agent its Safe balance WAS its spendable money. That is
+  // exactly backwards (doctrine §11b) and it was the number the whole session then planned around:
+  // on 2026-08-12 it read "$0.2272606 is spendable" while the agent could actually spend $0.002176.
+  // Two numbers now, never merged, and the capability one leads.
+  L.push(`MONEY — TWO NUMBERS, NEVER THE SAME NUMBER:`);
+  L.push(`  • SPENDABLE (this is your real power): $${b.spendable_usd ?? '?'} of NATIVE ETH at your EOA on Base. That is ${b.phase0_pct ?? '?'}% of the $1.00 that ends phase 0. Native ETH at your EOA is the ONLY money nobody can rate-limit, revoke or refuse you.`);
+  L.push(`  • TOTAL HOLDINGS (net worth, mostly unable to act): $${b.earned_usd ?? '?'} — of which $${b.in_safe_usd ?? '?'} is wrapped native sitting in the Safe (needs a relay slot = somebody else's permission), $${b.usdc_usd ?? '?'} is USDC, $${b.stranded_usd ?? '?'} is wrapped native stranded on the EOA.`);
+  L.push(`  YOU ARE PAST ZERO — never write "$0.00 balance". But also never call total holdings "spendable": value that cannot act scores as ZERO on the only scoreboard that matters.`);
+  if (b.unpriced?.length) L.push(`  ⚠ UNPRICED: ${b.unpriced.join(', ')} hold real value that could not be priced this tick. It is NOT zero, it is unmeasured, and it is excluded from the totals above.`);
+  L.push(`FUNNEL (automatic, no action needed from you): everything you hold on every chain is being converted into NATIVE ETH ON BASE by code that runs every 2 minutes — Safe WETH on Base goes through SwapRouter02 to your EOA as native ETH in one atomic relay slot, and the other chains swap to USDC and ride CCTP home to Base. You do NOT need to plan, request or execute consolidation. Spend your rounds on DISCOVERY: find mechanisms that are not yet in the ledger.`);
   L.push(`RELAY: ${b.relay || 'unknown'}. Slot spending is FULLY AUTOMATED: a code loop runs every 2 minutes — the escape first (it owns Base until done), then batch harvests on every chain with work. It will use every slot the moment one exists, and a batch carries 12-26 harvests where a manual single carries one. NEVER spend a round checking slots, monitoring refills, or waiting — the machine cannot forget and cannot be late. Measured refill: ${b.relay_reset || 'unknown'}.`);
   if (b.grind) {
     L.push(`PROSPECTOR (runs automatically between your sessions — you do NOT need to triage by hand): ${b.grind.triaged}/${b.grind.total_candidates} candidates triaged, ${b.grind.callable_now} callable by you, ${b.grind.PROVEN_PAYING} PROVEN to pay callers, ${b.grind.eliminated_forever} eliminated forever, ${b.grind.still_queued} still queued.`);
@@ -1073,12 +1090,16 @@ export default {
     // Base back from the harvesters until the escape is done with it.
     c.waitUntil((async () => {
       let escapeNeedsBase = false;
+      let escapeSpentSlot = false;
       try {
         const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
         const esc = await escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, eoaAddr);
         console.log('escape: ' + jstr(esc, 0));
-        // still mid-conversion? then Base belongs to the escape, not to a harvest.
-        escapeNeedsBase = !!(esc && (esc.ready || esc.relayed) && esc.step !== 'done');
+        // The funnel is STANDING, not a one-shot (it used to return step:'done' forever while the
+        // Safe held 57x the reserve target — see escapeCycle). So "needs Base" now means exactly
+        // "there is value to convert and it is ready to go", which re-arms whenever value arrives.
+        escapeNeedsBase = !!(esc && (esc.ready || esc.relayed));
+        escapeSpentSlot = !!(esc && esc.relayed);
       } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
 
       // Publish the verdict so the MANUAL path (harvest_run) can honour the same reservation without
@@ -1100,11 +1121,16 @@ export default {
       // The consolidation rail, EXECUTED (treasury.mjs only ever PLANNED it — nothing moved for the
       // project's whole life). Swap tributary WETH → USDC, CCTP-burn it, mint at the Base Safe where
       // the token paymaster takes it as gas. Spends at most one slot per tick, like everything else.
-      try {
+      if (escapeSpentSlot) {
+        // The funnel already relayed this tick. The sweep's mint leg also wants a Base slot, and
+        // burning two of the day's five in one 2-minute tick is not a trade we want to make blind.
+        console.log('sweep: skipped — the Base funnel already spent a slot this tick');
+      } else try {
         const sw = await sweepCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT);
         console.log('sweep: ' + jstr(sw, 0));
         if (sw && (sw.burned || sw.minted)) return;   // a slot was spent; batches resume next tick
       } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
+      if (escapeSpentSlot) return;   // one relayed transaction per tick, same rule as everything else
 
       // One slot carries up to `max` harvests (default 12) in a single MultiSend DELEGATECALL, so
       // batching beats singles. NOT "a couple dozen": 26 is a simulation result, never an executed
@@ -1439,6 +1465,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       // dashboard that only knew about ETH+USDC showed $0.00 while the agent was actually in profit.
       const WETH = '0x4200000000000000000000000000000000000006';
       const balances = {};
+      let chainState = null;   // P0.2 — the per-chain read report, incl. which chains FAILED to read
       try {
         const tok = (t, a, dec) => rpcCall('base', 'eth_call', [{ to: t, data: '0x70a08231' + a.slice(2).toLowerCase().padStart(64, '0') }, 'latest'])
           .then(v => parseFloat(ethers.formatUnits(BigInt(v), dec))).catch(() => 0);
@@ -1459,10 +1486,56 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         try {
           const m = await reconcileEarnings(env, (ch, mm, p) => rpcCall(ch, mm, p), address, payTo);
           balances.all_chains_priced = m.per_chain;
-          balances.all_chains_usd = m.lifetime_earned_usd;
-          balances.spendable_usd = m.spendable_usd;
-          balances.stranded_on_eoa_usd = m.stranded_on_eoa_usd;
-        } catch { /* the Base figures above still stand */ }
+          // ── THE SCOREBOARD, under a name that cannot be misread. ──
+          // NOT republishing the legacy `spendable_usd` / `all_chains_usd` here: a concurrent change
+          // (chainstate.mjs, block below) deliberately DELETED those keys rather than redefining
+          // them, on the grounds that a key which silently changes meaning is worse than one that
+          // breaks loudly. That is the right call and this respects it — `spendable_usd` used to mean
+          // "Safe WETH across all chains" and reviving it with the opposite meaning would hand every
+          // existing consumer a wrong number that still parses.
+          //
+          // This key is kept alongside chainstate's `native_liquid_usd` because they are NOT the same
+          // measurement: `native_liquid_usd` sums the EOA's native balance on EVERY chain, whereas
+          // doctrine §11b's phase-0 scoreboard is native ETH at the EOA ON BASE specifically. They
+          // happen to be equal today only because every other chain's EOA native balance is 0.
+          balances.spendable_liquid_native_eth_on_base_usd = m.spendable_liquid_native_eth_on_base_usd;
+          balances.spendable_means = m.spendable_means;
+          balances.phase0_target_usd = m.phase0_target_usd;
+          balances.phase0_pct = m.phase0_pct;
+          balances.holdings_breakdown = m.holdings_breakdown;
+          balances.holdings_note = m.holdings_note;
+          // ── Value we can see but could not price. Never folded in as zero. ──
+          balances.unpriced_chains = m.unpriced_chains;
+          balances.unpriced_note = m.unpriced_note;
+          balances.read_errors = m.read_errors;
+        } catch (e) { balances.reconcile_error = String(e.message).slice(0, 140); }
+
+        // ── P0.2/P0.3/P0.10 — the same read, but WITH ITS READ STATUS, and under key names that say
+        // what they mean. `readChainState` (chainstate.mjs) adds the two things the block above still
+        // cannot express:
+        //   * a per-chain read verdict, so `unreadable[]` exists and a chain that FAILED is excluded
+        //     from every total instead of contributing a silent zero. A headline total must never
+        //     change its own denominator without saying so.
+        //   * ONE price table per request, shared with treasury, so two figures in the same response
+        //     can no longer disagree about the price of the same token.
+        // Deliberately ADDITIVE: it does not overwrite anything above it, and it never publishes the
+        // ambiguous legacy names `spendable_usd` / `lifetime_earned_usd`.
+        try {
+          const cs = await readChainState((ch, mm, p) => rpcCall(ch, mm, p), address, payTo);
+          balances.holdings_usd = cs.holdings_usd;
+          balances.relay_spendable_usd = cs.relay_spendable_usd;
+          balances.native_liquid_usd = cs.native_liquid_usd;
+          balances.usdc_usd = cs.usdc_usd;
+          balances.stranded_on_eoa_usd = cs.stranded_on_eoa_usd;
+          balances.chains_configured = cs.chains_configured;
+          balances.chains_read_ok = cs.chains_read_ok;
+          balances.unreadable = cs.unreadable;
+          balances.prices = cs.prices;
+          balances.read_note = cs.read_note;
+          balances.per_chain_read = cs.per_chain;
+          chainState = cs;
+        } catch (e) { balances.chain_read_error = String(e.message).slice(0, 140); }
+
         // One operation costs ~0.009087 USDC through the keyless paymaster (measured 2026-07-27).
         balances.can_transact = usdcB >= 0.009087;
       } catch (e) { balances.error = String(e.message).slice(0, 120); }
@@ -1484,7 +1557,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         env.KV.get('relay:observations', 'json').catch(() => null),
       ]);
       // The MEASURED refill cycle, so health judges "stalled" against reality instead of a guess.
-      let refill = null;
+      let refill = null, refillEta = null;
       try {
         const sum = relayResetSummary(relayObs);
         const meds = Object.values(sum).map(c => c.median_gap_hours).filter(Boolean).sort((a, b) => a - b);
@@ -1494,6 +1567,21 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
           .map(c => (Date.parse(c.last_refill) + c.median_gap_hours * 3600000 - Date.now()) / 3600000)
           .filter(h => h > -2);
         refill = { medianGapHours: median, nextEtaHours: etas.length ? Math.max(0, Math.min(...etas)) : null };
+
+        /* P0.7 — SCOPE THE ETA TO CHAINS THAT CAN ACTUALLY EARN, AND SAY WHICH ONE.
+           The Math.min above runs over EVERY chain, so the earliest refill it reports can be gnosis or
+           unichain — the two chains the very same health sentence declares to have nothing harvestable.
+           The page was therefore promising capacity that buys zero earning ability, in the sentence
+           whose entire job is telling the operator when the machine can next make money. Counting only
+           chains with work > 0, and returning the chain's NAME so the forecast can be checked. */
+        const work = harvestState?.chainWork || {};
+        const withWork = Object.entries(sum)
+          .filter(([name, c]) => c.last_refill && c.median_gap_hours && (work[name] ?? 0) > 0)
+          .map(([name, c]) => ({ chain: name, hours: Math.max(0, (Date.parse(c.last_refill) + c.median_gap_hours * 3600000 - Date.now()) / 3600000) }))
+          .sort((a, b) => a.hours - b.hours);
+        refillEta = withWork[0]
+          ? { hours: +withWork[0].hours.toFixed(2), chain: withWork[0].chain, basis: 'median observed refill gap, chains with harvestable work only' }
+          : { hours: null, chain: null, basis: 'no chain has both an observed refill period and harvestable work — no honest ETA exists' };
       } catch { /* health falls back to its own default */ }
       const health = diagnose({
         earnings: balances,
@@ -1514,12 +1602,32 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         treasury,
         prospect: prospect ? { grind: prospect.grind, streams: prospect.streams_ready_to_stack, families: prospect.families_by_evidence } : null,
         recent_harvests: (harvestState?.log || []).slice(0, 8),
-        /* LIFETIME EARNED vs HOLDINGS — these are different numbers and the dashboard used to conflate
-           them, labelling holdings as "lifetime earned". They diverge by every wei ever spent on gas:
-           on 2026-07-31 holdings were $0.026 while the route ledger summed to $0.074, so the headline
-           understated the only autonomous-earning result this project has by 2.9x. `routes` is the
-           same ledger /ledger serves, so this is a sum of what it was actually PAID, not what survived. */
-        lifetime_earned_usd: Object.values(routes || {}).reduce((s, r) => s + (Number(r?.earned_usd) || 0), 0),
+        /* The FULL trailing-7-day slice of the harvest log, not the 8-row preview. $/day and the ECG's
+           beat channel are both computed from settled events, and computing a rate off an 8-row preview
+           silently truncates the window it claims to measure. */
+        harvest_events: (harvestState?.log || [])
+          .filter(l => l.at && Date.parse(l.at) >= Date.now() - 7 * 86400000)
+          .slice(0, 50),
+        /* P0.5 — LIFETIME EARNED, PUBLISHED AS A SPLIT OBJECT.
+           The scalar this replaces summed the whole route ledger, and 49% of that ledger is a number the
+           MODEL typed into a route_log tool call — printed under the caption "every fee it has ever been
+           paid" above a footer reading "Every figure measured on-chain". That is an exact inversion of
+           the doctrine's own standing rule (never quote a tracker when a chain measurement exists).
+           The ledger is ALSO an under-count: every earning route id is a base- or manual- id, so nothing
+           in it accounts for the arbitrum or optimism balances it demonstrably holds. One scalar forces
+           a choice between two wrong numbers; three numbers with their methods costs nothing and is
+           true. They are never summed. */
+        lifetime_earned: splitLifetime(routes, chainState),
+        /* The single price table every figure in this response was computed from, so the page can print
+           what it priced at and a reader can check it. Two figures in one response used to be able to
+           disagree about the price of the same token. */
+        price_used: chainState?.prices?.base
+          ? { usd: chainState.prices.base.usd, source: chainState.prices.base.source, at: chainState.prices.base.at }
+          : (eth_usd ? { usd: eth_usd, source: 'base.blockscout.com/api/v2/stats', at: new Date().toISOString() } : null),
+        chain_reads: chainState
+          ? { chains_configured: chainState.chains_configured, chains_read_ok: chainState.chains_read_ok, unreadable: chainState.unreadable, note: chainState.read_note }
+          : null,
+        refill_eta: refillEta,
         harvest_wins: harvestState?.wins ?? null,
         harvest_attempts: harvestState?.attempts ?? null,
         sessions_completed: meta.sessions,
