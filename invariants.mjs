@@ -245,6 +245,27 @@ const INVARIANTS = [
     },
   },
   {
+    id: 'phantom-relay-capacity',
+    asks: 'The relay reports free capacity on a chain where the Safe has no code.',
+    origin: 'MEASURED 2026-08-12: unichain reports 5/5 forever, but eth_getCode at the Safe is 0x there — the account was never deployed. The relay gateway does not check; it answers 5/5 for ANY address, including 0x…0001. Health counted those 5 slots as free capacity, the dashboard showed them, and a strategy note built on "10 wasted slots/day" was wrong by half.',
+    async check(ctx) {
+      const bad = [];
+      for (const [name, r] of Object.entries(ctx.chain.perChain)) {
+        if (r.error) continue;
+        if (r.safeDeployed === false && (ctx.relay?.[name]?.remaining || 0) > 0) {
+          bad.push({ chain: name, remaining: ctx.relay[name].remaining });
+        }
+      }
+      if (!bad.length) return null;
+      return {
+        detail: `${bad.map(x => `${x.chain} advertises ${x.remaining} free relay slots but the Safe HAS NO CODE there` ).join('; ')}. That capacity cannot be spent — do not count it, do not plan around it.`,
+        evidence: { phantom: bad },
+        repairable: false,
+        severity: 'notice',
+      };
+    },
+  },
+  {
     id: 'escape-reservation-stale',
     asks: 'Base is reserved for the funnel by a flag the cron has not refreshed.',
     origin: 'escape:needsBase gates the manual harvest path. A stale true would quietly starve Base harvests with nobody spending the slot either.',
@@ -278,6 +299,9 @@ export async function readWorld(rpc, env, eoa, safe) {
       row.wrapped = (await wethBalance(rpc, safe, name, c.weth)).toString();
       row.native = (await rpc(name, 'eth_getBalance', [safe, 'latest'])).toString();
       if (USDC_BY_CHAIN[name]) row.usdc = (await wethBalance(rpc, safe, name, USDC_BY_CHAIN[name])).toString();
+      // Does the Safe actually EXIST here? The relay will happily advertise a quota for an address
+      // that has never been deployed, so quota alone is not capability.
+      row.safeDeployed = (await rpc(name, 'eth_getCode', [safe, 'latest'])) !== '0x';
       const p = await nativeUsd(name);
       row.priceKnown = p !== null;
       if (p !== null) row.usdContribution = Number(ethers.formatEther(b(row.wrapped))) * p;
@@ -294,9 +318,9 @@ export async function readWorld(rpc, env, eoa, safe) {
   return { perChain, baseSafeWrapped, baseSafeUsdc, baseEoaWrapped, baseEoaNative, basePrice };
 }
 
-export async function checkInvariants(env, rpc, { eoa, safe, escape, reported } = {}) {
+export async function checkInvariants(env, rpc, { eoa, safe, escape, reported, relay } = {}) {
   const ctx = {
-    env, rpc, escape, reported,
+    env, rpc, escape, reported, relay: relay || {},
     chain: await readWorld(rpc, env, eoa, safe),
     sweep: (await env.KV.get('sweep:state', 'json')) || { pending: [], done: [] },
     needsBase: (await env.KV.get('escape:needsBase', 'json')) || null,

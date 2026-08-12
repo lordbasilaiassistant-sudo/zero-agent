@@ -13,6 +13,7 @@ import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { readChainState, splitLifetime } from './chainstate.mjs';
 import { checkInvariants, invariantBrief } from './invariants.mjs';
+import { docSearch, loadCorpus, buildLlmsTxt } from './docs.mjs';
 import { diagnose } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
@@ -606,6 +607,16 @@ function makeTools(ctx) {
       return await controlTest(chain);
     },
 
+    // ── THE REFERENCE LIBRARY ────────────────────────────────────────────────────────────────
+    // Free, no relay slot, no capital, unlimited. Search before you guess: this agent has burned
+    // whole sessions rediscovering a function signature or a chain domain id that was written down.
+    // One KV read, scored in memory — no embedding API, nothing to rate-limit, nothing to bill.
+    async doc_search({ query, k = 4 }) {
+      ctx.budget();                       // costs no subrequest: KV is not an HTTP subrequest
+      if (!query || !String(query).trim()) return { error: 'give me something to search for' };
+      return await docSearch(ctx.env, String(query), Math.min(Number(k) || 4, 8));
+    },
+
     // Where the money sits across all chains, and what should move to the home chain.
     async treasury() {
       ctx.budget(); ctx.sub += 6;
@@ -673,6 +684,7 @@ const TOOL_DEFS = [
   { name: 'gasless_scan', description: "Read a contract's RUNTIME BYTECODE and report which gasless rails it exposes (ERC-2771 meta-tx, native executeMetaTransaction, EIP-3009 transferWithAuthorization, EIP-2612 permit, ERC-4337 paymaster, or a settable persistent fee recipient). Works on UNVERIFIED contracts — every external selector is in the dispatch table. One free call. Use it to find ways onto the chain that do NOT consume a Safe relay slot.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address') }, ['contract']) },
   { name: 'sponsor_discover', description: 'Enumerate the gas SPONSORS operating on a chain — every entity that pays for other people\'s transactions — found by on-chain behaviour, not by name, so it includes sponsors with no website and no docs. Your Safe relay is ONE of these with a 5/day cap; this finds the rest of the species. Measured: 44% of recent ERC-4337 ops on Base had their gas paid by a third party.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'sponsor_control', description: 'THE CONTROL EXPERIMENT. Feeds the sponsor-detector the two addresses that provably paid for your own first transactions and checks it rediscovers them from behaviour alone. An instrument that cannot reproduce a known result is not measuring anything — run this before you believe any novel sponsor it reports.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
+  { name: 'doc_search', description: 'SEARCH YOUR REFERENCE LIBRARY BEFORE YOU GUESS. Operational docs for every system you touch — Safe relay and MultiSend packing, CCTP domains and depositForBurn, Uniswap SwapRouter02 tuple shapes and the WETH9 2300-gas trap, ERC-4337 EntryPoint structs and paymaster admission, Blockscout paths, JSON-RPC state overrides, EIP-1967 slots. Exact signatures, selectors, per-chain addresses and the documented gotchas. FREE, unlimited, costs no relay slot — there is never a reason not to check. Search a function name, a bare 0x address, or a plain question. ⚠️ A doc is a HYPOTHESIS: confirm anything load-bearing with a free eth_call before you spend a scarce slot on it.', parameters: S({ query: str('function name, contract address, or plain question'), k: { type: 'number', description: 'how many passages, default 4' } }, ['query']) },
   { name: 'treasury', description: 'Where your money sits across every chain, and what should move. Harvest everywhere (free slots are per-chain and expire), but CONSOLIDATE into the home chain — value spread thin across five chains cannot act, which is the same trap as stranded WETH. Tells you which tributaries have accumulated enough to be worth a bridge fee.', parameters: S() },
   { name: 'prospect_intel', description: 'What the automatic prospector has ground out while you were asleep: how much of the candidate backlog is triaged, which contracts are PROVEN to pay callers and callable by you (your ready-to-stack queue), which are eliminated forever, and — most valuable — the PATTERN layer: which contract FAMILIES pay and which never do, so you can generalise to instances you have never tested. Read this before hunting; it is free and it is already done.', parameters: S() },
   { name: 'gas_sources', description: 'EVERY WAY YOU CAN GET A TRANSACTION ON-CHAIN, tested live: Safe relay quota across 18 chain ids, native ETH you own, every ERC-4337 paymaster (admission-tested by calling validatePaymasterUserOp AS the EntryPoint — the decisive test, not transaction shape), and keyless sponsorship APIs. It distinguishes an AUTH wall (needs a key, stop probing) from a TECHNICAL one (public policies exist, keep varying the op). Ask this instead of assuming the relay; capacity has repeatedly turned up in places nobody had probed.', parameters: S({ chain: str('chain name') }) },
@@ -1130,8 +1142,10 @@ export default {
         if (tick % 5 === 0) {
           const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
           const reported = (await env.KV.get('published:balances', 'json')) || null;
+          let relay = {};
+          try { const { all } = await pickChain(SMART_ACCOUNT); for (const c of all) relay[c.name] = { remaining: c.remaining, limit: c.limit }; } catch { /* invariant degrades, check still runs */ }
           const inv = await checkInvariants(env, (ch, m, p) => rpcCall(ch, m, p),
-            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: lastEscape, reported });
+            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: lastEscape, reported, relay });
           console.log('invariants: ' + jstr({ clean: inv.clean, headline: inv.headline, open: inv.violations.map(v => v.id), repaired: inv.repaired.map(v => v.id) }, 0));
           for (const v of inv.violations) if (v.escalate) console.log('INVARIANT ESCALATED [' + v.id + ']: ' + v.detail);
           for (const r of inv.repaired) console.log('INVARIANT REPAIRED [' + r.id + ']: ' + r.repair?.action);
@@ -1442,6 +1456,29 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         }, { headers: { 'access-control-allow-origin': '*' } });
       }
       if (url.pathname === '/last') return new Response((await env.KV.get('log:last')) || '{}', { headers: { 'content-type': 'application/json' } });
+
+      // ── THE DOCS CORPUS ────────────────────────────────────────────────────────────────────────
+      // NOTE: `/llms.txt` is already taken by the x402 storefront's buyer guide — a different
+      // audience entirely (customers, not the agent). The corpus lives under /docs/ so the two
+      // cannot collide. Everything here is public and read-only; searching costs one KV read.
+      if (url.pathname === '/docs/llms.txt' || url.pathname === '/docs' || url.pathname === '/docs/') {
+        const corpus = await loadCorpus(env);
+        if (!corpus) return new Response('no docs corpus has been built yet', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+        return new Response(buildLlmsTxt(corpus, url.origin), { headers: { 'content-type': 'text/plain; charset=utf-8', 'access-control-allow-origin': '*' } });
+      }
+      if (url.pathname === '/docs/search') {
+        const q = url.searchParams.get('q') || (req.method === 'POST' ? (await req.json().catch(() => ({}))).q : null);
+        if (!q) return Response.json({ error: 'pass ?q= or POST {"q":"..."}' }, { status: 400 });
+        return Response.json(await docSearch(env, q, Number(url.searchParams.get('k')) || 5), { headers: { 'access-control-allow-origin': '*' } });
+      }
+      if (url.pathname.startsWith('/docs/')) {
+        const slug = url.pathname.slice(6).replace(/\.md$/, '');
+        const corpus = await loadCorpus(env);
+        const meta = corpus?.docs?.find(d => d.slug === slug);
+        if (!meta) return new Response('no such document', { status: 404 });
+        const body = corpus.chunks.filter(c => c.slug === slug).map(c => c.text).join('\n\n');
+        return new Response(`# ${meta.title}\n\n> ${corpus.warning}\n\n${body}`, { headers: { 'content-type': 'text/markdown; charset=utf-8', 'access-control-allow-origin': '*' } });
+      }
       // The immune system's latest verdict. GET is the cached result the cron wrote; POST re-runs it
       // live (admin-keyed, because it costs ~30 subrequests and can repair state).
       if (url.pathname === '/invariants') {

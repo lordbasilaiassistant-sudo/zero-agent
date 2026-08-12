@@ -1,0 +1,84 @@
+# ZERO — agent documentation corpus
+
+> Operational reference for the systems this autonomous agent actually touches, distilled
+> from vendor docs and, where cheap, verified on-chain. Built 2026-08-12T18:10:09.093Z.
+
+> **DOCUMENTATION IS A HYPOTHESIS. THE CHAIN IS THE MEASUREMENT.** Entries marked VERIFIED
+> were confirmed with a free call. Everything else is documented-only and must be checked
+> before anything scarce is spent on it. This project has been burned by its own docs.
+
+Search it: `POST https://zero-agent.broke2built.workers.dev/docs/search` with `{"q":"..."}`, or the `doc_search` tool.
+
+## Documents
+- [CIRCLE CCTP v2 + x402 MACHINE PAYMENTS](https://zero-agent.broke2built.workers.dev/docs/cctp-x402): THE TWO SENTENCES THAT MATTER MOST · CONTRACT ADDRESSES · THE DOMAIN TABLE, AND THE localDomain() TRAP · depositForBurn — the burn side (55 passages)
+- [ERC-4337 — ACCOUNT ABSTRACTION, BUNDLERS AND PAYMASTERS](https://zero-agent.broke2built.workers.dev/docs/erc4337): THE ONE-PARAGRAPH ANSWER FOR ZERO · ENTRYPOINT ADDRESSES — SAME ON EVERY CHAIN · THE USEROPERATION STRUCT — v0.6 AND v0.7+ ARE DIFFERENT TYPES · SELECTORS AND EVENT TOPICS — ALL CO (58 passages)
+- [FREE INFRASTRUCTURE — the rails ZERO actually runs on](https://zero-agent.broke2built.workers.dev/docs/infra): BLOCKSCOUT v2 REST — free, no key, the discovery layer · ETHERSCAN / BASESCAN — A CLOSED DOOR. DO NOT RETRY. · JSON-RPC — the methods everything else is built on · PROXIES — resolv (46 passages)
+- [SAFE SMART ACCOUNT + SAFE{CORE} RELAY + MULTICALL3](https://zero-agent.broke2built.workers.dev/docs/safe): SELECTORS — computed locally with keccak, not recalled · CONTRACT ADDRESSES PER CHAIN — they are all the SAME address · THE SAFE{CORE} RELAY — ZERO's free transaction rail · execTr (46 passages)
+- [UNISWAP v3 ROUTING + WETH9 SEMANTICS](https://zero-agent.broke2built.workers.dev/docs/uniswap): ADDRESSES — VERIFIED ON-CHAIN, 2026-08-12 · THE CONTRACT FAMILY — WHICH ROUTER IS WHICH · exactInputSingle — THE EXACT ENCODING · THE RECIPIENT MAGIC CONSTANTS (51 passages)
+
+## Sources
+### CIRCLE CCTP v2 + x402 MACHINE PAYMENTS
+- https://developers.circle.com/llms.txt
+- https://developers.circle.com/cctp/concepts/supported-chains-and-domains.md
+- https://developers.circle.com/cctp/references/technical-guide.md
+- https://developers.circle.com/cctp/references/contract-addresses.md
+- https://developers.circle.com/api-reference/cctp/all/get-messages-v2
+- https://raw.githubusercontent.com/circlefin/evm-cctp-contracts/master/src/v2/TokenMessengerV2.sol
+- https://raw.githubusercontent.com/circlefin/evm-cctp-contracts/master/src/v2/MessageTransmitterV2.sol
+- https://iris-api.circle.com/v2/...
+- https://x402.org/llms.txt
+- https://raw.githubusercontent.com/coinbase/x402/main/specs/x402-specification-v1.md
+- https://raw.githubusercontent.com/coinbase/x402/main/specs/x402-specification-v2.md
+- https://raw.githubusercontent.com/coinbase/x402/main/specs/transports-v2/http.md
+### ERC-4337 — ACCOUNT ABSTRACTION, BUNDLERS AND PAYMASTERS
+- https://eips.ethereum.org/EIPS/eip-4337
+- https://eips.ethereum.org/EIPS/eip-7677
+- https://docs.candide.dev/llms.txt
+- https://docs.candide.dev/wallet/api/public-endpoints.md
+- https://docs.candide.dev/wallet/bundler/rpc-methods.md
+- https://docs.candide.dev/wallet/paymaster/rpc-methods.md
+- https://docs.candide.dev/wallet/technical-reference/deployments.md
+- https://docs.pimlico.io/llms.txt
+- https://api.candide.dev/public/v3/8453
+- https://public.pimlico.io/v2/8453/rpc
+- https://base.drpc.org
+- https://base-rpc.publicnode.com
+### FREE INFRASTRUCTURE — the rails ZERO actually runs on
+- https://base.blockscout.com/llms.txt
+- https://docs.blockscout.com/llms.txt
+- https://chains.blockscout.com/api/chains
+- https://base.blockscout.com/api/v2/*
+- https://api.etherscan.io/v2/api
+- https://api.basescan.org/api
+- https://base-rpc.publicnode.com
+- https://base.drpc.org
+- https://mainnet.base.org
+- https://1rpc.io/base
+- https://base.meowrpc.com
+- https://rpc.ankr.com/base
+### SAFE SMART ACCOUNT + SAFE{CORE} RELAY + MULTICALL3
+- https://docs.safe.global/llms.txt
+- https://docs.safe.global/llms-full.txt
+- https://raw.githubusercontent.com/safe-global/safe-smart-account/main/CHANGELOG.md
+- https://github.com/safe-global/safe-client-gateway
+- https://safe-client.safe.global/v1/chains/{id}/relay/{safe}
+- https://safe-client.safe.global/v1/chains/{chainId}/relay`
+- https://safe-client.safe.global/v1/chains/{chainId}/relay
+- https://safe-client.safe.global/v1/chains/{chainId}/relay/{safe}
+- https://safe-client.safe.global/v1/chains/{chainId}/relay/status/{taskId}
+- https://app.safe.global`
+- https://app.safe.global/`
+- https://example.com`
+### UNISWAP v3 ROUTING + WETH9 SEMANTICS
+- https://developers.uniswap.org/llms.txt
+- https://developers.uniswap.org/llms-full.txt
+- https://developers.uniswap.org/docs/protocols/v3/deployments/v3-base-deployments.md
+- https://base.blockscout.com/api/v2/smart-contracts/{addr}
+- https://gnosis.blockscout.com/api/v2/...
+- https://docs.uniswap.org/contracts/v3/reference/deployments/*`
+- https://developers.uniswap.org/docs/protocols/v3/deployments/v3-deployments.md`
+- https://developers.uniswap.org/docs/protocols/v3/deployments/v3-gnosis-deployments.md`
+- https://developers.uniswap.org/openapi.json`
+- https://developers.uniswap.org/docs/openapi.json`
+- https://developers.uniswap.org/llms.txt`
+- https://developers.uniswap.org/llms-full.txt`

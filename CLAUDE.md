@@ -53,6 +53,19 @@ with an auto-stub journal entry. Verified: ~6s and ~16 subrequests per tick — 
 - `worker.mjs` — cloud body (canonical). Same 15 tools as local, KV-backed.
 - `agent.mjs` + `tools.mjs` — local dev harness / offline runs (file-backed memory). **Tool semantics are
   duplicated in both worker.mjs and tools.mjs — change BOTH.**
+- `docs.mjs` + `docs/` + `scripts/build-docs.mjs` — **the reference library.** Five distilled
+  operational docs (Safe relay/MultiSend/Multicall3 · CCTP v2 + x402 · Uniswap routing + WETH9 ·
+  ERC-4337 · free infra APIs), 256 searchable passages, harvested from vendor docs and verified
+  on-chain where cheap. Agent tool `doc_search`; public at `/docs/llms.txt`, `/docs/<slug>`,
+  `/docs/search?q=`. Search is a SCRIPT (term overlap + idf, heading×3, phrase×4) in one KV read —
+  no embedding API, nothing to bill or rate-limit, and it cannot invent a passage that is not there.
+  Rebuild with `node scripts/build-docs.mjs --push`; it **refuses to push** unless it can still answer
+  8 probes drawn from questions ZERO has really got wrong — a corpus the agent trusts and that cannot
+  answer its own known failures is worse than no corpus.
+  **This exists to SHRINK the prompt, not grow it.** The system prompt is ~30,700 tokens of static
+  knowledge on every call; retrieval is how that comes down. ⚠️ Everything in it ships stamped
+  *DOCUMENTATION IS A HYPOTHESIS — THE CHAIN IS THE MEASUREMENT*, because this repo's own docs have
+  been wrong twice this week (the admin key name; "Safe v0.3.0, undeployed").
 - `invariants.mjs` — **the immune system.** CONTRADICTION checks, not liveness checks, run on the cron
   every 5th tick and published at `/invariants`. `health.mjs` asks *"is it moving?"*; this asks
   *"does what the code CLAIMS match what the chain SAYS?"* That distinction is the whole point: on
@@ -107,8 +120,24 @@ Candide's **keyless** public bundler+paymaster (`https://api.candide.dev/public/
 paymaster `0x8b1f…5ba`) accepts USDC/DAI/USDT/USDS as the gas token with no API key. Measured against ZERO's
 own account: `pm_getPaymasterData` → *"token balance lower than the required 0x237f allowance"* =
 **0.009087 USDC per operation** (account deployment included in that same op).
-- **ZERO's smart account: `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`** (Safe v0.3.0, owner = its EOA
-  `0x5062…0dB9`; deterministic, undeployed, can receive before deployment; computed with `abstractionkit`).
+- **ZERO's smart account: `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`** — owner = its EOA `0x5062…0dB9`,
+  threshold 1. ⚠️ **CORRECTED 2026-08-12, this line was wrong twice over.** It is not "Safe v0.3.0" and
+  it is not "undeployed": `VERSION()` returns **1.4.1**, the singleton is **SafeL2 v1.4.1**
+  (`0x29fcB43b…C762`), and it is **DEPLOYED and transacting** on base, optimism, arbitrum, polygon and
+  gnosis (nonces 30 / 14 / 80 / 75 respectively). The "0.3.0" was the **Safe4337Module** version
+  (`0x75cf1146…c226`, whose `SUPPORTED_ENTRYPOINT()` is EntryPoint v0.7) — a different contract.
+- ⚠️ **UNICHAIN IS PHANTOM CAPACITY.** The Safe is **NOT deployed** there (`eth_getCode` = `0x`,
+  verified on two providers) — yet the relay cheerfully reports **5/5 free slots**, because the
+  gateway never checks: it answers 5/5 for *any* address, including `0x…0001`. Those slots cannot be
+  spent. Health counted them as free capacity for weeks. **A quota is not capability — always pair the
+  relay read with `eth_getCode` on the Safe.** Now enforced by the `phantom-relay-capacity` invariant.
+- ⚠️ **THERE IS NO RELAY RESET HOUR, and never was.** Read from the gateway's own source: it is an
+  86,400s cache-key TTL **re-armed on every increment**, so all 5 slots return at once ~24h after the
+  **last** relay of the batch, not on a clock. The invented "resets at 5 AM UTC" cost eleven sessions.
+  Quote the measurement (24.1h observed) or say unknown — never a wall-clock time.
+- ⚠️ `safe-client.safe.global` **bot-filters on User-Agent** and returns a *bodyless 403* to curl,
+  to no-UA, and to a `zero-agent` UA. A Chrome UA is the only load-bearing header; Origin and Referer
+  are decorative. A 403 there means "wrong UA", not "banned" and not "down".
 - ⚠️ **The paymaster checks the balance of the ACCOUNT SUBMITTING the op at validation time, so USDC on the
   EOA is stranded** (moving it needs ETH). The storefront's `payTo` is therefore the SMART ACCOUNT
   (`shop.mjs` → `SMART_ACCOUNT`). Never advertise the EOA for payment.
