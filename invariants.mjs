@@ -44,6 +44,7 @@
 import { ethers } from 'ethers';
 import { CHAINS, HARVEST_CFG, ESCAPE, USDC_BY_CHAIN, HOME_CHAIN, wethBalance, nativeUsd } from './harvest.mjs';
 import { SWEEP_RAIL } from './sweep.mjs';
+import { mutateKV } from './kv.mjs';
 
 export const INVARIANT_CFG = {
   // A violation that survives this many consecutive ticks is no longer a blip. At one tick per
@@ -122,7 +123,7 @@ const INVARIANTS = [
       const st = ctx.sweep;
       const p = st.pending.shift();
       st.done = [{ ...p, minted: true, delivered_by: 'third party; detected by invariant, not by our own relay', at: new Date().toISOString() }, ...(st.done || [])].slice(0, 20);
-      await ctx.env.KV.put('sweep:state', JSON.stringify(st));
+      await mutateKV(ctx.env, 'sweep:state', () => st, { fallback: { pending: [], done: [] } });
       return { action: 'retired the delivered CCTP entry from the pending queue', note: 'No slot spent. The burn leg is unblocked from the next tick.' };
     },
   },
@@ -145,7 +146,7 @@ const INVARIANTS = [
       const st = ctx.sweep;
       const p = st.pending.shift();
       st.done = [{ ...p, abandoned: true, reason: 'exceeded pendingGiveUpHours; retired by invariant so the rail can move', at: new Date().toISOString() }, ...(st.done || [])].slice(0, 20);
-      await ctx.env.KV.put('sweep:state', JSON.stringify(st));
+      await mutateKV(ctx.env, 'sweep:state', () => st, { fallback: { pending: [], done: [] } });
       return { action: 'retired a wedged sweep entry', note: 'Rail unblocked. The burn will be re-attempted from current balances; nothing is lost because the funds never left the source Safe unless the burn landed.' };
     },
   },
@@ -249,11 +250,24 @@ const INVARIANTS = [
     asks: 'The relay reports free capacity on a chain where the Safe has no code.',
     origin: 'MEASURED 2026-08-12: unichain reports 5/5 forever, but eth_getCode at the Safe is 0x there — the account was never deployed. The relay gateway does not check; it answers 5/5 for ANY address, including 0x…0001. Health counted those 5 slots as free capacity, the dashboard showed them, and a strategy note built on "10 wasted slots/day" was wrong by half.',
     async check(ctx) {
+      // ⚠️ AN INVARIANT THAT CANNOT FIRE IS WORSE THAN NO INVARIANT: it reports "all hold" and buys
+      // false confidence. This check needs the relay table, and a caller once omitted it — leaving
+      // the check silently inert while unichain was advertising 5 slots against a Safe with no code.
+      // If the input is missing, SAY SO. Never return null (which reads as "satisfied").
+      if (!ctx.relay || !Object.keys(ctx.relay).length) {
+        return {
+          detail: 'NOT ASSESSED — no relay table was supplied to checkInvariants, so this check could not run. That is not the same as passing.',
+          evidence: { missing_input: 'relay' },
+          repairable: false,
+          severity: 'notice',
+        };
+      }
       const bad = [];
       for (const [name, r] of Object.entries(ctx.chain.perChain)) {
         if (r.error) continue;
-        if (r.safeDeployed === false && (ctx.relay?.[name]?.remaining || 0) > 0) {
-          bad.push({ chain: name, remaining: ctx.relay[name].remaining });
+        const rem = ctx.relay?.[name]?.remaining;
+        if (r.safeDeployed === false && typeof rem === 'number' && rem > 0) {
+          bad.push({ chain: name, remaining: rem });
         }
       }
       if (!bad.length) return null;

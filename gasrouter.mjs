@@ -49,8 +49,8 @@ async function checkRelay(safe) {
       if (typeof q.limit !== 'number' || q.limit <= 0) continue;
       out.push({
         source: 'safe-relay', chain: name, chainId: id,
-        available: q.remaining > 0, capacity: q.remaining, ceiling: q.limit,
-        cost_usd: 0, note: q.remaining > 0 ? 'free slots right now' : 'exhausted; refills on an unpublished schedule',
+        available: typeof q.remaining === 'number' && q.remaining > 0, capacity: q.remaining, ceiling: q.limit,
+        cost_usd: 0, note: typeof q.remaining !== 'number' ? ('quota UNREADABLE this request (' + (q.error || 'no reading') + ') — unknown, NOT exhausted') : q.remaining > 0 ? 'free slots right now' : 'exhausted; refills on an unpublished schedule',
       });
     } catch { /* one chain failing is not a verdict */ }
     await new Promise(r => setTimeout(r, 160));

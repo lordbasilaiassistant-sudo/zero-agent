@@ -10,6 +10,7 @@
 //   * per-strategy cooldown (rewards accrue over time; re-harvesting immediately earns nothing)
 //   * callReward() is a RANKING signal only â€” it overstated a real payout by ~4,300x once
 import { ethers } from 'ethers';
+import { mutateKV, addBig } from './kv.mjs';
 import { probeContract, probeMany, probeOne } from './oracle.mjs';
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
@@ -69,23 +70,69 @@ const SAFE_TX_TYPES = {
   ],
 };
 
+// ⚠️ RETURNS remaining: null WHEN THE READ FAILS. NEVER 0. This is the most consequential silent
+// zero in the repo, because of what sits downstream of it.
+//
+// It used to answer `{ remaining: 0 }` for a 429, a 502, a timeout, or a bot-filter 403 — and worse,
+// `Number(j.remaining ?? 0)` meant a JSON *error body* parsed cleanly, so `error: true` was never
+// even set and a failed read was byte-identical to a genuine "quota exhausted".
+//
+// Then observeRelay (below) writes history from these numbers: a fabricated 0 stamps `exhaustedAt`,
+// and next tick's recovery to 5 records a REFILL — with a real timestamp. relayResetSummary turns
+// those into `reset_schedule: "MEASURED: refills Xh apart"`, which goes straight into the agent's own
+// system prompt.
+//
+// That is this project's most expensive failure REBUILT IN CODE: a previous ZERO invented "the relay
+// resets at 5 AM UTC" and planned eleven dead sessions around it. Here the machine invents the same
+// class of fiction from network noise and stamps it MEASURED. An unread quota is UNKNOWN.
 export async function relayBudget(safe, chainId = 8453) {
   try {
     const r = await fetch(`${relayUrl(chainId)}/${safe}`, { headers: RELAY_HEADERS });
+    if (!r.ok) return { remaining: null, limit: null, error: `HTTP ${r.status}` };
     const j = await r.json();
-    return { remaining: Number(j.remaining ?? 0), limit: Number(j.limit ?? 0) };
-  } catch { return { remaining: 0, limit: 0, error: true }; }
+    // Validate the SHAPE. `?? 0` accepted an error body as a quota reading.
+    if (typeof j?.remaining !== 'number' || typeof j?.limit !== 'number') {
+      return { remaining: null, limit: null, error: 'relay response had no numeric remaining/limit' };
+    }
+    return { remaining: j.remaining, limit: j.limit };
+  } catch (e) { return { remaining: null, limit: null, error: String(e.message || e).slice(0, 80) }; }
 }
 
 // Pick the chain with free slots â€” an unused slot expires worthless, so never idle on one chain
 // while another has budget.
-export async function pickChain(safe) {
+// ── RELAY BUDGET, MEMOISED ───────────────────────────────────────────────────────────────────────
+// pickChain fans out ONE HTTP request per chain to safe-client.safe.global, and it is called from
+// eleven sites. Counted over a single 2-minute cron tick: escapeCycle 1, batchHarvest once PER CHAIN
+// inside the six-chain loop, sweepCycle up to 4, the invariant pass, and observeRelay — roughly
+// TWELVE fan-outs, so about 72 requests per tick and on the order of 50,000 per day.
+//
+// Against a free, undocumented endpoint that we have now measured to be behind a bot filter (it
+// returns a bodyless 403 to any non-browser User-Agent), and which is ZERO's ONLY free transaction
+// rail. Hammering it risks the single capability the whole project stands on, and buys nothing: the
+// budget cannot change unless WE spend a slot.
+//
+// So: cache briefly, and INVALIDATE THE MOMENT WE RELAY. The invalidation is the load-bearing half —
+// a stale budget that still reads "1 remaining" after we just spent it could wave a second relay
+// through, so correctness here depends on the cache being dropped on every relay attempt, including
+// failed ones (a rejected attempt can still have consumed quota).
+let _relayCache = { safe: null, at: 0, all: null };
+export function invalidateRelayCache() { _relayCache = { safe: null, at: 0, all: null }; }
+export const RELAY_CACHE_MS = 25000;   // well under the 2-minute tick; only ever reused within a tick
+
+export async function pickChain(safe, { maxAgeMs = RELAY_CACHE_MS } = {}) {
+  if (_relayCache.all && _relayCache.safe === safe && Date.now() - _relayCache.at < maxAgeMs) {
+    const cached = _relayCache.all;
+    return { chosen: cached[0]?.remaining > 0 ? cached[0] : null, all: cached, cached: true };
+  }
   const out = [];
   for (const [name, c] of Object.entries(CHAINS)) {
     const b = await relayBudget(safe, c.chainId);
     out.push({ name, ...c, ...b });
   }
-  out.sort((a, b) => b.remaining - a.remaining);
+  // Unknown sorts LAST. A null must never win `chosen` — that would send a relay at a chain whose
+  // quota we failed to read, which is how you burn a slot you did not have.
+  out.sort((a, b) => (b.remaining ?? -1) - (a.remaining ?? -1));
+  _relayCache = { safe, at: Date.now(), all: out };
   return { chosen: out[0]?.remaining > 0 ? out[0] : null, all: out };
 }
 
@@ -101,7 +148,19 @@ export async function observeRelay(env, budgets) {
   const now = Date.now();
   for (const b of budgets) {
     const c = st.chains[b.name] ||= { refills: [] };
-    if (c.lastRemaining !== undefined && b.remaining > c.lastRemaining) {
+    // ⚠️ A MISSED READING IS NOT AN OBSERVATION. relayBudget now returns null when it could not read
+    // the quota, and this function is what turns readings into published HISTORY. If a null were
+    // treated as 0 it would stamp a fake exhaustion, and the recovery on the next tick would be
+    // recorded as a REFILL with a real timestamp — which relayResetSummary then publishes to the
+    // agent as "MEASURED: refills Xh apart". A refill may only ever be inferred BETWEEN TWO KNOWN
+    // READINGS. Skip entirely, and count the miss so the gap is visible rather than invisible.
+    if (b.remaining === null || b.remaining === undefined) {
+      c.missedReadings = (c.missedReadings || 0) + 1;
+      c.lastMissAt = new Date(now).toISOString();
+      c.lastMissWhy = b.error || 'unknown';
+      continue;                       // do NOT touch lastRemaining, exhaustedAt, refills or lastSeen
+    }
+    if (c.lastRemaining !== undefined && c.lastRemaining !== null && b.remaining > c.lastRemaining) {
       c.refills.unshift({ at: new Date(now).toISOString(), from: c.lastRemaining, to: b.remaining });
       c.refills = c.refills.slice(0, 8);
     }
@@ -280,6 +339,39 @@ const NATIVE_STATS = {
   gnosis: 'https://gnosis.blockscout.com/api/v2/stats',
   polygon: 'https://polygon.blockscout.com/api/v2/stats',
 };
+// ── PRICING EARNINGS: WEI IS THE MEASUREMENT, USD IS A DERIVED VIEW ─────────────────────────────
+// Both earnings call sites used to do `price ? wei * price : 0` and then ACCUMULATE that into the
+// permanent route ledger (`r.earned_usd += usd`). So a momentary price-feed outage at the instant a
+// harvest settled wrote a real payout into history as $0.00 — permanently, because nothing ever
+// revisits it. The agent then reads that ledger back in its own system prompt and in `/ledger`, and
+// judges which routes are worth a scarce relay slot from it.
+//
+// The wei figure is NEVER unknown: it is a measured balance delta. Only the USD conversion can fail.
+// So record the wei as the source of truth, record USD as a best-effort view, and when the price is
+// unavailable record the wei as UNPRICED so it can be valued later instead of being destroyed now.
+export function priceEarnings(weiStr, price) {
+  const wei = BigInt(weiStr || 0);
+  if (price === null || price === undefined || !Number.isFinite(price) || price <= 0) {
+    return { wei: wei.toString(), usd: null, unpriced: true,
+      note: 'price feed unavailable at settlement — the WEI is measured and exact; the USD is unknown, NOT zero. Reprice from wei rather than trusting any $0 here.' };
+  }
+  return { wei: wei.toString(), usd: +(Number(ethers.formatEther(wei)) * price).toFixed(8), unpriced: false };
+}
+
+// Fold a settlement into a route ledger entry without ever letting an unknown price destroy value.
+export function creditRoute(route, weiStr, price) {
+  const p = priceEarnings(weiStr, price);
+  route.earned_wei = (BigInt(route.earned_wei || 0) + BigInt(p.wei)).toString();
+  if (p.unpriced) {
+    // Park it. `earned_usd` stays honest (it does not pretend this was worth nothing) and the wei is
+    // preserved so a later pass can value it.
+    route.unpriced_wei = (BigInt(route.unpriced_wei || 0) + BigInt(p.wei)).toString();
+  } else {
+    route.earned_usd = +((route.earned_usd || 0) + p.usd).toFixed(8);
+  }
+  return p;
+}
+
 // RETURNS null WHEN THE PRICE IS UNKNOWN, NEVER 0. Returning 0 for "I could not read this" is the
 // repo's own documented trap — a failed read looking exactly like a null result — and it fired here:
 // Polygon's stats endpoint intermittently answers without a coin_price, so WPOL priced at $0 and the
@@ -629,9 +721,13 @@ export async function escapeCycle(env, rpc, safe, eoa) {
           nonce: parseInt(nPending, 16), gasLimit, maxFeePerGas: maxFee, maxPriorityFeePerGas: prio,
         });
         const hash = await rpc('base', 'eth_sendRawTransaction', [signed]);
-        state.escaped = true;
-        state.escapeLog = [{ at: new Date().toISOString(), leg: 'eoa_self_unwrap', hash, unlocked_usd: usd(eoaWeth) }, ...(state.escapeLog || [])].slice(0, 10);
-        await env.KV.put('harvest:state', JSON.stringify(state));
+        // Re-read before writing: an on-chain broadcast just happened, and the agent session runs
+        // concurrently against this same key.
+        await mutateKV(env, 'harvest:state', (s2) => {
+          s2.escaped = true;
+          s2.escapeLog = [{ at: new Date().toISOString(), leg: 'eoa_self_unwrap', hash, unlocked_usd: usd(eoaWeth) }, ...(s2.escapeLog || [])].slice(0, 10);
+          return s2;
+        });
         return { step: 'eoa_self_unwrap', reserve, sent: true, hash, unlocks_usd: usd(eoaWeth),
           note: 'UNWRAPPED. The stranded WETH is native ETH at the EOA now — it transacts with nobody permission-gating it.' };
       } catch (e) { return { step: 'eoa_self_unwrap', reserve, simulated: false, error: String(e.message).slice(0, 140) }; }
@@ -731,17 +827,21 @@ export async function escapeCycle(env, rpc, safe, eoa) {
 
   const { all } = await pickChain(safe);
   const slot = all.find(c => c.name === 'base');
-  if (!slot || slot.remaining < 1) {
+  if (!slot || slot.remaining === null || slot.remaining === undefined || slot.remaining < 1) {
+    const unknown = !slot || slot.remaining === null || slot.remaining === undefined;
     return { step: 'funnel', reserve, simulated: true, ready: true, converting: doing,
-      converts_usd: reserve.safe_weth_usd, legs: legs.length, skipped: 'no Base relay slot right now' };
+      converts_usd: reserve.safe_weth_usd, legs: legs.length,
+      skipped: unknown ? 'Base relay quota UNREADABLE this tick (' + (slot?.error || 'no reading') + ') — not spending on an unknown budget' : 'no Base relay slot right now' };
   }
 
   const before = eoaEth;
   const sent = await relayExec(env, rpc, safe, MULTISEND, msData, 'base', 8453, 1);  // DELEGATECALL
-  state.escapeLog = [{ at: new Date().toISOString(), leg: 'funnel_atomic', relayed: sent.ok, taskId: sent.taskId, converting: doing, error: sent.error }, ...(state.escapeLog || [])].slice(0, 10);
-  if (sent.ok) state.escaped = true;
-  state.lastFunnelAt = Date.now();
-  await env.KV.put('harvest:state', JSON.stringify(state));
+  await mutateKV(env, 'harvest:state', (s2) => {
+    s2.escapeLog = [{ at: new Date().toISOString(), leg: 'funnel_atomic', relayed: sent.ok, taskId: sent.taskId, converting: doing, error: sent.error }, ...(s2.escapeLog || [])].slice(0, 10);
+    if (sent.ok) s2.escaped = true;
+    s2.lastFunnelAt = Date.now();
+    return s2;
+  });
   return {
     step: 'funnel', reserve, simulated: true, relayed: sent.ok, taskId: sent.taskId, error: sent.error,
     converting: doing, legs: legs.length, converts_usd: reserve.safe_weth_usd, eoa_native_before_wei: before.toString(),
@@ -818,7 +918,13 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 1
 
   const { all } = await pickChain(safe);
   const slot = all.find(c => c.name === chainName);
-  if (!slot || slot.remaining < 1) {
+  if (!slot || slot.remaining === null || slot.remaining === undefined) {
+    // UNKNOWN is not EXHAUSTED. Do not spend, but say which one it is — the two call for opposite
+    // responses (wait for refill vs retry the read) and conflating them hid a dead rail before.
+    return { ready: true, chain: chainName, size: good.length, expected_wei: expected.toString(),
+      skipped: 'relay quota UNREADABLE on this chain this tick (' + (slot?.error || 'no reading') + ') — not spending on an unknown budget; this is NOT the same as exhausted' };
+  }
+  if (slot.remaining < 1) {
     return { ready: true, chain: chainName, size: good.length, expected_wei: expected.toString(), skipped: 'no relay slot on this chain' };
   }
 
@@ -836,17 +942,28 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 1
     const delta = after - before;
     result.wei_earned = delta.toString();
     result.eth_earned = ethers.formatEther(delta);
+    let priced = null;
     if (delta > 0n) {
-      state.wins += 1;
-      state.weiEarned = (BigInt(state.weiEarned) + delta).toString();
-      const price = await nativeUsd(chainName);
-      result.earned_usd = price ? +(Number(result.eth_earned) * price).toFixed(8) : 0;
+      priced = priceEarnings(delta.toString(), await nativeUsd(chainName));
+      result.earned_usd = priced.usd;              // null, never 0, when the feed is down
+      result.earned_wei = priced.wei;              // always exact
+      if (priced.unpriced) result.earned_unpriced_note = priced.note;
     }
-    for (const g of good) state.cooldowns[g.contract] = Date.now();
-    state.attempts += 1;
-    state.log.unshift({ at: new Date().toISOString(), batch: good.length, ...result });
-    state.log = state.log.slice(0, 50);
-    await env.KV.put('harvest:state', JSON.stringify(state));
+    // ⚠️ `state` was read at the TOP of this function, and everything since — the relay call and up
+    // to ~60 SECONDS of status polling — has happened while the agent's own session runs
+    // concurrently in another waitUntil and writes this same key. Writing the captured blob back
+    // would erase whatever it recorded in that minute. Re-read and apply the deltas to FRESH state.
+    await mutateKV(env, 'harvest:state', (s) => {
+      if (delta > 0n) {
+        s.wins = (s.wins || 0) + 1;
+        s.weiEarned = addBig(s.weiEarned, delta);
+      }
+      s.cooldowns = s.cooldowns || {};
+      for (const g of good) s.cooldowns[g.contract] = Date.now();
+      s.attempts = (s.attempts || 0) + 1;
+      s.log = [{ at: new Date().toISOString(), batch: good.length, ...result }, ...(s.log || [])].slice(0, 50);
+      return s;
+    }, { fallback: { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] } });
   }
   return result;
 }
@@ -864,7 +981,7 @@ export async function harvestCycle(env, rpc) {
   const { all: budgets } = await pickChain(safe);
   // Record the budget every cycle — this is the only way the real refill period ever gets measured.
   const obs = await observeRelay(env, budgets.map(b => ({ name: b.name, remaining: b.remaining, limit: b.limit })));
-  if (!budgets.some(b => b.remaining > 0)) {
+  if (!budgets.some(b => typeof b.remaining === 'number' && b.remaining > 0)) {
     return { skipped: 'relay budget exhausted on every chain', budgets, relay_reset: relayResetSummary(obs) };
   }
 
@@ -874,7 +991,7 @@ export async function harvestCycle(env, rpc) {
   // Polygon sat with 4 free slots and a proven payer. Slots on a chain with no work are worth nothing;
   // always keep walking down the list until a chain actually has something fresh to call.
   let chain = null, fresh = [], tried = [];
-  for (const cand of budgets.filter(b => b.remaining > 0)) {
+  for (const cand of budgets.filter(b => typeof b.remaining === 'number' && b.remaining > 0)) {
     const strategies = await loadStrategies(env, rpc, cand.name);
     const usable = strategies.filter(s => {
       if (BLACKLIST.has(s.strategy.slice(0, 14).toLowerCase())) return false;
@@ -1018,16 +1135,23 @@ export async function harvestCycle(env, rpc) {
     try {
       // price the token THIS CHAIN pays in, never a blanket ETH price
       const price = await nativeUsd(chain.name);
-      const usd = price ? +(Number(result.eth_earned) * price).toFixed(8) : 0;
-      const db = JSON.parse((await env.KV.get('state:routes')) || '{"routes":{}}');
-      const r = db.routes['beefy-harvest-caller-fees'] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
-      r.attempts += 1; r.successes += 1;
-      r.earned_usd = +((r.earned_usd || 0) + usd).toFixed(6);
-      r.last = { at: new Date().toISOString(), outcome: 'success' };
-      r.notes.unshift(`autoharvest ${chosen.id}: +${result.eth_earned} WETH ($${usd}) (tx ${result.tx || 'pending'})`);
-      r.notes = r.notes.slice(0, 5);
-      await env.KV.put('state:routes', JSON.stringify(db, null, 2));
-      result.earned_usd = usd;
+      // THE EARNINGS LEDGER, and the agent's own route_log tool writes it concurrently from another
+      // waitUntil. A captured-blob write here can erase a route the session just recorded — which is
+      // the one piece of state this project genuinely cannot afford to lose, because it is the only
+      // durable proof that a route ever paid.
+      let priced = null;
+      await mutateKV(env, 'state:routes', (db) => {
+        db.routes ||= {};
+        const r = db.routes['beefy-harvest-caller-fees'] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
+        r.attempts += 1; r.successes += 1;
+        // Credits wei always, USD only when it is actually known. An unreadable price can no longer
+        // write a real payout into the permanent ledger as $0.00.
+        priced = creditRoute(r, result.wei_earned, price);
+        r.last = { at: new Date().toISOString(), outcome: 'success' };
+        r.notes = [`autoharvest ${chosen.id}: +${result.eth_earned} WETH (${priced.unpriced ? 'USD UNKNOWN — price feed down, wei recorded' : '$' + priced.usd}) (tx ${result.tx || 'pending'})`, ...(r.notes || [])].slice(0, 5);
+        return db;
+      }, { fallback: { routes: {} } });
+      result.earned_usd = priced?.usd ?? null;
     } catch { /* bookkeeping must never break the loop */ }
   }
   return { ...result, budget_before: budget, totals: { attempts: state.attempts, wins: state.wins, weiEarned: state.weiEarned } };

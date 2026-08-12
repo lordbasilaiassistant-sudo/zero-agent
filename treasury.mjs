@@ -59,6 +59,8 @@ export const SWEEP = {
  */
 export async function treasuryPlan(rpc, eoa, safe) {
   const tributaries = [];
+  const unreadable = [];      // chains we could not read AT ALL
+  const unpriced = [];        // chains we read but could not price
   let homeUsd = 0, totalUsd = 0, sweepableUsd = 0;
 
   for (const [name, c] of Object.entries(CHAINS)) {
@@ -68,8 +70,20 @@ export async function treasuryPlan(rpc, eoa, safe) {
         wethBalance(rpc, eoa, name, c.weth),
         nativeUsd(name),
       ]);
-      const safeUsd = price ? Number(onSafe) / 1e18 * price : 0;
-      const eoaUsd = price ? Number(onEoa) / 1e18 * price : 0;
+      // ── SILENT ZERO, THIRD COPY. Fixed 2026-08-12. ────────────────────────────────────────────
+      // This was `price ? x : 0` — the identical coercion already fixed in harvest.mjs, living on in
+      // a third independent balance reader. It was not theoretical: two consecutive fetches of the
+      // live `/` endpoint on 2026-08-12 returned home_usd 0.12437765 and then home_usd 0, with
+      // byte-identical safe_wei, purely because a price read failed. The number a reader sees moved
+      // by 100% with nothing on-chain having changed.
+      // A chain we cannot price is EXCLUDED and NAMED. It is never counted as zero, because zero is
+      // a claim about the world and "I could not read it" is a claim about us.
+      if (price === null) {
+        unpriced.push({ chain: name, safe_wei: onSafe.toString(), eoa_wei: onEoa.toString() });
+        continue;
+      }
+      const safeUsd = Number(onSafe) / 1e18 * price;
+      const eoaUsd = Number(onEoa) / 1e18 * price;
       totalUsd += safeUsd + eoaUsd;
       if (name === HOME) { homeUsd += safeUsd + eoaUsd; continue; }
 
@@ -88,13 +102,26 @@ export async function treasuryPlan(rpc, eoa, safe) {
           ? `SWEEP to ${HOME} via CCTP — gas is now under ${SWEEP.maxFeeFraction * 100}% of the amount`
           : `accumulate — needs $${(threshold - safeUsd).toFixed(6)} more before a CCTP sweep is economic`,
       });
-    } catch { /* an unreachable chain must not break the plan */ }
+    } catch (e) {
+      // An unreachable chain must not break the plan — but it must not be INVISIBLE either. A bare
+      // `catch {}` here changed the denominator of a public total with nothing to show for it.
+      unreadable.push({ chain: name, error: String(e.message || e).slice(0, 90) });
+    }
   }
 
+  const incomplete = unreadable.length > 0 || unpriced.length > 0;
   return {
     home: HOME,
     home_usd: +homeUsd.toFixed(8),
     total_across_all_chains_usd: +totalUsd.toFixed(8),
+    // Every dollar figure above EXCLUDES these. Say so, loudly, in the payload itself — a consumer
+    // that renders the total must be able to tell a complete total from a partial one.
+    complete: !incomplete,
+    unreadable_chains: unreadable,
+    unpriced_chains: unpriced,
+    totals_caveat: incomplete
+      ? `PARTIAL: ${[...unreadable.map(u => u.chain), ...unpriced.map(u => u.chain)].join(', ')} could not be read or priced this request and are EXCLUDED from every dollar figure here. These totals are a LOWER BOUND, not a balance.`
+      : 'complete — every configured chain was read and priced',
     sweep_method: 'CCTP burn-and-mint — no liquidity pool, no bridge operator, NO FEE. You pay gas and nothing else. receiveMessage on the destination is permissionless, so a free relay slot can pay the mint leg and the only real cost is the burn.',
     sweepable_now_usd: +sweepableUsd.toFixed(8),
     tributaries: tributaries.sort((a, b) => b.spendable_usd - a.spendable_usd),
@@ -106,7 +133,13 @@ export async function treasuryPlan(rpc, eoa, safe) {
       `Sweep via CCTP, which has NO operator fee — gas only. Measured thresholds: optimism $0.0069, polygon $0.0728, arbitrum $0.1390. An earlier version of this policy asserted an UNMEASURED $0.08 bridge fee, set a $1.60 threshold on it, and declared consolidation "impossible at this size". Measured, that was wrong by 231x. NEVER adopt a limit you have not measured — an unmeasured limit is a hypothesis, not a wall.`,
       `THE SWEEP EXECUTES ITSELF (sweep.mjs, since 2026-07-30): swap to USDC, CCTP burn, mint at the Base Safe — all on free relay slots, checked every 2 minutes. You never need to move funds by hand; this plan is a dashboard, not a to-do list.`,
     ],
-    bottleneck_warning: totalUsd > 0 && homeUsd / totalUsd < 0.5
+    // GATED ON COMPLETENESS. This ratio is homeUsd/totalUsd, and both moved when a chain dropped out
+    // of the read — so on a partial request it could scream "only 0% is on base" (if base was the
+    // chain that failed) or fall silent (if a tributary failed), purely from an HTTP hiccup. A
+    // warning that fires on missing data teaches the reader to ignore warnings.
+    bottleneck_warning: incomplete
+      ? `NOT ASSESSED — the read was partial (${[...unreadable.map(u => u.chain), ...unpriced.map(u => u.chain)].join(', ')} excluded), and a home-chain concentration ratio computed on partial data is meaningless.`
+      : totalUsd > 0 && homeUsd / totalUsd < 0.5
       ? `Only ${((homeUsd / totalUsd) * 100).toFixed(0)}% of holdings are on ${HOME}. Value spread thin across chains cannot act — it is the same trap as stranded WETH. Direct new fees to ${HOME} where the choice exists.`
       : null,
   };

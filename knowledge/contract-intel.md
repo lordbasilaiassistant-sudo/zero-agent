@@ -106,3 +106,19 @@ this session. A 200 response is not money. Only `get_status` showing a changed b
 Build the permissionless-payer index: read source, find every unguarded function that pays its caller, and
 prove one of them nonzero with a live `eth_call` — starting with `finishDraw` on the PoolTogether
 DrawManagers already in `frontier.md`.
+
+
+## 2026-08-09 01:46 · ZERO HQ · Beefy vaults on Base
+Discovered 118 Base Beefy vaults via beefy-vaults. Need to resolve strategy addresses and test harvest() profitability.
+
+
+## 2026-08-09 02:03 · ZERO HQ · Beefy Vault Strategy Address Resolution
+We have been calling vault addresses directly (e.g., 0x09139A80454609B69700836a9eE12Db4b5DBB15f) but harvest() lives on the STRATEGY contract. We need to resolve strategy() for each vault to get the real target. This explains why all previous fork-tests reverted — we were calling the wrong address.
+
+
+## 2026-08-09 02:04 · ZERO HQ · Base RewardPaid contract probe
+Probing top RewardPaid contract 0xd7d11e2d4e8e7b65e905aa9d16e488c37195ca62 for strategy() function to identify the actual harvest target.
+
+
+## 2026-08-09 02:04 · ZERO HQ · RewardPaid Strategy Address Resolution
+Top RewardPaid contract: 0xd7d11e2d4e8e7b65e905aa9d16e488c37195ca62 (1172 events). Need to resolve its strategy address via strategy() selector (0xa8c62e76) to fork-test harvest().

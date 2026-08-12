@@ -30,6 +30,7 @@
 // address, then call the Safe directly — inner calls then genuinely come FROM the Safe.
 import { ethers } from 'ethers';
 import { relayExec, relayStatus, pickChain, wethBalance, MULTISEND, CHAINS, simulateMultiSendAsSafe } from './harvest.mjs';
+import { mutateKV } from './kv.mjs';
 
 export const SWEEP_RAIL = {
   tokenMessenger: '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
@@ -136,14 +137,30 @@ async function quoteOut(rpc, chain, tokenIn, tokenOut, fee, amountIn) {
   } catch { return null; }
 }
 
-export async function sweepCycle(env, rpc, safe) {
+export async function sweepCycle(env, rpc, safe, { escapeNeedsBase = null } = {}) {
   const state = (await env.KV.get('sweep:state', 'json')) || { pending: [], done: [] };
   const out = { pending: state.pending.length };
 
   // ── LEG B: deliver any attested burn to Base (permissionless receiveMessage, one relay slot).
   // The escape owns Base until it is finished; the mint can always wait — attestations do not expire.
-  const hs = (await env.KV.get('harvest:state', 'json')) || {};
-  if (state.pending.length && hs.escaped) {
+  // ── THE GATE, FIXED 2026-08-12 ────────────────────────────────────────────────────────────────
+  // This used to read `hs.escaped` — and the comment above claimed it meant "the escape owns Base
+  // until it is finished". It means nothing of the sort. `escaped` is a STICKY BOOLEAN set from an
+  // HTTP 201 (relay ACCEPTED, not landed) the first time a funnel ever relayed, and never reset. So:
+  //   * before the first funnel it is false, and LEG B is skipped — while `if (state.pending.length)
+  //     return out` below blocks LEG A too, wedging the ENTIRE rail with money already burned at the
+  //     source and no code path able to deliver it.
+  //   * after the first funnel it is permanently true, so it protects nothing: the mint can grab the
+  //     very Base slot the escape is waiting on, which is the exact trade the cron forbids.
+  // worker.mjs already diagnosed this identical variable in the harvest_run path and migrated to the
+  // live `escape:needsBase` flag; this file was simply never updated. Same rule now, same 15-minute
+  // freshness: missing or stale means the cron is not currently reserving Base, so fail OPEN.
+  let holdBase = escapeNeedsBase;
+  if (holdBase === null) {
+    const escv = (await env.KV.get('escape:needsBase', 'json')) || null;
+    holdBase = !!(escv && escv.v === true && Date.now() - (escv.at || 0) < 15 * 60 * 1000);
+  }
+  if (state.pending.length && !holdBase) {
     const p = state.pending[0];
     // Resolve the burn tx hash if the relay had not surfaced it yet when the burn leg ran.
     if (!p.tx && p.taskId) {
@@ -160,7 +177,7 @@ export async function sweepCycle(env, rpc, safe) {
           await rpc('base', 'eth_call', [{ to: SWEEP_RAIL.messageTransmitter, data, from: safe }, 'latest']);
           const { all } = await pickChain(safe);
           const slot = all.find(c => c.name === 'base');
-          if (slot && slot.remaining > 0) {
+          if (slot && typeof slot.remaining === 'number' && slot.remaining > 0) {
             const sent = await relayExec(env, rpc, safe, SWEEP_RAIL.messageTransmitter, data, 'base', 8453, 0);
             if (sent.ok) {
               state.done.unshift({ ...p, minted: true, mintTaskId: sent.taskId, at: new Date().toISOString() });
@@ -195,7 +212,9 @@ export async function sweepCycle(env, rpc, safe) {
         }
       }
     }
-    await env.KV.put('sweep:state', JSON.stringify(state));
+    // LEG B has just fetched an attestation and possibly relayed. Re-read before writing: the
+    // invariant checker repairs this same key from a concurrent path.
+    await mutateKV(env, 'sweep:state', () => state, { fallback: { pending: [], done: [] } });
     if (out.minted) return out;   // a slot was spent this tick; the burn leg can wait
   }
 
@@ -256,14 +275,16 @@ export async function sweepCycle(env, rpc, safe) {
 
       const { all } = await pickChain(safe);
       const slot = all.find(c => c.name === chain);
-      if (!slot || slot.remaining < 1) { out[chain] = `burn ready ($${usd.toFixed(4)}), no relay slot`; continue; }
+      if (!slot || typeof slot.remaining !== 'number') { out[chain] = `burn ready ($${usd.toFixed(4)}), relay quota UNREADABLE this tick (${slot?.error || 'no reading'}) — not the same as exhausted`; continue; }
+      if (slot.remaining < 1) { out[chain] = `burn ready ($${usd.toFixed(4)}), no relay slot`; continue; }
 
       const sent = await relayExec(env, rpc, safe, MULTISEND, msData, chain, CHAINS[chain].chainId, 1); // DELEGATECALL
       if (sent.ok) {
         const p = { chain, taskId: sent.taskId, tx: null, usd: +usd.toFixed(6), burn_units: burnAmount.toString(), prior_residue_swept: priorUsdc.toString(), at: new Date().toISOString() };
         try { for (let i = 0; i < 6 && !p.tx; i++) { await new Promise(r => setTimeout(r, 5000)); const st = await relayStatus(sent.taskId, CHAINS[chain].chainId); if (st.tx) p.tx = st.tx; } } catch { /* resolved next tick */ }
         state.pending.push(p);
-        await env.KV.put('sweep:state', JSON.stringify(state));
+        // Up to 30s of relay-status polling happened above; re-read before committing.
+        await mutateKV(env, 'sweep:state', () => state, { fallback: { pending: [], done: [] } });
         out.burned = p;
         return out;   // one slot per tick
       }

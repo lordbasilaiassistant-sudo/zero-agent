@@ -46,6 +46,7 @@ export function chunkMarkdown(slug, title, md, maxChars = 1400) {
   const chunks = [];
   const lines = (md || '').split(/\r?\n/);
   let heading = title || slug;
+  let hashes = '';                 // the ORIGINAL heading level, so reconstruction is lossless
   let buf = [];
   const flush = () => {
     const text = buf.join('\n').trim();
@@ -53,17 +54,37 @@ export function chunkMarkdown(slug, title, md, maxChars = 1400) {
     // A single long section becomes several chunks that all keep the heading, so the heading signal
     // is not lost on the tail of a long passage.
     for (let i = 0; i < text.length; i += maxChars) {
-      chunks.push({ id: `${slug}#${chunks.length}`, slug, heading, text: text.slice(i, i + maxChars) });
+      chunks.push({
+        id: `${slug}#${chunks.length}`, slug, heading,
+        // ⚠️ THE HEADING MUST LIVE IN THE TEXT TOO, not only in metadata. It used to be consumed by
+        // the parser and stored only as a field — which was fine for scoring and silently destroyed
+        // the document: `/docs/<slug>` rebuilds a doc by joining chunk TEXT, so a 34-section
+        // reference was being served as ONE structureless wall with every heading gone. Measured
+        // 2026-08-12: 34 headings in docs/safe.md, 1 in what the endpoint returned.
+        // `headingMark` is emitted only on the FIRST chunk of a section so a long section does not
+        // repeat its own title mid-flow.
+        headingMark: i === 0 && hashes ? `${hashes} ${heading}` : '',
+        text: text.slice(i, i + maxChars),
+      });
     }
     buf = [];
   };
   for (const ln of lines) {
     const m = /^(#{1,4})\s+(.*)$/.exec(ln);
-    if (m) { flush(); heading = m[2].trim(); continue; }
+    if (m) { flush(); hashes = m[1]; heading = m[2].trim(); continue; }
     buf.push(ln);
   }
   flush();
   return chunks;
+}
+
+// Rebuild a document from its chunks WITHOUT losing structure. Anything serving a whole doc must go
+// through this rather than joining `.text`, which is what dropped every heading.
+export function reassembleDoc(corpus, slug) {
+  return corpus.chunks
+    .filter(c => c.slug === slug)
+    .map(c => (c.headingMark ? `${c.headingMark}\n\n${c.text}` : c.text))
+    .join('\n\n');
 }
 
 export function buildCorpus(docs) {

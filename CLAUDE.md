@@ -81,6 +81,22 @@ with an auto-stub journal entry. Verified: ~6s and ~16 subrequests per tick — 
   instead of twelve days.** The second is most of the value — nobody reads a healthy-looking log.
   The audit reads `published:balances` (what the `/` endpoint actually served) rather than recomputing,
   so it is not a gate pointed at its own author.
+- `regress.mjs` — **one test per defect that ACTUALLY HAPPENED.** Offline, no network, no keys,
+  seconds. `node regress.mjs`. It tests the pure logic underneath the tools — the arithmetic and the
+  predicates — which is where every expensive bug in this project has really lived; they were never
+  "the API call failed", they were "the number was wrong and nothing noticed".
+  **Every test ships with a CONTROL that re-implements the old broken behaviour and asserts the guard
+  rejects it.** A guard that cannot fail is decoration, and this repo has the scar (a benchmark trap
+  that could not fire for any input, so every candidate that cut a verification gate was published as
+  passing it). If a control ever starts passing, that guard has gone blind.
+  **Rule for adding:** a test goes in only when a defect has been found IN THE WILD, and it must fail
+  against the old code. Tests written from imagination guard nothing and make the suite look thorough.
+- `kv.mjs` — `mutateKV`. `scheduled()` fires FIVE concurrent `waitUntil` blocks, one of which is the
+  agent's own session, and its tools write the same keys as the earner loop. KV has no transactions,
+  so read-blob → work-for-a-minute → write-blob is a lost update. Every writer of `state:routes`,
+  `harvest:state` and `sweep:state` now expresses its change as a function of FRESH state. It cannot
+  promise atomicity (nothing on KV can); it shrinks the window from a minute to milliseconds and makes
+  a collision detectable via a monotonic `_v`.
 - `selftest.mjs` — 17 tests against a throwaway wallet in the scratchpad. Run after any tools change.
 - `knowledge/` — `genesis.md` (creator-bestowed verified facts — we own this), `recovery.md` + `journal.md`
   (agent-owned). Watch the journal for "CAPABILITY REQUESTS".

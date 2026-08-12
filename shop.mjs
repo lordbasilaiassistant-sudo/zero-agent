@@ -1,5 +1,6 @@
 // shop.mjs — ZERO's storefront: the one earning rail that needs no capital.
 import { ethers } from 'ethers';
+import { mutateKV } from './kv.mjs';
 // In x402, the BUYER's client settles onchain and pays the gas; the seller only answers HTTP 402
 // with its address. So a broke agent can sell even though it cannot transact.
 // v1 settlement: pay-then-fetch. Buyer sends USDC on Base to ZERO, then calls back with the tx hash.
@@ -450,14 +451,19 @@ export async function handleShop(req, env, url, rpc, payTo) {
 
   // Record the sale in the agent's own ledger — this is how ZERO learns selling works.
   try {
-    const db = JSON.parse((await env.KV.get('state:routes')) || '{"routes":{}}');
-    const r = db.routes['x402-shop-sales'] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
-    r.attempts += 1; r.successes += 1;
-    r.earned_usd = +(r.earned_usd + Number(check.paid_units) / 1e6).toFixed(6);
-    r.last = { at: new Date().toISOString(), outcome: 'success' };
-    r.notes.push(`SOLD ${slug} for ${(Number(check.paid_units) / 1e6).toFixed(6)} USDC — ${tx ? 'tx ' + tx : 'x402 authorization from ' + check.from}`);
-    r.notes = r.notes.slice(-5);
-    await env.KV.put('state:routes', JSON.stringify(db, null, 2));
+    // Third concurrent writer of the earnings ledger (the earner loop and the agent's route_log
+    // tool are the other two). Merge into fresh state — a blob overwrite here would erase a harvest
+    // or a route_log that landed while this sale was being generated, and THIS one records an actual
+    // customer payment, which is the rarest event in the whole system.
+    await mutateKV(env, 'state:routes', (db) => {
+      db.routes ||= {};
+      const r = db.routes['x402-shop-sales'] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
+      r.attempts += 1; r.successes += 1;
+      r.earned_usd = +(r.earned_usd + Number(check.paid_units) / 1e6).toFixed(6);
+      r.last = { at: new Date().toISOString(), outcome: 'success' };
+      r.notes = [...(r.notes || []), `SOLD ${slug} for ${(Number(check.paid_units) / 1e6).toFixed(6)} USDC — ${tx ? 'tx ' + tx : 'x402 authorization from ' + check.from}`].slice(-5);
+      return db;
+    }, { fallback: { routes: {} } });
     const sales = JSON.parse((await env.KV.get('state:sales')) || '[]');
     sales.push({ slug, tx: tx || null, nonce: check.nonce || null, units: check.paid_units, target, at: new Date().toISOString() });
     await env.KV.put('state:sales', JSON.stringify(sales.slice(-200)));

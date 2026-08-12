@@ -13,7 +13,7 @@ import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { readChainState, splitLifetime } from './chainstate.mjs';
 import { checkInvariants, invariantBrief } from './invariants.mjs';
-import { docSearch, loadCorpus, buildLlmsTxt } from './docs.mjs';
+import { docSearch, loadCorpus, buildLlmsTxt, reassembleDoc } from './docs.mjs';
 import { diagnose } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
@@ -137,7 +137,17 @@ export function isDead(r, id) {
      under a fresh id (`base-harvest-batch-127/131/133/...`), which inflated `routes_tried` from 22 to 38
      in ten hours. The ledger's denominator was therefore measuring SESSIONS ELAPSED, not exploration.
      Money arriving outranks any flag, unconditionally. */
+  /* HARDENED 2026-08-12. This test was `r.earned_usd > 0` alone, which quietly assumed USD is the
+     only evidence that money arrived. It is not, and it is the WEAKER evidence: wei is a measured
+     balance delta and can never be unknown, while the USD conversion depends on an HTTP price feed
+     that demonstrably goes down (Polygon's returns nothing at random). Once earnings stopped being
+     force-converted at settlement — they are now banked as wei and priced only when the price is
+     actually known — a route that earned during a feed outage would carry earned_usd 0 with real
+     money behind it, and this line would have let two capacity-noise "blocked" counts bury it.
+     That is precisely the failure the comment above describes, re-entering through the back door.
+     MONEY ARRIVING OUTRANKS ANY FLAG, and wei is how you know money arrived. */
   if (r.earned_usd > 0) return false;
+  try { if (BigInt(r.earned_wei || 0) > 0n || BigInt(r.unpriced_wei || 0) > 0n) return false; } catch { /* malformed counter is not evidence of death */ }
   if (r.dead === true || r.blocked >= 2) return true;
   if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
   if (id && closedCategory(id)) return true;
@@ -412,15 +422,26 @@ function makeTools(ctx) {
           reason: 'DEAD ROUTE — permanently out of scope (human-gated, or blocked twice). This attempt was NOT logged and the rounds you spent on it were wasted. Never revisit or research this route again; work a LIVE route instead.',
         };
       }
-      const r = db.routes[id] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
-      r.attempts += 1;
-      if (outcome === 'success') r.successes += 1;
-      if (outcome === 'blocked') r.blocked += 1;
-      r.earned_usd = +(r.earned_usd + (parseFloat(earned_usd) || 0)).toFixed(6);
-      r.last = { at: new Date().toISOString(), outcome };
-      if (note) { r.notes.push(clip(String(note), 200)); r.notes = r.notes.slice(-5); }
-      if (/HUMAN-GATED|captcha|social login|KYC/i.test(note) || r.blocked >= 2) r.dead = true;
-      await ctx.kvPut('state:routes', jstr(db));
+      // ⚠️ MUST re-read and merge, not overwrite. This tool runs inside the agent session, which is
+      // a SEPARATE concurrent waitUntil from the earner loop — and the earner loop writes this same
+      // key from harvestCycle. Blob-overwriting here would erase a harvest that landed while the
+      // model was thinking, which is the one record this project cannot afford to lose: the ledger
+      // is the only durable proof a route ever paid, and isDead() reads it to decide what the agent
+      // is allowed to try next. Fixing harvestCycle alone was half a fix; both writers must merge.
+      let r;
+      const res = await mutateKV(ctx.env, 'state:routes', (fresh) => {
+        fresh.routes ||= {};
+        r = fresh.routes[id] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
+        r.attempts += 1;
+        if (outcome === 'success') r.successes += 1;
+        if (outcome === 'blocked') r.blocked += 1;
+        r.earned_usd = +(r.earned_usd + (parseFloat(earned_usd) || 0)).toFixed(6);
+        r.last = { at: new Date().toISOString(), outcome };
+        if (note) { r.notes = [...(r.notes || []), clip(String(note), 200)].slice(-5); }
+        if (/HUMAN-GATED|captcha|social login|KYC/i.test(note) || r.blocked >= 2) r.dead = true;
+        return fresh;
+      }, { fallback: { routes: {} } });
+      db.routes = res.value?.routes || db.routes;
       const leaderboard = Object.entries(db.routes).filter(([k, v]) => !isDead(v, k))
         .map(([k, v]) => ({ route: k, attempts: v.attempts, successes: v.successes, earned_usd: v.earned_usd }))
         .sort((a, b) => b.earned_usd - a.earned_usd).slice(0, 10);
@@ -1176,7 +1197,10 @@ export default {
         // burning two of the day's five in one 2-minute tick is not a trade we want to make blind.
         console.log('sweep: skipped — the Base funnel already spent a slot this tick');
       } else try {
-        const sw = await sweepCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT);
+        // Pass the LIVE verdict. The sweep's mint leg competes for the same Base slot the funnel is
+        // waiting on, and until now it gated on a sticky "an escape relayed once, ever" flag that
+        // could not express the reservation the cron actually enforces for harvests.
+        const sw = await sweepCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, { escapeNeedsBase });
         console.log('sweep: ' + jstr(sw, 0));
         if (sw && (sw.burned || sw.minted)) return;   // a slot was spent; batches resume next tick
       } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
@@ -1476,7 +1500,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         const corpus = await loadCorpus(env);
         const meta = corpus?.docs?.find(d => d.slug === slug);
         if (!meta) return new Response('no such document', { status: 404 });
-        const body = corpus.chunks.filter(c => c.slug === slug).map(c => c.text).join('\n\n');
+        const body = reassembleDoc(corpus, slug);   // NOT a join of .text — that dropped every heading
         return new Response(`# ${meta.title}\n\n> ${corpus.warning}\n\n${body}`, { headers: { 'content-type': 'text/markdown; charset=utf-8', 'access-control-allow-origin': '*' } });
       }
       // The immune system's latest verdict. GET is the cached result the cron wrote; POST re-runs it
@@ -1489,8 +1513,15 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
           if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('unauthorized', { status: 401 });
           const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
           const reported = (await env.KV.get('published:balances', 'json')) || null;
+          // MUST pass `relay` here too. It was omitted, so ctx.relay was {} and
+          // `phantom-relay-capacity` could not fire on this path FOR ANY INPUT — an invariant that
+          // silently could not fail, which is the exact thing invariants exist to prevent. Caught by
+          // noticing the check reported "all hold" while unichain was demonstrably advertising 5
+          // slots against a Safe with no code.
+          let relay = {};
+          try { const { all } = await pickChain(SMART_ACCOUNT); for (const c of all) relay[c.name] = { remaining: c.remaining, limit: c.limit }; } catch { /* check still runs, phantom lane degrades */ }
           return Response.json(await checkInvariants(env, (ch, m, p) => rpcCall(ch, m, p),
-            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: null, reported }), { headers: { 'access-control-allow-origin': '*' } });
+            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: null, reported, relay }), { headers: { 'access-control-allow-origin': '*' } });
         }
         return new Response((await env.KV.get('invariants:last')) || '{"note":"no check has run yet"}',
           { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });

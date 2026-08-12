@@ -857,12 +857,13 @@ footer .ft{max-width:74ch;line-height:1.6}
   <div class="panel" id="p-capacity" role="tabpanel" aria-labelledby="t-capacity" tabindex="0">
   <section><h2>gas capacity — free slots, per chain</h2><div class="card">
     ${m.cap.length ? `<div class="caps">${m.cap.map(c => {
+      const unread = typeof c.remaining !== 'number';   // null = we could not read the quota, NOT zero
       const dead = (c.remaining || 0) > 0 && c.work === 0;
       const known = !!HUE[c.name];
       return `<div class="cap">
       <div class="nm"><span class="dot ${known ? '' : 'unmapped'}" style="${known ? `background:${HUE[c.name]}` : ''}"></span>${esc(c.name)}${known ? '' : ' <span class="unmapped-note">unmapped chain</span>'}</div>
       <div class="slots">${Array.from({ length: c.limit || 5 }, (_, i) => `<div class="s ${i < (c.remaining || 0) ? (dead ? 'dead' : 'on') : ''}"></div>`).join('')}</div>
-      <div class="ct ${dead ? 'dead' : (c.remaining ? 'free' : '')}">${c.remaining}/${c.limit}</div></div>`;
+      <div class="ct ${unread ? 'unreadable' : dead ? 'dead' : (c.remaining ? 'free' : '')}">${unread ? '?' : c.remaining}/${c.limit ?? '?'}</div></div>`;
     }).join('')}</div>` : `<div class="empty"><b>No relay budget was readable this request.</b>
       The Safe relay endpoint answered for zero chains, so slot counts are unknown — not zero.
       <span class="when">Retried on the next cron tick, every 2 minutes.</span></div>`}
