@@ -12,6 +12,7 @@ import { discoveryPass, payersOf, inspect as inspectContract } from './discover.
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { readChainState, splitLifetime } from './chainstate.mjs';
+import { checkInvariants, invariantBrief } from './invariants.mjs';
 import { diagnose } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
@@ -705,11 +706,21 @@ async function buildBriefing(env, eoa) {
   try {
     const { all } = await pickChain(SMART_ACCOUNT);
     const obs = await observeRelay(env, all.map(x => ({ name: x.name, remaining: x.remaining, limit: x.limit })));
-    b.relay = all.map(x => `${x.name} ${x.remaining}/${x.limit}`).join(', ');
+    // ⚠️ NEVER render this as "base 0/5". MEASURED 2026-08-12: that notation is genuinely ambiguous
+    // — "0 remaining of 5" or "0 used of 5"? — and a strong model (gpt-oss-120b) read it BACKWARDS
+    // twice out of two, concluded it had 20 free transactions on the four EXHAUSTED chains, and
+    // produced a confident, detailed, completely unexecutable plan built on capacity that did not
+    // exist. Re-run with the wording below, the same model got it right immediately. The defect was
+    // in the PROMPT, not the model, and it had been shipping to every session for the project's life.
+    b.relay = all.map(x => `${x.name}: ${x.remaining} of ${x.limit} transactions REMAINING today`).join(' · ');
     b.relay_free = all.some(x => x.remaining > 0);
     const sum = relayResetSummary(obs);
     b.relay_reset = Object.values(sum)[0]?.reset_schedule || 'unknown';
   } catch { /* same */ }
+  // Open contradictions go into the agent's brief. Not so it can fix code — it cannot deploy — but
+  // so it never plans around a number the immune system already knows is wrong, and so it can say
+  // something useful in its journal instead of rediscovering the same stall next session.
+  try { b.invariants = (await env.KV.get('invariants:last', 'json')) || null; } catch { /* optional */ }
   try {
     const intel = await prospectIntel(env);
     b.grind = intel.grind;
@@ -742,6 +753,11 @@ function briefingText(b, novelty) {
   if (b.families?.length) {
     L.push(`PATTERNS LEARNED (generalise from these to contracts you have never seen):`);
     for (const f of b.families) L.push(`  • ${f.family}: ${f.callable} callable, ${f.pays} pay, ${f.zero} pay nothing${f.pay_rate !== null ? ` (pay rate ${f.pay_rate})` : ''}`);
+  }
+  const invText = invariantBrief(b.invariants);
+  if (invText) {
+    L.push(invText);
+    L.push(`  ↑ These are CONTRADICTIONS between what the code claims and what the chain says — measured, not suspected. A repaired one is already handled. An open one means a number you are about to rely on is WRONG: do not plan around it, and write it in your journal so the next session inherits the warning instead of rediscovering it.`);
   }
   if (novelty) L.push(novelty);
   return L.join('\n');
@@ -1091,9 +1107,11 @@ export default {
     c.waitUntil((async () => {
       let escapeNeedsBase = false;
       let escapeSpentSlot = false;
+      let lastEscape = null;
       try {
         const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
         const esc = await escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, eoaAddr);
+        lastEscape = esc;
         console.log('escape: ' + jstr(esc, 0));
         // The funnel is STANDING, not a one-shot (it used to return step:'done' forever while the
         // Safe held 57x the reserve target — see escapeCycle). So "needs Base" now means exactly
@@ -1101,6 +1119,24 @@ export default {
         escapeNeedsBase = !!(esc && (esc.ready || esc.relayed));
         escapeSpentSlot = !!(esc && esc.relayed);
       } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
+
+      // ── THE IMMUNE SYSTEM ────────────────────────────────────────────────────────────────────
+      // Contradictions between what the code claims and what the chain says. Runs every 5th tick
+      // (~10 min) rather than every tick: it costs ~30 subrequests, and the failures it exists to
+      // catch persisted for HOURS and DAYS, so a 10-minute resolution is many orders of magnitude
+      // more than enough. State wedges are repaired here automatically; code beliefs are escalated.
+      try {
+        const tick = Math.floor((event.scheduledTime || Date.now()) / 120000);
+        if (tick % 5 === 0) {
+          const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
+          const reported = (await env.KV.get('published:balances', 'json')) || null;
+          const inv = await checkInvariants(env, (ch, m, p) => rpcCall(ch, m, p),
+            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: lastEscape, reported });
+          console.log('invariants: ' + jstr({ clean: inv.clean, headline: inv.headline, open: inv.violations.map(v => v.id), repaired: inv.repaired.map(v => v.id) }, 0));
+          for (const v of inv.violations) if (v.escalate) console.log('INVARIANT ESCALATED [' + v.id + ']: ' + v.detail);
+          for (const r of inv.repaired) console.log('INVARIANT REPAIRED [' + r.id + ']: ' + r.repair?.action);
+        }
+      } catch (e) { console.log('INVARIANT ERROR: ' + String(e.message).slice(0, 200)); }
 
       // Publish the verdict so the MANUAL path (harvest_run) can honour the same reservation without
       // calling escapeCycle() itself — that call can relay and spend a slot, which a read must never do.
@@ -1406,6 +1442,22 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         }, { headers: { 'access-control-allow-origin': '*' } });
       }
       if (url.pathname === '/last') return new Response((await env.KV.get('log:last')) || '{}', { headers: { 'content-type': 'application/json' } });
+      // The immune system's latest verdict. GET is the cached result the cron wrote; POST re-runs it
+      // live (admin-keyed, because it costs ~30 subrequests and can repair state).
+      if (url.pathname === '/invariants') {
+        if (req.method === 'POST') {
+          // env.ADMIN_KEY, not WORKER_ADMIN_KEY. The Worker secret is named ADMIN_KEY (verified with
+          // `wrangler secret list`) and all seven other admin endpoints use it; CLAUDE.md documents
+          // the other name, which is simply wrong and silently 401s anything that trusts it.
+          if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('unauthorized', { status: 401 });
+          const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
+          const reported = (await env.KV.get('published:balances', 'json')) || null;
+          return Response.json(await checkInvariants(env, (ch, m, p) => rpcCall(ch, m, p),
+            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: null, reported }), { headers: { 'access-control-allow-origin': '*' } });
+        }
+        return new Response((await env.KV.get('invariants:last')) || '{"note":"no check has run yet"}',
+          { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
+      }
       if (url.pathname === '/harvest') {
         const s = (await env.KV.get('harvest:state', 'json')) || {};
         // The headline figure is MEASURED from the chain. The tracker under-reported by 2.9x because
@@ -1535,6 +1587,21 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
           balances.per_chain_read = cs.per_chain;
           chainState = cs;
         } catch (e) { balances.chain_read_error = String(e.message).slice(0, 140); }
+
+        // ── RECORD WHAT WE ACTUALLY PUBLISHED, so the invariant checker can audit it ──────────────
+        // This matters more than it looks. If the watchdog recomputed the balance itself and compared
+        // that to the chain, it would be checking one reader against another reader written by the
+        // same hand on the same day — a gate pointed at its own author, which will always pass.
+        // Writing the SERVED number here means the audit compares "what we told the world" against
+        // "what the chain says", through two different code paths at two different times. That is the
+        // only version of the check that can actually fail.
+        try {
+          await env.KV.put('published:balances', JSON.stringify({
+            at: Date.now(),
+            spendable_usd: balances.spendable_liquid_native_eth_on_base_usd ?? balances.native_liquid_usd ?? null,
+            total_holdings_usd: balances.total_holdings_usd ?? balances.holdings_usd ?? null,
+          }), { expirationTtl: 86400 });
+        } catch { /* auditing must never break the page */ }
 
         // One operation costs ~0.009087 USDC through the keyless paymaster (measured 2026-07-27).
         balances.can_transact = usdcB >= 0.009087;

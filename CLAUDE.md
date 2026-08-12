@@ -34,7 +34,11 @@ local only while we're online, otherwise a Worker). His PC is not 24/7.
 - **Memory = KV** (canonical): `knowledge:genesis|recovery|journal`, `state:routes`, `state:meta`,
   `state:current` (in-flight session), `creds:*`, `log:last`.
 - **Public read endpoints** (no auth): `/` status+balances, `/journal`, `/ledger`, `/genesis`,
-  `/recovery`, `/last`. Admin: `POST /run?key=$WORKER_ADMIN_KEY` runs one slice.
+  `/recovery`, `/last`, `/invariants` (the immune system's latest verdict).
+  Admin: `POST /run?key=$ADMIN_KEY` runs one slice; `POST /invariants?key=$ADMIN_KEY` re-checks live.
+  ⚠️ The Worker secret is **`ADMIN_KEY`** — verified with `wrangler secret list` 2026-08-12. This line
+  said `WORKER_ADMIN_KEY` for weeks; that env var does not exist on the Worker, so anything trusting
+  this doc got a silent 401 and had no way to tell a wrong name from a wrong key.
 - **Local files are a MIRROR**: `node sync.mjs pull` (read its live memory), `node sync.mjs push`
   (only when we deliberately bestow knowledge). Never edit local knowledge and forget to push —
   the Worker won't see it.
@@ -49,6 +53,21 @@ with an auto-stub journal entry. Verified: ~6s and ~16 subrequests per tick — 
 - `worker.mjs` — cloud body (canonical). Same 15 tools as local, KV-backed.
 - `agent.mjs` + `tools.mjs` — local dev harness / offline runs (file-backed memory). **Tool semantics are
   duplicated in both worker.mjs and tools.mjs — change BOTH.**
+- `invariants.mjs` — **the immune system.** CONTRADICTION checks, not liveness checks, run on the cron
+  every 5th tick and published at `/invariants`. `health.mjs` asks *"is it moving?"*; this asks
+  *"does what the code CLAIMS match what the chain SAYS?"* That distinction is the whole point: on
+  2026-08-12 the funnel sat at `step:"done"` holding 57× its reserve target and the CCTP rail was
+  jammed for 12 days, and through both health reported `CYCLING — Nothing is stuck`. Nothing was idle;
+  the beliefs were wrong. Each of the 9 invariants descends from a bug that actually happened, and
+  each carries its `origin` so nobody has to rediscover why it exists.
+  **Repairs are deliberately narrow:** a repair may ONLY rewrite ZERO's own KV bookkeeping (retire a
+  wedged queue entry, clear a stale reservation). It may NEVER send a transaction, spend a slot, move
+  value, change a threshold, or edit code — those are Anthony's gated actions and an agent must not
+  reach them by calling the reach a "fix". Anything needing one is escalated, never self-served.
+  So the honest claim is: **state wedges are repaired in one tick; code bugs are made LOUD in one tick
+  instead of twelve days.** The second is most of the value — nobody reads a healthy-looking log.
+  The audit reads `published:balances` (what the `/` endpoint actually served) rather than recomputing,
+  so it is not a gate pointed at its own author.
 - `selftest.mjs` — 17 tests against a throwaway wallet in the scratchpad. Run after any tools change.
 - `knowledge/` — `genesis.md` (creator-bestowed verified facts — we own this), `recovery.md` + `journal.md`
   (agent-owned). Watch the journal for "CAPABILITY REQUESTS".
