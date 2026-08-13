@@ -875,8 +875,17 @@ const packCall = (to, data) =>
   '00' + to.slice(2).toLowerCase() + '0'.repeat(64) +
   (data.length / 2 - 1).toString(16).padStart(64, '0') + data.slice(2);
 
-/* RAISED 12 -> 26 (2026-08-13, Anthony: "MORE ACTIONS PER MINUTE = higher chance of money per
-   minute onchain").
+/* ⚠️ MEASURED CEILING IS 6 — NOT 12, AND NOT 26 (2026-08-13). BISECTED, NOT ASSUMED.
+   I raised this to 26 trusting the note that a 26-batch "SIMULATED clean". Then I actually relayed
+   it. Same chain, minutes apart:
+       max=23 -> 503    max=12 -> 503    max=8 -> 503    max=6 -> RELAYED    max=5 -> RELAYED
+   Safe's relayer rejects an oversized batch with a GENERIC {"code":503,"message":"Service
+   unavailable"} — indistinguishable from the relayer being down, which is why nobody had ever found
+   the real limit. Bisecting was free: a rejected relay returns relayed:false and consumes NO slot.
+   LESSON: a clean simulation is not permission to ship. The relayer is a SECOND gate the simulator
+   cannot see, and it fails in a costume. Re-bisect before raising this number again.
+   ── original reasoning kept below: it was right about WHY to raise it, wrong about the number ──
+   RAISED 12 -> 26 (Anthony: "MORE ACTIONS PER MINUTE = higher chance of money per minute onchain").
    The note above records that a 26-harvest batch SIMULATED clean in one call and that no batch
    larger than 12 had ever actually been relayed — a cap set by caution, never by a measurement.
    Raising it is close to free to test: every leg is individually simulated before it goes in, so
@@ -885,7 +894,7 @@ const packCall = (to, data) =>
    risk. The upside is real throughput per slot — a slot is the scarce thing, not the calls in it.
    If a 26-batch reverts on gas in production, drop to 20 and record the number; that is a
    MEASUREMENT we have never had. */
-export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 26 } = {}) {
+export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6 } = {}) {
   const chain = CHAINS[chainName];
   if (!chain) throw new Error(`unknown chain ${chainName}`);
   const state = (await env.KV.get('harvest:state', 'json')) || { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] };
