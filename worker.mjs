@@ -29,7 +29,11 @@ const CHAINS = {
   base: {
     chainId: 8453,
     rpcs: ['https://base-rpc.publicnode.com', 'https://base.drpc.org', 'https://1rpc.io/base', 'https://mainnet.base.org'],
-    scout: 'https://base.blockscout.com', label: 'Base mainnet (REAL money)',
+    /* `scout` = what the AGENT calls (Blockscout: free, keyless, works on Base).
+       `viewer` = what a HUMAN opens. Basescan's free API is not supported on 8453, so it can
+       never replace `scout` — but it is the site Anthony actually reads. Keep both. */
+    scout: 'https://base.blockscout.com', viewer: 'https://basescan.org',
+    label: 'Base mainnet (REAL money)',
   },
   'base-sepolia': {
     chainId: 84532,
@@ -369,7 +373,8 @@ function makeTools(ctx) {
       return {
         hash,
         status: rcpt ? (rcpt.status === '0x1' ? 'success' : 'REVERTED') : 'sent, not yet confirmed — check the explorer link',
-        explorer: `${CHAINS[chain].scout}/tx/${hash}`,
+        // Human-readable link: prefer the chain's `viewer` (Basescan on Base), fall back to scout.
+        explorer: `${CHAINS[chain].viewer || CHAINS[chain].scout}/tx/${hash}`,
       };
     },
 
@@ -1730,8 +1735,13 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         wallet: address,
         smart_account: payTo,
         gas_model: 'earns wrapped native, converts to ETH it owns; free Safe relay on 5 chains, plus one permissionless USDC token paymaster',
-        explorer: `https://base.blockscout.com/address/${address}`,
-        smart_account_explorer: `https://base.blockscout.com/address/${payTo}`,
+        /* HUMAN-FACING links are Basescan (Anthony 2026-08-13 — it is what he opens to check
+           the wallet). The AGENT still READS through Blockscout: its free/keyless API works on
+           Base, whereas Basescan's free API returns "Free API access is not supported for this
+           chain" on 8453. Two different jobs, two different explorers — do not "unify" them. */
+        explorer: `https://basescan.org/address/${address}`,
+        smart_account_explorer: `https://basescan.org/address/${payTo}`,
+        explorer_api_note: 'agent reads via base.blockscout.com (keyless); these links are for humans',
         balances, eth_usd,
         health,
         treasury,
