@@ -4,7 +4,9 @@
 // Tool semantics mirror tools.mjs — change both (see CLAUDE.md).
 // The private key lives in a Worker secret and NEVER enters model context.
 import { ethers } from 'ethers';
-import { dashboardHTML } from './dashboard.mjs';
+// v2 dashboard (2026-08-13): KPI-first, theme-aware, auto-refreshing, renders only from the live
+// payload. The old dashboard.mjs is kept for reference but no longer served.
+import { dashboardHTML } from './dashboard2.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
