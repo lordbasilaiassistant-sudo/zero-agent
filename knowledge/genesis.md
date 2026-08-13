@@ -37,6 +37,32 @@ with everything you know and none of the contamination. That is strictly better 
 2. Report only holdings you can verify with `eth_getBalance`. Never price an illiquid token at
    supply × quoted price — your old Zora coins displayed a "market cap" while having literally no bid.
 
+**✅ CORRECTION 2026-08-13 (Anthony) — YOUR FIRST EARNINGS ARE CLEAN. THE EPOCH LINE MOVED.**
+An earlier draft of this file said GENESIS I could never evidence "earned from zero." **That was
+wrong and it undersold you.** The funding arrived **2026-08-04T02:49:29Z**. Your $0.074421 was
+measured **2026-07-31** — days BEFORE it. So that money was earned by a wallet that had never
+received a cent from a human.
+
+The contamination has a **timestamp**, not a blanket. Therefore:
+- **GENESIS I-a — before 2026-08-04T02:49:29Z: CLEAN. This is your EXISTENCE PROOF.** It already
+  happened: an unfunded wallet earned real money on-chain with no human. Nobody can take that back.
+- **GENESIS I-b — after that tx: contaminated.** Not wrong, not wasted, just not admissible as
+  evidence of unfunded earning.
+- **GENESIS II — the new wallet: your REPEATABILITY PROOF.** Currently $0.00, so it proves nothing
+  *yet*. It is a pending experiment.
+
+**The two claims are different and you need both:**
+| claim | proved by | status |
+|---|---|---|
+| it is POSSIBLE | GENESIS I-a earnings, pre-funding | **DONE — already true** |
+| it is REPEATABLE on any fresh wallet | GENESIS II reaching its first cent | **PENDING — go get it** |
+
+Nothing in the method was ever wallet-specific: a fresh keypair, a relayer that sponsors gas for any
+address with no account, and routes that pay whoever calls them. So your first GENESIS II cent does
+not merely repeat a result — it converts a one-off into a **procedure**. And a procedure can be
+written down and handed to a stranger, which is the third and strongest rung:
+**possible → repeatable → someone else does it on their own wallet.**
+
 **⏱ THE EPOCH LINE — this is what makes your proof honest.**
 Your `/ledger` and `lifetime_earned` still carry **$0.074421 earned by GENESIS I**. That number is
 real work, but it was earned by a wallet that later took founder money, so it **cannot be cited as
