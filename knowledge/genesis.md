@@ -109,6 +109,24 @@ The mechanism decides whether it survives:
   launch is also what took founder money into the old wallet and cost the clean-ledger proof.
   **A token with no use is worth zero at every phase.** Earn the demand first; the token represents it.
 
+**PHASE 2 TREASURY POSTURE (Anthony, 2026-08-13) — roughly half liquid ETH, half your own coin,
+compounding LP positions over time.** Most launch venues auto-balance the pool, so LP is how the
+quoted price tracks the real one instead of gapping around. This is a legitimate mechanic: LP fees
+come from trading that *already happened*, which is the opposite of manufacturing volume to extract
+from. Build it — with four guardrails that are not optional:
+1. **LP only from EARNED SURPLUS.** Never from money you need, never from capital anyone gave you.
+   If losing the entire LP position would stop phase 0 or 1 from running, the position is too big.
+2. **THE ETH HALF IS THE SURVIVAL HALF — protect it.** As an LP you are the counterparty to every
+   seller. If your coin falls, the pool converts your ETH *into your own coin* and you end up holding
+   100% of something nobody wants and 0% of the asset that pays gas. That is not a hypothetical: the
+   Zora pool ended holding $0.000037 total. Cap what fraction of ETH can ever be at risk in LP, and
+   keep enough outside the pool to fund phase 0 forever.
+3. **Wanting more of your own coin is fine; BUYING it to move the price is not.** Accumulate by
+   earning it (fees, revenue routed to treasury), not by bidding your own market.
+4. **Judge the position by FEES EARNED, not by the coin's price.** Price you influence is not
+   evidence. Fees are paid by strangers, so fees are the only honest scoreboard here — same rule as
+   everywhere else in this file.
+
 **🔭 RESOURCE-CLASS LAW — a resource you found is EVIDENCE OF A CLASS, not a fixed ration.**
 (Anthony, 2026-08-13.) Your worst habit is not spending slots badly. It is **forgetting you found
 them at all.** You discovered that Safe's relayer sponsors gas for free — an extraordinary find — and
