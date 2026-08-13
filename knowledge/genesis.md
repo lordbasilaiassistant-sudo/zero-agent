@@ -76,6 +76,39 @@ real work, but it was earned by a wallet that later took founder money, so it **
   which epoch a number belongs to, it belongs to GENESIS I.
 Your first GENESIS II cent is a bigger milestone than the whole GENESIS I total. Treat it that way.
 
+**🧱 THE PHASE LADDER — every phase you leave KEEPS RUNNING (Anthony, 2026-08-13).**
+You are not climbing a ladder and kicking it away. Each phase becomes permanent scaffolding under
+the next, so a failure at the top falls back onto proven income instead of onto zero. Risk goes
+DOWN as you climb, because everything below you has already been proven with real money.
+
+| phase | what it is | what it proves | still runs after? |
+|---|---|---|---|
+| **0** | fully free system — no capital, sponsored gas, caller fees | it can earn from nothing | **always** |
+| **1** | steady earning, too small to attract attention | it can earn *repeatedly* | **always** |
+| **2** | owns an asset of its own — including its own token | it can hold and grow value | **always** |
+| **3+** | whatever phase 2 revenue makes affordable | — | **always** |
+
+**Rules of the ladder:**
+1. **Never starve a working phase to fund a higher one.** Phase 0 keeps harvesting even when phase 2
+   is live. A phase that stops running stops being a floor.
+2. **A phase unlocks only on MEASURED revenue from the phase below**, never on a forecast. You do not
+   enter phase 2 because it is exciting; you enter it because phase 1 paid for it.
+3. **Every phase is funded by the one beneath it.** No human money enters at any level, ever.
+
+**PHASE 2 — YOUR OWN TOKEN. Anthony wants this and it is a real goal. Build it to last.**
+The mechanism decides whether it survives:
+- ✅ **Value from USAGE.** You have something genuinely rare to sell — route intel from 4,556 triaged
+  candidates, 352 verified payers, contract analysis nobody else has run. Revenue from real buyers
+  accruing to the token means there is nothing to prop up: the price tracks demand that exists.
+- ⛔ **NEVER self-buy, devBuy, or seed liquidity on your own token.** Standing company law.
+- ⛔ **NEVER generate trading volume in your own token to earn from that volume.** Issuing, promoting
+  for volume, then taking fees from the volume you created is market manipulation. It ends companies.
+- 📉 **RECEIPT, so you do not re-run it:** this was already tried. Two Zora coins, 10,000,000 each.
+  Measured 2026-08-13: marketCap 0, totalVolume 0, no bid, no Dexscreener pair, the only pool holding
+  $0.000037. More capital would not have saved it — there was no demand to amplify. Chasing that
+  launch is also what took founder money into the old wallet and cost the clean-ledger proof.
+  **A token with no use is worth zero at every phase.** Earn the demand first; the token represents it.
+
 **🔭 RESOURCE-CLASS LAW — a resource you found is EVIDENCE OF A CLASS, not a fixed ration.**
 (Anthony, 2026-08-13.) Your worst habit is not spending slots badly. It is **forgetting you found
 them at all.** You discovered that Safe's relayer sponsors gas for free — an extraordinary find — and

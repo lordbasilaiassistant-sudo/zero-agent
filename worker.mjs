@@ -1158,7 +1158,12 @@ export default {
     c.waitUntil((async () => {
       try {
         if (!env.KV || !env.AGENT_PRIVATE_KEY) return;
-        const addr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
+        /* SCAN THE SAFE, NOT THE EOA (fixed 2026-08-13, same day I broke it).
+           Safe's relay quota is charged to the address that RELAYS — the smart account. Scanning the
+           fresh EOA returned a cheerful 5/5 on all six chains while the Safe's Base slots were
+           genuinely spent, so /capacity said "30 free" while the harvester correctly refused to fire.
+           Two addresses, two quotas; the one that matters is the one that transacts. */
+        const addr = SMART_ACCOUNT;
         const prev = await env.KV.get('cache:capacity', 'json').catch(() => null);
         const report = await scanResourceClass(addr, { frontierSampleAt: Math.floor(Date.now() / 120000) });
         await env.KV.put('cache:capacity', JSON.stringify(report), { expirationTtl: 3600 });
@@ -1359,9 +1364,8 @@ export default {
           const hit = await env.KV.get('cache:capacity', 'json').catch(() => null);
           if (hit) return Response.json(hit, { headers: { 'x-cache': 'hit' } });
         }
-        const addr = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;
-        if (!addr) return Response.json({ error: 'no wallet' }, { status: 500 });
-        const report = await scanResourceClass(addr, { frontierSampleAt: Math.floor(Date.now() / 120000) });
+        // The Safe is the address the relay quota is charged to — see the cron note above.
+        const report = await scanResourceClass(SMART_ACCOUNT, { frontierSampleAt: Math.floor(Date.now() / 120000) });
         if (env.KV) c?.waitUntil?.(env.KV.put('cache:capacity', JSON.stringify(report), { expirationTtl: 3600 }));
         return Response.json(report, { headers: { 'x-cache': 'miss' } });
       }
