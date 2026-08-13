@@ -875,7 +875,17 @@ const packCall = (to, data) =>
   '00' + to.slice(2).toLowerCase() + '0'.repeat(64) +
   (data.length / 2 - 1).toString(16).padStart(64, '0') + data.slice(2);
 
-export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 12 } = {}) {
+/* RAISED 12 -> 26 (2026-08-13, Anthony: "MORE ACTIONS PER MINUTE = higher chance of money per
+   minute onchain").
+   The note above records that a 26-harvest batch SIMULATED clean in one call and that no batch
+   larger than 12 had ever actually been relayed — a cap set by caution, never by a measurement.
+   Raising it is close to free to test: every leg is individually simulated before it goes in, so
+   a bad leg is excluded rather than shipped, and the only downside of an oversized batch is that
+   MultiSend reverts all-or-nothing and we lose ONE relay slot, which refills. No capital is at
+   risk. The upside is real throughput per slot — a slot is the scarce thing, not the calls in it.
+   If a 26-batch reverts on gas in production, drop to 20 and record the number; that is a
+   MEASUREMENT we have never had. */
+export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 26 } = {}) {
   const chain = CHAINS[chainName];
   if (!chain) throw new Error(`unknown chain ${chainName}`);
   const state = (await env.KV.get('harvest:state', 'json')) || { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] };
