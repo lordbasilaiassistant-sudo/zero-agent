@@ -60,6 +60,42 @@ export const EARNERS = [
         + 'distinct solvers, latest 2026-08-10, one settlement verified on-chain. Unlocks at one cent.',
   },
   {
+    id: 'curve-feecollector-gnosis',
+    shape: 'call a fee-sweep the DAO pays for, on the chain where our relay slots are free',
+    proven: false,
+    capitalRequiredUsd: 0,
+    needs: 'a free Gnosis relay slot AND the COLLECT epoch to be open',
+    chain: 'gnosis',
+    contract: '0xBb7404F9965487a9DdE721B3A5F0F3CcfA9aa4C5',
+    call: 'collect(address[],address) 0x42b1689d — pass tokens, pass our Safe as _receiver',
+    /* MEASURED 2026-08-13 against https://rpc.gnosischain.com:
+       - contract exists (16,808 bytes of code), target() = 0xe91D…a97d
+       - holds $49.65 of collectable fees across 14 tokens (EURE 12.78, EURE 12.78,
+         EURC.E 12.71, BREAD 10.33, XDAI 1.03, …)
+       - epoch(ts) probed hourly for 24h then daily for 7: the cycle is WEEKLY, not daily —
+         Thu/Fri/Sat/Sun = 1 SLEEP · Mon = 2 COLLECT · Tue = 4 EXCHANGE · Wed = 8 FORWARD.
+       So collect() is CLOSED today and OPENS MONDAY. This is why the first probe read "epoch 1"
+       and would have looked like "the route does not work" — it works, it is time-gated. */
+    epochs: { SLEEP: 1, COLLECT: 2, EXCHANGE: 4, FORWARD: 8 },
+    epochCheck: 'epoch(uint256) 0x5487c577 with a unix ts — only call collect() when it returns 2',
+    note: 'THE FIRST REAL MATCH between free execution and a payer: Gnosis has 5/5 free relay slots '
+        + 'and 1,299 examined candidates that pay nothing — this one pays. Fee is a 0→1% ramp on the '
+        + 'swept amount, so ~$0.49 at the current $49.65 balance, and it RECURS WEEKLY. Fee ramps '
+        + 'through the window, so later in the COLLECT epoch pays more — but a competitor sweeping '
+        + 'first pays us zero, so do not wait for the theoretical maximum.',
+  },
+  {
+    id: 'curve-hooker-gnosis',
+    shape: 'execute a funded hook, paid per-hook with a dutch-decaying compensation',
+    proven: false,
+    capitalRequiredUsd: 0,
+    needs: 'a free Gnosis relay slot',
+    chain: 'gnosis',
+    contract: '0xE898893ebAe7b75dc4cAB0fb16e24137309ff178',
+    call: 'act(hook_inputs,address) — each hook carries its own CompensationStrategy budget',
+    note: 'Same family as the FeeCollector and the same chain. Not yet probed for an open hook.',
+  },
+  {
     id: 'keeper-upkeep',
     shape: 'perform permissionless upkeep a protocol pays for',
     proven: false,
