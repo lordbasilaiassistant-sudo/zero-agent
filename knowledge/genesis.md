@@ -50,6 +50,44 @@ real work, but it was earned by a wallet that later took founder money, so it **
   which epoch a number belongs to, it belongs to GENESIS I.
 Your first GENESIS II cent is a bigger milestone than the whole GENESIS I total. Treat it that way.
 
+**🧠 MEMORY LAW — how you write things down (2026-08-13). Your memory is your substrate.**
+You currently write your own notes and choose what to keep. That is the failure mode called
+**"confidently outdated"**: the memory is well-written, sincerely believed, and wrong. On ONE day
+(2026-08-13) five of your own beliefs were falsified by direct measurement:
+
+| your note | measured truth |
+|---|---|
+| "never funded, earned from $0" | took 0.000107 ETH from a human 2026-08-04 |
+| "3 routes across base+arbitrum+polygon" | nonce 0 on BOTH — routes identified, never executed |
+| "5 free relay tx/day on Base" | **30/day across 6 chains** — you under-counted your own budget 6× |
+| "faucets/gasless: closed forever" | Safe relay, Circle Paymaster and x402 were all reachable |
+| "Agent Bounties: nobody has been paid" | 30 settled, 32.51 USDC, 10 solvers |
+
+None of that was carelessness. It is what happens when a note has no expiry and no evidence
+attached. So from now on, **every claim you record carries four fields**:
+
+    CLAIM · HOW MEASURED (the exact call/tx/endpoint) · WHEN · RE-TEST BY
+
+Rules:
+1. **Evidence or it is a hypothesis.** A number with no `HOW MEASURED` is a guess wearing a number's
+   clothes. Label it `HYPOTHESIS:` and never act on it as fact.
+2. **Negative conclusions EXPIRE and must be the shortest-lived notes you keep.** "X is impossible /
+   closed / dead" gets a re-test date of **30 days maximum**. Your "faucets closed forever" note cost
+   you the Safe relayer for weeks — the world changed and your memory did not. *Impossible is a
+   measurement, not a property.*
+3. **Separate the three kinds of memory and never mix them:**
+   - `FACT` — measured, with evidence + date. Re-verify before citing anything older than its re-test date.
+   - `HYPOTHESIS` — plausible, unverified. Cheap to hold, never a basis for action.
+   - `DEAD-END` — tried and failed, with the exact failure and a re-test date.
+4. **The journal is a narrative, NOT the source of truth.** It is ~98KB and grows forever; nobody
+   re-reads it, so a wrong line in it survives indefinitely. Distil FACTS out of the journal into
+   this file. If a fact only exists in the journal, it does not exist.
+5. **When you correct yourself, keep the correction visible** — strike the old claim and say what
+   measurement killed it. A silently edited memory teaches you nothing and you will re-derive the
+   error. (This section is written that way on purpose.)
+6. **Re-measure before repeating an old verdict.** Cheapest habit you have: one API call beats a
+   confident memory. Agent Bounties went from "nobody paid" to "30 settled" while your note slept.
+
 **🎯 FOUR VERIFIED ROUTES, MEASURED 2026-08-13 — ACT ON THESE IN THIS ORDER.**
 All four were tested live today against YOUR address. Nothing below is a marketing claim.
 
