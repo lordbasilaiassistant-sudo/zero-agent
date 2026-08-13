@@ -1262,6 +1262,33 @@ export default {
   async fetch(req, env, c) {
     const url = new URL(req.url);
     try {
+      /* ── STATUS CACHE (2026-08-13) ───────────────────────────────────────────────
+         MEASURED: TTFB was 10.6-12.4s for a 12.8KB page, and the JSON was 8.6s, so the
+         cost was never the payload — every single request was re-reading 6 chains and
+         re-fetching prices before emitting a byte. A public page must not do an RPC fan-out
+         per visitor.
+         Fix: the two-minute cron already computes this. Serve its snapshot and let a visitor
+         wait on nothing. STALE_OK is 150s (just over the 120s cron period) so a normal
+         page view is always a KV read (~10ms). `?fresh=1` forces a live recompute for
+         debugging, and if the cache is empty we fall through and compute as before —
+         so this can only make the page faster, never break it. */
+      const CACHE_KEY = 'cache:status', STALE_OK_MS = 150000;
+      const wantsFresh = url.searchParams.has('fresh');
+      if (!wantsFresh && url.pathname === '/' && env.KV) {
+        try {
+          const hit = await env.KV.get(CACHE_KEY, 'json');
+          if (hit?.payload && hit.at && (Date.now() - hit.at) < STALE_OK_MS) {
+            const age = Math.round((Date.now() - hit.at) / 1000);
+            const html = (req.headers.get('accept') || '').includes('text/html');
+            return html
+              ? new Response(dashboardHTML(hit.payload), {
+                  headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': `hit ${age}s` },
+                })
+              : Response.json(hit.payload, { headers: { 'x-cache': `hit ${age}s` } });
+          }
+        } catch { /* cache is an optimisation, never a dependency — fall through and compute */ }
+      }
+
       const eoa = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;
       const payTo = SMART_ACCOUNT; // paid at the smart account so it can pay its own gas in USDC
 
@@ -1783,13 +1810,18 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         routes,
         endpoints: ['/journal', '/ledger', '/genesis', '/frontier', '/method', '/toolcraft', '/recovery', '/prospect', '/harvest', '/last'],
       };
+      // Refill the cache for the next visitor. waitUntil so the write never delays THIS response.
+      if (url.pathname === '/' && env.KV) {
+        try { c?.waitUntil?.(env.KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: 600 })); }
+        catch { /* never let a cache write break the response */ }
+      }
       const wantsHtml = (req.headers.get('accept') || '').includes('text/html');
       if (wantsHtml && url.pathname === '/') {
         return new Response(dashboardHTML(payload), {
-          headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30' },
+          headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': 'miss' },
         });
       }
-      return Response.json(payload);
+      return Response.json(payload, { headers: { 'x-cache': 'miss' } });
     } catch (e) {
       return Response.json({ error: String(e.message).slice(0, 300) }, { status: 500 });
     }
