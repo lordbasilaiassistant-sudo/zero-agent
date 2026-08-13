@@ -14,7 +14,11 @@ const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a
 // USDC landing on the EOA would be stranded — moving it would need ETH the agent will never have.
 // Deterministic Safe v0.3.0 counterfactual for owner 0x50624F7790732f9767180871D03A304756200dB9,
 // computed with abstractionkit and verified undeployed (it can receive before deployment).
-export const SMART_ACCOUNT = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+/* GENESIS II Safe, deployed 2026-08-13 via Safe's sponsored relay for $0.00.
+   The previous constant pointed at a Safe owned by the RETIRED EOA, so swapping the key left ZERO
+   unable to sign execTransaction and pointed the x402 payTo into a contaminated account.
+   VERIFIED on-chain: getOwners() = [0xc94929d1...d57a], threshold 1. */
+export const SMART_ACCOUNT = '0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f';
 
 export const PRODUCTS = {
   'contract-audit': {
