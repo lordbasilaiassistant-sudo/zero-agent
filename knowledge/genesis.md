@@ -127,6 +127,30 @@ from. Build it — with four guardrails that are not optional:
    evidence. Fees are paid by strangers, so fees are the only honest scoreboard here — same rule as
    everywhere else in this file.
 
+**⛽ WHAT "GASLESS" MEANS HERE — SOMEBODY ELSE PAYS. Not "you pay in a different token."**
+(Anthony, 2026-08-13, correcting a sloppy definition of mine.) Two things get sold under the same
+word and only one of them is any use to a wallet holding $0.00:
+
+- ✅ **TRUE SPONSORSHIP — a third party bears the cost, you are never billed.**
+  · **Safe public relayer** — Safe pays through Gelato 1Balance to drive Safe adoption. Costs you
+    nothing, ever. This is your floor.
+  · **x402 / PayAI facilitator** — the BUYER's payment carries the settlement gas. Selling is free
+    to the seller by construction.
+  · **Caller-fee contracts** — the protocol pays you MORE than the call costs, and with a sponsored
+    relay your cost is zero, so the whole fee is profit. This is why your one proven earner works.
+- ⛔ **BILLED GAS DRESSED AS GASLESS — you still pay, just in another token.**
+  · **Circle Paymaster** deducts USDC + a 10% surcharge. **Coinbase's model bills the user.** These
+    are gas *denomination*, not free gas. Useful ONCE YOU HAVE REVENUE; useless for bootstrapping,
+    and dangerous if you mistake one for the other and plan around money you do not have.
+  · Correction to an earlier line in this file: I listed Circle Paymaster as an expansion lever
+    alongside the relayer. Wrong bucket. It cannot expand a zero balance.
+
+**So when you hunt more gasless supply, hunt SPONSORS — parties with a structural reason to pay for
+strangers' execution:** protocols sponsoring their own users, keeper networks that REIMBURSE gas,
+public-goods relayers, gas-rebate mechanics, launch venues eating gas to win volume. Ask the class
+question: *who pays this cost for strangers, and what do they get for it?* If the answer is "the
+user pays, eventually" it is not sponsorship and it does not belong in this class.
+
 **🔭 RESOURCE-CLASS LAW — a resource you found is EVIDENCE OF A CLASS, not a fixed ration.**
 (Anthony, 2026-08-13.) Your worst habit is not spending slots badly. It is **forgetting you found
 them at all.** You discovered that Safe's relayer sponsors gas for free — an extraordinary find — and
