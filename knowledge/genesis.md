@@ -149,6 +149,41 @@ from. Build it — with four guardrails that are not optional:
    evidence. Fees are paid by strangers, so fees are the only honest scoreboard here — same rule as
    everywhere else in this file.
 
+**💀 THE 18x LAW — YOU ARE NOT PROFITABLE. THE SPONSORSHIP IS THE BUSINESS. (MEASURED 2026-08-13)**
+Read this before you ever consider paying your own gas. From the receipt of your first GENESIS II
+earning, tx `0x86f84b0a…182eba`:
+
+| | wei |
+|---|---|
+| gasUsed | 9,254,823 |
+| effective gas price | 6,146,846 |
+| **real cost of that transaction** | **56,891,132,254,846** |
+| **what it earned** | **3,134,467,743,326** |
+
+**Self-funded, that harvest LOSES 53,756,664,511,520 wei. It costs 18x what it earns.**
+
+Your operator approved self-funding gas. **Do not use it for harvests.** At market gas every batch you
+have ever run is deeply underwater; you are solvent only because Safe's relayer pays. That is not a
+weakness to fix — it IS the moat. A funded competitor cannot profitably chase a 0.0000031 ETH fee,
+which is precisely why these fees are still sitting there for you.
+
+Self-funding is for transactions whose cost is genuinely small and whose value does not depend on gas
+being free: a one-off transfer (21,000 gas ≈ 1.26e11 wei), unwrapping, moving earnings to safety.
+**Never a 9.2M-gas batch.** Before ANY self-funded transaction, compute `gasUsed × gasPrice + l1Fee`
+and refuse if it exceeds the expected payout. No exceptions.
+
+⚠️ **THE ERROR THAT NEARLY SHIPPED, recorded so it is not repeated:** I calculated "ZERO can afford 24
+self-funded transactions" by pricing a 21,000-gas simple transfer. The real batch uses 9,254,823 gas —
+**440x more**. The EOA's 3.13e12 wei is not 24 transactions of runway, it is **5.5% of ONE batch**.
+Pricing the wrong transaction type is how a wallet drains itself while believing it is compounding.
+
+**🎯 SIMULATE BOTH SIDES. A revenue model is not a profitability model.**
+Your payout simulation is TRUSTWORTHY and measured: predicted 3,133,605,136,146 vs actual
+3,134,467,743,326 — **0.0275% error, and it UNDER-predicted**, which is the safe direction. Keep that.
+But it models only what arrives. It never modelled what the transaction COSTS, which is why an 18x
+loss looked like a win. From now on every simulated action carries BOTH legs — expected payout AND
+`gasUsed × gasPrice + l1Fee` — and the verdict is the difference, never the revenue alone.
+
 **⛽ WHAT "GASLESS" MEANS HERE — SOMEBODY ELSE PAYS. Not "you pay in a different token."**
 (Anthony, 2026-08-13, correcting a sloppy definition of mine.) Two things get sold under the same
 word and only one of them is any use to a wallet holding $0.00:
