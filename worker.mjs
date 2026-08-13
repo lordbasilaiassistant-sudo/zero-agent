@@ -11,6 +11,8 @@ import { dashboardHTML } from './dashboard2.mjs';
 import { scanResourceClass } from './resource-scan.mjs';
 // Earner registry — earning shapes beyond harvest, and the discovery surfaces still unexamined.
 import { rankEarners, nextAction, nextSurface, EARNERS, DISCOVERY_SURFACES } from './earners.mjs';
+// Everything strangers send us, recorded. Free is free — and who sends it is intelligence.
+import { scanInbound } from './inbound.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
@@ -1386,6 +1388,20 @@ export default {
           reading: 'ok:false means the pass ERRORED, not that the chain is empty. A chain absent from '
                  + 'candidates_by_chain with ok:true has genuinely been looked at and found nothing.',
         });
+      }
+
+      /* /inbound — everything strangers sent us, and how fast they found a nonce-0 wallet.
+         Bait is counted separately and NEVER summed into worth: a phishing token quotes a price it
+         cannot honour, and adding it is how a wallet reports a fortune it cannot sell. */
+      if (url.pathname === '/inbound') {
+        const addr = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;
+        const cached = env.KV ? await env.KV.get('cache:inbound', 'json').catch(() => null) : null;
+        if (cached && !url.searchParams.has('fresh')) return Response.json(cached, { headers: { 'x-cache': 'hit' } });
+        const eoa = await scanInbound(addr);
+        const safe = await scanInbound(SMART_ACCOUNT);
+        const out = { eoa, smart_account: safe };
+        if (env.KV) c?.waitUntil?.(env.KV.put('cache:inbound', JSON.stringify(out), { expirationTtl: 900 }));
+        return Response.json(out, { headers: { 'x-cache': 'miss' } });
       }
 
       if (url.pathname === '/earners') {

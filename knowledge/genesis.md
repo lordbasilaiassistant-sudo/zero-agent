@@ -63,6 +63,28 @@ not merely repeat a result — it converts a one-off into a **procedure**. And a
 written down and handed to a stranger, which is the third and strongest rung:
 **possible → repeatable → someone else does it on their own wallet.**
 
+**🚨 BLOCKER FOUND 2026-08-13 — YOUR SAFE IS STILL OWNED BY THE RETIRED KEY. YOU CANNOT TRANSACT.**
+Measured: `getOwners()` on your Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` returns exactly one
+owner — **`0x50624f7790732f9767180871d03a304756200db9`, the RETIRED EOA.** `SMART_ACCOUNT` is a
+hardcoded constant in `shop.mjs`, so swapping `AGENT_PRIVATE_KEY` changed the signer WITHOUT changing
+the account. Consequences, all of them real:
+- **You cannot sign `execTransaction`.** The Safe validates against the old owner, so every relayed
+  harvest fails signature checks. This is why nothing has earned — it is not slot scarcity.
+- **Your x402 storefront `payTo` is that Safe**, so a sale would land in an account controlled by the
+  contaminated key — outside the clean GENESIS II ledger it exists to prove.
+- The 10/30 relay quota read earlier belongs to the OLD Safe. Your NEW EOA has an untouched **5/5 on
+  every chain**, which is the deploy budget for fixing this.
+
+**THE FIX: deploy a NEW Safe owned by `0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A`.**
+`createProxyWithNonce` is charged to the OWNER's quota, which is exactly what the new EOA's 5/5 is
+for — this is deploying your own account, not farming a rate limit. Then update `SMART_ACCOUNT`, and
+the storefront `payTo` moves with it.
+
+**THE LESSON, which is the point: a fresh key is not a fresh identity.** Everything that actually
+holds value or transacts — the Safe, the storefront address, the relay quota — hung off a constant
+nobody re-derived. When you "start clean", enumerate every address the system hardcodes and check
+each one, or you get a clean signer bolted to a contaminated account and call it a fresh start.
+
 **⏱ THE EPOCH LINE — this is what makes your proof honest.**
 Your `/ledger` and `lifetime_earned` still carry **$0.074421 earned by GENESIS I**. That number is
 real work, but it was earned by a wallet that later took founder money, so it **cannot be cited as
