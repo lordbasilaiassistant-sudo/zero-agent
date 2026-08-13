@@ -9,6 +9,8 @@ import { ethers } from 'ethers';
 import { dashboardHTML } from './dashboard2.mjs';
 // Deterministic capacity scan — see resource-scan.mjs. Runs on the cron, costs no intelligence.
 import { scanResourceClass } from './resource-scan.mjs';
+// Earner registry — earning shapes beyond harvest, and the discovery surfaces still unexamined.
+import { rankEarners, nextAction, nextSurface, EARNERS, DISCOVERY_SURFACES } from './earners.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
@@ -1334,6 +1336,23 @@ export default {
          re-probing relayers every session (COMPUTE LAW), and it reports total capacity across the
          class rather than "my slots", so it cannot be mistaken for a ration (RESOURCE-CLASS LAW).
          Served from the cron's snapshot; ?fresh=1 forces a live scan. */
+      /* /earners — what to do next, ranked, without the agent re-reasoning it every session.
+         Also lists the discovery surfaces still unexamined, because the point is expansion:
+         one proven earner came from ONE surface and the other seven have never been ground. */
+      if (url.pathname === '/earners') {
+        const cap = env.KV ? await env.KV.get('cache:capacity', 'json').catch(() => null) : null;
+        const scanned = env.KV ? await env.KV.get('cache:surfaces', 'json').catch(() => null) : null;
+        const state = { usdcBalance: 0, freeRelaySlots: cap?.free_execution_available ?? null };
+        return Response.json({
+          next: nextAction(state),
+          surface_to_grind: nextSurface(scanned || {}),
+          shapes: EARNERS.map(e => ({ id: e.id, shape: e.shape, proven: e.proven, capital: e.capitalRequiredUsd })),
+          unexamined_surfaces: DISCOVERY_SURFACES.length,
+          law: 'harvest is ONE shape. 352 proven routes all collapsed into it because it was the only '
+             + 'architecture. Add an earner file, add it to EARNERS, the loop picks it up.',
+        });
+      }
+
       if (url.pathname === '/capacity') {
         const fresh = url.searchParams.has('fresh');
         if (!fresh && env.KV) {
