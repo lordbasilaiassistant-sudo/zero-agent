@@ -1292,10 +1292,32 @@ export default {
       if (tickNo % 3 === 0) {
         const DISCOVERY_ROTATION = ['gnosis', 'unichain', 'polygon', 'base', 'optimism', 'arbitrum'];
         const dChain = DISCOVERY_ROTATION[Math.floor(tickNo / 3) % DISCOVERY_ROTATION.length];
+        /* RECORD THE OUTCOME WHERE SOMEONE WILL SEE IT (2026-08-13).
+           Every failure path in discoveryPass ends at console.log — inside a Worker, which nobody
+           reads. One of its own comments says "never again silent" and then logs into the void. So
+           discovery could have been erroring on gnosis/unichain for weeks and it would look exactly
+           like "those chains are barren" — which is the story we have been telling ourselves while
+           10 relay slots sat idle there. Now every pass writes its result to KV, readable at
+           /discovery, so "found nothing" and "failed to look" can never again be confused. */
         c.waitUntil(
           discoveryPass(env, { chain: dChain, rpcRaw: (m, p) => rpcCall(dChain, m, p) })
-            .then(r => console.log('discovery(' + dChain + '): ' + jstr(r, 0)))
-            .catch(e => console.log('DISCOVERY ERROR ' + dChain + ': ' + String(e.message).slice(0, 200)))
+            .then(async (r) => {
+              console.log('discovery(' + dChain + '): ' + jstr(r, 0));
+              try {
+                const log = (await env.KV.get('discover:log', 'json')) || {};
+                log[dChain] = { at: new Date().toISOString(), ok: true, result: r };
+                await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
+              } catch { /* logging must never break discovery */ }
+            })
+            .catch(async (e) => {
+              const msg = String(e?.message || e).slice(0, 300);
+              console.log('DISCOVERY ERROR ' + dChain + ': ' + msg);
+              try {
+                const log = (await env.KV.get('discover:log', 'json')) || {};
+                log[dChain] = { at: new Date().toISOString(), ok: false, error: msg };
+                await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
+              } catch { /* ditto */ }
+            })
         );
       }
     }
@@ -1344,6 +1366,28 @@ export default {
       /* /earners — what to do next, ranked, without the agent re-reasoning it every session.
          Also lists the discovery surfaces still unexamined, because the point is expansion:
          one proven earner came from ONE surface and the other seven have never been ground. */
+      /* /discovery — did each chain FIND nothing, or FAIL to look? Those are opposite facts and
+         they were indistinguishable while both ended in console.log. Per-chain candidate counts are
+         included so "gnosis is barren" has to survive contact with a number. */
+      if (url.pathname === '/discovery') {
+        const log = env.KV ? await env.KV.get('discover:log', 'json').catch(() => null) : null;
+        const st = env.KV ? await env.KV.get('discover:state', 'json').catch(() => null) : null;
+        const byChain = {};
+        for (const cnd of Object.values(st?.candidates || {})) {
+          byChain[cnd.chain] = (byChain[cnd.chain] || 0) + 1;
+        }
+        return Response.json({
+          candidates_by_chain: byChain,
+          keepers_seeded: Object.keys(st?.keepers || {}).length,
+          blindSeeded: st?.blindSeeded ?? null,
+          behaviourSeeded: st?.behaviourSeeded ?? null,
+          passes: st?.passes ?? null,
+          last_pass_per_chain: log || 'no passes recorded yet — redeploy landed recently, wait one rotation',
+          reading: 'ok:false means the pass ERRORED, not that the chain is empty. A chain absent from '
+                 + 'candidates_by_chain with ok:true has genuinely been looked at and found nothing.',
+        });
+      }
+
       if (url.pathname === '/earners') {
         const cap = env.KV ? await env.KV.get('cache:capacity', 'json').catch(() => null) : null;
         const scanned = env.KV ? await env.KV.get('cache:surfaces', 'json').catch(() => null) : null;
