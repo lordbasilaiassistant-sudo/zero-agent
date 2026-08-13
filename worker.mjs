@@ -1712,8 +1712,18 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         return Response.json({
           MEASURED_ON_CHAIN: measured,
           attempts: s.attempts || 0, wins: s.wins || 0,
-          tracker_eth_earned: ethers.formatEther(BigInt(s.weiEarned || '0')),
-          tracker_caveat: 'lower bound only — per-tx deltas miss late credits; use MEASURED_ON_CHAIN',
+          /* ⚠️ NOT ETH, AND NOT A LOWER BOUND (corrected 2026-08-13, Anthony caught the symptom).
+             `weiEarned` sums the raw wei delta of whatever token a harvest paid, on whatever chain it
+             ran — then formats the total as ETH. Polygon pays WPOL and gnosis pays WXDAI, so a wei of
+             POL is added to a wei of ETH as if they were the same money. Two polygon harvests alone
+             (1.53e16 + 2.71e13 wei of WPOL) inflated this to 0.1467 "ETH" ≈ $276, against MEASURED
+             holdings of $0.043 — an overstatement of ~6,000x, not the "lower bound" the old caveat
+             promised. The old label was wrong in the dangerous direction.
+             Reported as a raw mixed-unit figure so nobody can mistake it for money. The real fix is
+             per-chain, per-token accumulation converted to USD at credit time. */
+          tracker_mixed_unit_wei: String(s.weiEarned || '0'),
+          tracker_caveat: 'DO NOT REPORT AS MONEY — sums wei across DIFFERENT tokens (ETH + WPOL + WXDAI) '
+            + 'as though identical. Overstates, does not under-state. Use MEASURED_ON_CHAIN / holdings_usd.',
           strategies_on_cooldown: Object.keys(s.cooldowns || {}).length,
           recent: (s.log || []).slice(0, 15),
         }, { headers: { 'access-control-allow-origin': '*' } });

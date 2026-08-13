@@ -21,7 +21,7 @@ import path from 'node:path';
 const APPLY = process.argv.includes('--apply');
 const CHAIN = Number((process.argv.find(a => a.startsWith('--chain=')) || '--chain=8453').split('=')[1]);
 
-const RPCS = { 8453: 'https://mainnet.base.org', 100: 'https://rpc.gnosischain.com' };
+const RPCS = { 8453: 'https://mainnet.base.org', 100: 'https://rpc.gnosischain.com', 10: 'https://mainnet.optimism.io', 42161: 'https://arb1.arbitrum.io/rpc', 137: 'https://polygon-rpc.com', 130: 'https://mainnet.unichain.org' };
 
 /* Safe v1.4.1 canonical deployments — identical addresses across EVM chains. */
 const PROXY_FACTORY = '0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67';

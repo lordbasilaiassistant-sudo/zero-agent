@@ -318,9 +318,20 @@ export async function relayStatus(taskId, chainId = 8453) {
   } catch { return { status: null, tx: null }; }
 }
 
-export async function wethBalance(rpc, addr, chain = 'base', weth = HARVEST_CFG.weth) {
-  const v = await rpc(chain, 'eth_call', [{ to: weth, data: '0x70a08231' + addr.slice(2).toLowerCase().padStart(64, '0') }, 'latest']);
-  return BigInt(v);
+/* FIXED 2026-08-13 — this crashed every non-Base chain with "Cannot convert 0x to a BigInt",
+   which read like a chain outage and silently cost us optimism + arbitrum entirely.
+   TWO bugs, both here:
+   1. `weth = HARVEST_CFG.weth` defaults to BASE's WETH on EVERY chain. CHAINS already carries the
+      correct per-chain address (arbitrum's differs; gnosis is WXDAI; polygon is WPOL) — it just was
+      not being used. Calling balanceOf on an address that holds no such contract returns '0x'.
+   2. `BigInt('0x')` THROWS rather than returning 0n, so a benign empty read became a fatal error
+      that aborted the whole harvest.
+   An empty read means "no balance here", which is 0n — never an exception. */
+export async function wethBalance(rpc, addr, chain = 'base', weth = null) {
+  const token = weth || CHAINS[chain]?.weth || HARVEST_CFG.weth;
+  const v = await rpc(chain, 'eth_call', [{ to: token, data: '0x70a08231' + addr.slice(2).toLowerCase().padStart(64, '0') }, 'latest']);
+  if (!v || v === '0x') return 0n;
+  try { return BigInt(v); } catch { return 0n; }
 }
 
 export async function ethUsd() {

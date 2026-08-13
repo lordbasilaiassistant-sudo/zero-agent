@@ -57,7 +57,17 @@ export function dashboardHTML(d) {
   const health = d?.health || {};
   const life = d?.lifetime_earned || {};
 
-  const g2 = n(bal.eth_like_total) ?? 0;          // GENESIS II — the only honest "from zero" figure
+  /* EARNED IS CUMULATIVE — IT IS NOT A BALANCE. (Anthony caught this 2026-08-13.)
+     This KPI used to read `eth_like_total`, a CURRENT-BALANCE snapshot of one chain, while calling
+     itself "Earned". That is wrong by construction: earnings are a running total that can only go
+     up, whereas a balance falls every time value is swept, bridged or spent. The label promised a
+     ledger and delivered a wallet reading, understating the agent by orders of magnitude.
+     His rule, which is the correct invariant: EARNED >= BALANCE, always. */
+  const earnedCum = (d?.recent_harvests || []).reduce((t, h) => {
+    try { return t + BigInt(h.wei_earned || h.expected_wei || 0); } catch { return t; }
+  }, 0n);
+  const heldNow = n(bal.holdings_usd);
+  const g2 = Number(earnedCum) / 1e18;            // cumulative GENESIS II earnings, the honest figure
   const g1 = n(life.measured_usd);                 // GENESIS I — contaminated, shown but never summed
   const TARGET = 1.0;                              // phase-0 exit, a real target in its own system
   const pctTarget = (g2 / TARGET) * 100;
@@ -174,10 +184,16 @@ export function dashboardHTML(d) {
 
 <div class="g g3">
   <div class="p">
-    <p class="pt">Earned — genesis II</p>
+    <p class="pt">Earned — genesis II (cumulative)</p>
     <div class="row"><div class="kpi" id="g2">${money(g2)}</div>
       <span class="delta">▲ ${pctTarget.toFixed(1)}%<span class="dlabel">of $1.00 phase-0 exit</span></span></div>
-    <div class="sm dim" style="margin-top:10px">${bal.has_earned === true ? 'settled on-chain' : 'no earnings on this wallet yet — this is the number that proves the claim'}</div>
+    <div class="sm dim" style="margin-top:10px">
+      ${bal.has_earned === true
+        ? `settled on-chain · <strong>held right now ${heldNow === null ? '—' : '$' + heldNow.toFixed(6)}</strong>`
+        : 'no earnings on this wallet yet — this is the number that proves the claim'}
+    </div>
+    <div class="sm dim" style="margin-top:4px">Earned only ever rises. Held is lower because gas,
+      sweeps and bridging consume some — if held ever exceeded earned, this page would be lying.</div>
   </div>
   <div class="p">
     <p class="pt">Free gas — relay budget</p>
@@ -204,6 +220,37 @@ export function dashboardHTML(d) {
 </div>
 
 <div class="g g2">
+  <div class="p">
+    <p class="pt">Where the money is — it must end as liquid Base ETH</p>
+    ${(() => {
+      /* Harvests pay in WETH ON THE CHAIN THEY RAN. That is EARNED, not SPENDABLE. Anthony's rule:
+         it must ultimately become liquid ETH on Base. So the panel states, per chain, whether the
+         value is home or still in transit — a glance should answer "how much can we actually use",
+         never only "how much did we earn". */
+      const rows = d?.balances?.all_chains_priced;
+      if (!Array.isArray(rows) || !rows.length) {
+        return `<p class="sm dim">per-chain balances not present in this payload — showing totals only</p>`;
+      }
+      /* ⚠️ token_usd is the PRICE OF ONE TOKEN, not our holding. Reading it as a balance made the
+         panel announce "$1,885 on optimism" when we held $0.0138 — a 136,000x overstatement on the
+         one screen Anthony reads. Our value is eoa_native_usd + safe_usd + usdc_usd. */
+      const cells = rows.map(r => {
+        const home = String(r.chain || '').toLowerCase() === 'base';
+        const ours = (n(r.eoa_native_usd) ?? 0) + (n(r.safe_usd) ?? 0) + (n(r.usdc_usd) ?? 0);
+        if (ours <= 0) return '';
+        const liquid = home && (n(r.eoa_native_usd) ?? 0) > 0;
+        return `<tr>
+          <td>${esc(r.chain)}</td>
+          <td class="mono r">$${ours.toFixed(6)}</td>
+          <td class="${liquid ? '' : 'dim'}">${liquid ? 'LIQUID · native ETH on Base' : 'wrapped / off-home → convert'}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="3" class="dim">nothing held yet</td></tr>';
+      return `<table><thead><tr><th>chain</th><th class="r">value</th><th>state</th></tr></thead><tbody>${cells}</tbody></table>`;
+    })()}
+    <p class="note" style="margin-top:10px">Earnings arrive as <strong>WETH on whichever chain the
+      harvest ran</strong> — earned, but not yet spendable. Target state is liquid ETH on Base;
+      anything on another chain is a to-do, not a balance.</p>
+  </div>
   <div class="p">
     <p class="pt">Recent harvest sizes</p>
     ${spark}
