@@ -368,6 +368,63 @@ function makeTools(ctx) {
       const cost = value + gas * maxFee;
       const bal = BigInt(balHex);
       if (bal < cost) throw new Error(`insufficient funds on ${chain}: balance ${ethers.formatEther(bal)} ETH, need ~${ethers.formatEther(cost)} ETH. You are broke here — earn first.`);
+
+      /* ── PROFITABILITY GATE (added 2026-08-13 after this tool burned real money) ──────────────
+         MEASURED LOSS: on 2026-08-13 at 22:22 and 23:05 this path sent two self-funded `harvest`
+         txs from the EOA costing 1,770,233,401,458 and 1,770,602,110,867 wei — 3.54e12 wei burned
+         to collect fees worth ~1.3e12. The EOA fell 11.05e12 -> 7.51e12. The relay had hit 0/5 on
+         every chain, so the agent sensibly fell back to sending it itself; the tool let it, because
+         its only check was "can you afford it", never "is it worth it".
+
+         The 18x law was already written into the agent's knowledge and it did not help: a rule in
+         prose is not a gate. So the arithmetic lives HERE now, where it cannot be reasoned past.
+
+         Rule: a call that extracts value must be simulated first, and refused if the gas costs more
+         than it returns. Simulation is free and unlimited; the tx is not. */
+      /* DEFAULT-DENY, per Anthony 2026-08-13: "if it pays its own gas it must have a profitable
+         outcome in balance only. we arent at trading moments yet."
+         So the gate is NOT a list of suspicious selectors — an allowlist leaks by construction, and
+         the very first unlisted selector spends freely. EVERY self-funded transaction must prove it
+         leaves the wallet richer. The only exemptions are calls that make money SPENDABLE without
+         claiming to make more of it (unwrapping WETH->ETH), and those are capped separately below.
+         Nothing speculative qualifies: we are not trading, so "might go up" is never a reason. */
+      const selector = (data || '0x').slice(0, 10).toLowerCase();
+      const UNWRAP = ['0x2e1a7d4d'];                       // withdraw(uint256): converts, never claims gain
+      const exempt = UNWRAP.includes(selector);
+
+      /* An exempt conversion still may not cost more than a trivial slice of what it unlocks —
+         paying 1e12 in gas to free 1e11 of WETH is the same mistake wearing a different hat. */
+      if (exempt && cost > bal / 10n) {
+        throw new Error(`REFUSED — ${selector} would spend ${cost} wei, more than 10% of the ${bal} wei balance. Unwrapping must be cheap or it is not worth doing.`);
+      }
+
+      if (!exempt) {
+        /* Measure the WETH the caller would actually gain, inside ONE eth_call so the state change
+           survives — three separate eth_calls cannot see it (that bug cost us three false "no
+           payers" conclusions on three chains). */
+        let gain = 0n;
+        try {
+          const tok = CHAINS[chain]?.weth;
+          const bal32 = (a) => '0x70a08231' + a.slice(2).toLowerCase().padStart(64, '0');
+          const before = BigInt(await ctx.rpc(chain, 'eth_call', [{ to: tok, data: bal32(w.address) }, 'latest']) || '0x0');
+          await ctx.rpc(chain, 'eth_call', [{ to, data, from: w.address }, 'latest']);
+          const after = BigInt(await ctx.rpc(chain, 'eth_call', [{ to: tok, data: bal32(w.address) }, 'latest']) || '0x0');
+          gain = after > before ? after - before : 0n;
+        } catch { gain = 0n; }
+
+        /* Unknown gain is treated as ZERO, deliberately. An extractive call we cannot price is not
+           a call we may pay for — the burden of proof sits on the spend, not on the refusal. */
+        /* Require a MARGIN, not a tie. gas is estimated and the price moves between simulation and
+           inclusion, so `gain > cost` by a hair still lands as a loss often enough to matter. */
+        if (gain <= (cost * 3n) / 2n) {
+          throw new Error(
+            `REFUSED — self-funded ${selector} does not leave the wallet richer on ${chain}: gas ~${cost} wei vs simulated gain ${gain} wei ` +
+            `(need >1.5x gas to survive estimation drift). If it pays its own gas it must have a profitable outcome IN BALANCE — ` +
+            `we are not trading, so "might pay later" does not qualify. Harvests are profitable ONLY when someone else pays the gas ` +
+            `(measured: real cost ~18x the fee). Wait for a relay slot. This exact path burned 3.54e12 wei on 2026-08-13.`
+          );
+        }
+      }
       const signed = await w.signTransaction({
         chainId: CHAINS[chain].chainId, type: 2, to, value, data,
         nonce: parseInt(nonceHex, 16), gasLimit: gas, maxFeePerGas: maxFee, maxPriorityFeePerGas: prio,
