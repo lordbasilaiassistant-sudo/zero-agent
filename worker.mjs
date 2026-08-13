@@ -7,6 +7,8 @@ import { ethers } from 'ethers';
 // v2 dashboard (2026-08-13): KPI-first, theme-aware, auto-refreshing, renders only from the live
 // payload. The old dashboard.mjs is kept for reference but no longer served.
 import { dashboardHTML } from './dashboard2.mjs';
+// Deterministic capacity scan — see resource-scan.mjs. Runs on the cron, costs no intelligence.
+import { scanResourceClass } from './resource-scan.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
@@ -1136,6 +1138,45 @@ async function tick(env, trigger) {
 
 export default {
   async scheduled(event, env, c) {
+    /* WARM THE PUBLIC PAGE (2026-08-13). The status cache made a warm page 0.079s, but only a
+       VISITOR refilled it — so the first person after a quiet spell still paid the full 13s
+       recompute. That is the cron's job, not a stranger's: it already runs every 2 minutes and the
+       cache holds 150s, so warming it here means the page is never cold again.
+       `?fresh=1` skips the cache read and writes a new snapshot; it cannot recurse. */
+    c.waitUntil((async () => {
+      try {
+        await fetch('https://zero-agent.broke2builtai.com/?fresh=1', { headers: { accept: 'application/json' } });
+      } catch { /* warming is best-effort; never let it disturb the earning loops below */ }
+    })());
+
+    /* CAPACITY SCAN — deterministic, so it is code, not a thought (COMPUTE LAW). Writes the whole
+       free-execution class to KV where the agent READS it instead of re-deriving it each session,
+       and rotates through frontier chains so a newly-launched sponsor is found by a machine rather
+       than by luck (RESOURCE-CLASS LAW). */
+    c.waitUntil((async () => {
+      try {
+        if (!env.KV || !env.AGENT_PRIVATE_KEY) return;
+        const addr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
+        const prev = await env.KV.get('cache:capacity', 'json').catch(() => null);
+        const report = await scanResourceClass(addr, { frontierSampleAt: Math.floor(Date.now() / 120000) });
+        await env.KV.put('cache:capacity', JSON.stringify(report), { expirationTtl: 3600 });
+        /* A newly-found sponsor is the single most valuable event in this system — it expands the
+           ceiling rather than re-dividing the floor — so it goes in the journal, not just a cache
+           key that might never be read. */
+        if (report.NEWLY_DISCOVERED?.length) {
+          const line = `[${report.at}] NEW FREE-EXECUTION SPONSOR: ${report.NEWLY_DISCOVERED.map(d => `${d.chain} (${d.free}/${d.limit})`).join(', ')} — class enumeration paid off; add to CLASS in resource-scan.mjs.\n`;
+          const j = (await env.KV.get('knowledge:journal')) || '';
+          await env.KV.put('knowledge:journal', line + j);
+        }
+        /* Capacity going UP without us adding a member means the world moved — worth noticing. */
+        if (prev && report.free_execution_ceiling > (prev.free_execution_ceiling || 0)) {
+          const line = `[${report.at}] CEILING ROSE: free-execution ceiling ${prev.free_execution_ceiling} -> ${report.free_execution_ceiling} with no code change. Scarcity is a measurement.\n`;
+          const j = (await env.KV.get('knowledge:journal')) || '';
+          await env.KV.put('knowledge:journal', line + j);
+        }
+      } catch { /* measurement only; never allowed to break the earning loops */ }
+    })());
+
     // Two independent loops: the earner runs on every tick (it self-throttles to the relay budget),
     // and the agent's own reasoning session advances separately.
     // SEQUENTIAL, AND THE ESCAPE HAS ABSOLUTE PRIORITY ON BASE.
@@ -1287,6 +1328,23 @@ export default {
               : Response.json(hit.payload, { headers: { 'x-cache': `hit ${age}s` } });
           }
         } catch { /* cache is an optimisation, never a dependency — fall through and compute */ }
+      }
+
+      /* /capacity — the whole free-execution class in one read. The agent calls this INSTEAD of
+         re-probing relayers every session (COMPUTE LAW), and it reports total capacity across the
+         class rather than "my slots", so it cannot be mistaken for a ration (RESOURCE-CLASS LAW).
+         Served from the cron's snapshot; ?fresh=1 forces a live scan. */
+      if (url.pathname === '/capacity') {
+        const fresh = url.searchParams.has('fresh');
+        if (!fresh && env.KV) {
+          const hit = await env.KV.get('cache:capacity', 'json').catch(() => null);
+          if (hit) return Response.json(hit, { headers: { 'x-cache': 'hit' } });
+        }
+        const addr = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;
+        if (!addr) return Response.json({ error: 'no wallet' }, { status: 500 });
+        const report = await scanResourceClass(addr, { frontierSampleAt: Math.floor(Date.now() / 120000) });
+        if (env.KV) c?.waitUntil?.(env.KV.put('cache:capacity', JSON.stringify(report), { expirationTtl: 3600 }));
+        return Response.json(report, { headers: { 'x-cache': 'miss' } });
       }
 
       const eoa = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;

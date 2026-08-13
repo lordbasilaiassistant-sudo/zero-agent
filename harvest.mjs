@@ -47,7 +47,11 @@ export const HARVEST_CFG = {
   vaultsCacheMs: 12 * 3600 * 1000,
 };
 
-const RELAY_HEADERS = {
+/* EXPORTED 2026-08-13. These headers are the difference between 200 and a bodyless 403 —
+   CloudFront rejects any non-browser User-Agent. resource-scan.mjs hand-rolled its own "polite"
+   UA, got 403 on every chain, and reported that as 0 free capacity. Never duplicate this set;
+   import it. One proven copy, one place to fix it. */
+export const RELAY_HEADERS = {
   'content-type': 'application/json',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
   Origin: 'https://app.safe.global',
