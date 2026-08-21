@@ -66,6 +66,36 @@ with an auto-stub journal entry. Verified: ~6s and ~16 subrequests per tick — 
   knowledge on every call; retrieval is how that comes down. ⚠️ Everything in it ships stamped
   *DOCUMENTATION IS A HYPOTHESIS — THE CHAIN IS THE MEASUREMENT*, because this repo's own docs have
   been wrong twice this week (the admin key name; "Safe v0.3.0, undeployed").
+- `scripts/wallet-map.mjs` — **THE MAP** (rebuilt 2026-08-20; `freemoney-map.mjs` is now a forwarder).
+  Scans real blocks and finds every tx where value arrived AT THE SENDER inside their own tx — the
+  empirical census of contracts that pay their callers, including classes no catalogue lists.
+  `npm run map` · `npm run map:all` · `npm run map:selftest`.
+  **It grades every payer FROM ZERO'S OWN ADDRESS**, in two stages, and the second one is the one that
+  matters. First it replays the observed calldata at two heights (the block before the payout, and
+  head): **OPEN** (accepted then and now) · **KEEPER** (accepted then, reverts now — the classic
+  keeper shape, recheck on fresh work) · **CLOSED** (reverts even at the observed block — the original
+  caller held a role or position we do not). Then — because ACCEPTANCE IS NOT PAYMENT — every accepted
+  row is re-run through `eth_simulateV1` with `traceTransfers` and graded on the value that actually
+  lands at ZERO's address: **PAYS** · **PAYS-BUT-LOSES** (real money reaches us and gas costs more) ·
+  **NO-PAY**. Only PAYS rows are actionable — the first two rows that ever cleared the payout gate paid
+  ZERO $0.00031 and $0.000666 in VELO against ~$0.002 of gas, so **paying us and being worth doing are
+  different tests too**, and the economics decide the grade.
+  ⚠️ **That gate is not theoretical.** The first clean run graded two rows OPEN at $411.48 and $1.19
+  per call; simulation showed both move **$0.00** to ZERO — one a signed-payload relay whose proceeds
+  are bound into the payload, one a `claim(1308)` on somebody else's position id. Shipped as routes
+  they would have burned gas forever for nothing, which is strictly worse than having no route.
+  **Ceiling: rung 2** on the `sponsor-probe.mjs` ladder (0 FOUND · 1 REACHABLE · 2 ACCEPTED ·
+  3 EXECUTED · 4 PROFITABLE). A simulation is never income; only a settled tx reaches rung 3.
+  Payouts quoted in anything but native/WETH/major stables are flagged `spot_only` — a sound quote in
+  a thin market is not money we can realise (global CLAUDE.md §10, spot vs executable).
+  Writes `state/wallet-map.json` (durable, MERGED across runs — never overwritten) plus a per-run
+  `scripts/wallet-map-result.json`, and still emits `freemoney-map-result.json` for `brain-corpus`.
+  ⚠️ **Controls block the write.** Pricing must re-derive USDC at ~$1 and WETH >$100, and native
+  accounting must reproduce a known ETH transfer to the wei; any failure exits non-zero and writes
+  NOTHING. This exists because v1 shipped an arbitrum run where a `null` explorer URL priced every
+  row at $0.00 and its `usd_per_call > 0` filter then turned a TEN-caller contract into
+  `openPayers: 0` — a dead price column wearing a demand answer's clothes. A map that cannot price a
+  dollar may not be believed when it reports a zero.
 - `invariants.mjs` — **the immune system.** CONTRADICTION checks, not liveness checks, run on the cron
   every 5th tick and published at `/invariants`. `health.mjs` asks *"is it moving?"*; this asks
   *"does what the code CLAIMS match what the chain SAYS?"* That distinction is the whole point: on

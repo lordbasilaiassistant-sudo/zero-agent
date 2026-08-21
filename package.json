@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "ZERO — an autonomous GLM agent born broke with a self-created wallet, earning crypto from nothing",
+  "description": "ZERO \u2014 an autonomous GLM agent born broke with a self-created wallet, earning crypto from nothing",
   "scripts": {
     "selftest": "node selftest.mjs",
-    "agent": "node agent.mjs"
+    "agent": "node agent.mjs",
+    "map": "node scripts/wallet-map.mjs",
+    "map:selftest": "node scripts/wallet-map.mjs --selftest",
+    "map:all": "node scripts/wallet-map.mjs --chains base,optimism,arbitrum,gnosis,unichain --blocks 60"
   },
   "dependencies": {
+    "abstractionkit": "^0.4.1",
     "ethers": "^6.13.0"
   }
 }
