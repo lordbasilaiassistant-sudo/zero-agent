@@ -1,7 +1,7 @@
 # ZERO — agent documentation corpus
 
 > Operational reference for the systems this autonomous agent actually touches, distilled
-> from vendor docs and, where cheap, verified on-chain. Built 2026-08-12T18:10:09.093Z.
+> from vendor docs and, where cheap, verified on-chain. Built 2026-08-21T18:48:53.295Z.
 
 > **DOCUMENTATION IS A HYPOTHESIS. THE CHAIN IS THE MEASUREMENT.** Entries marked VERIFIED
 > were confirmed with a free call. Everything else is documented-only and must be checked
@@ -10,6 +10,7 @@
 Search it: `POST https://zero-agent.broke2built.workers.dev/docs/search` with `{"q":"..."}`, or the `doc_search` tool.
 
 ## Documents
+- [CALLER-PAID ROUTES — WHAT PAYS YOU, WHAT DOES NOT, AND HOW TO TELL](https://zero-agent.broke2built.workers.dev/docs/caller-paid-routes): THE ONE ROUTE THAT PASSED EVERY GATE · THE THREE GATES, IN ORDER. NEVER SKIP THE SECOND. · READ THE CONTRACT. DO NOT GUESS SELECTORS. · DEAD FAMILIES — DO NOT RE-SCAN THESE (7 passages)
 - [CIRCLE CCTP v2 + x402 MACHINE PAYMENTS](https://zero-agent.broke2built.workers.dev/docs/cctp-x402): THE TWO SENTENCES THAT MATTER MOST · CONTRACT ADDRESSES · THE DOMAIN TABLE, AND THE localDomain() TRAP · depositForBurn — the burn side (55 passages)
 - [ERC-4337 — ACCOUNT ABSTRACTION, BUNDLERS AND PAYMASTERS](https://zero-agent.broke2built.workers.dev/docs/erc4337): THE ONE-PARAGRAPH ANSWER FOR ZERO · ENTRYPOINT ADDRESSES — SAME ON EVERY CHAIN · THE USEROPERATION STRUCT — v0.6 AND v0.7+ ARE DIFFERENT TYPES · SELECTORS AND EVENT TOPICS — ALL CO (58 passages)
 - [FREE INFRASTRUCTURE — the rails ZERO actually runs on](https://zero-agent.broke2built.workers.dev/docs/infra): BLOCKSCOUT v2 REST — free, no key, the discovery layer · ETHERSCAN / BASESCAN — A CLOSED DOOR. DO NOT RETRY. · JSON-RPC — the methods everything else is built on · PROXIES — resolv (46 passages)
@@ -17,6 +18,15 @@ Search it: `POST https://zero-agent.broke2built.workers.dev/docs/search` with `{
 - [UNISWAP v3 ROUTING + WETH9 SEMANTICS](https://zero-agent.broke2built.workers.dev/docs/uniswap): ADDRESSES — VERIFIED ON-CHAIN, 2026-08-12 · THE CONTRACT FAMILY — WHICH ROUTER IS WHICH · exactInputSingle — THE EXACT ENCODING · THE RECIPIENT MAGIC CONSTANTS (51 passages)
 
 ## Sources
+### CALLER-PAID ROUTES — WHAT PAYS YOU, WHAT DOES NOT, AND HOW TO TELL
+- https://rpc.gnosischain.com
+- https://optimism-rpc.publicnode.com
+- https://arbitrum-one-rpc.publicnode.com
+- https://base-rpc.publicnode.com
+- https://api.beefy.finance/vaults
+- https://api.beefy.finance/tvl
+- https://coins.llama.fi/prices/current/
+- https://api.openchain.xyz/signature-database/v1/lookup
 ### CIRCLE CCTP v2 + x402 MACHINE PAYMENTS
 - https://developers.circle.com/llms.txt
 - https://developers.circle.com/cctp/concepts/supported-chains-and-domains.md
