@@ -202,6 +202,32 @@ const DO_PROBE = !flag('no-probe');
 const PROBE_TOP = Number(opt('probe-top', 25));
 const CHAIN_LIST = (opt('chains', opt('chain', 'base'))).split(',').map(s => s.trim()).filter(Boolean);
 
+/* -- self-test: node scripts/wallet-map.mjs --test-clusters (no network, exits immediately) ------ */
+function selfTestClusters() {
+  const fail = (m) => { console.error('FAIL: ' + m); process.exit(1); };
+  const fleet = Array.from({ length: 48 }, (_, i) => '0x4337' + String(i).padStart(36, '0'));
+  const indies = ['0xf0f772fa5f01bc19064a8ba323a4f53505586ce1a', '0x79c02f38dba39da361b4a0484c40351d50d55a94',
+                  '0xf03ddbe5b9b4ddec66009d94dc5d33dd719f34e1', '0x11b8ad91a30b432a684665529bda81f56e842cbf'];
+  const r = operatorClusters([...fleet, ...indies]);
+  if (r.addresses !== 52) fail('should see 52 addresses, saw ' + r.addresses);
+  if (r.operators !== 5) fail('48 vanity + 4 independents = 5 operators, got ' + r.operators);
+  if (!r.fleets.length || r.fleets[0].prefix !== '0x4337') fail('should flag the 0x4337 fleet');
+
+  const clean = operatorClusters(['0xaa11111111111111111111111111111111111111',
+                                  '0xbb22222222222222222222222222222222222222',
+                                  '0xcc33333333333333333333333333333333333333']);
+  if (clean.operators !== 3) fail('three unrelated addresses are three operators');
+  if (clean.fleets.length) fail('must NOT invent a fleet where none exists');
+
+  const pair = operatorClusters(['0x43370000000000000000000000000000000000aa',
+                                 '0x43370000000000000000000000000000000000bb']);
+  if (pair.fleets.length) fail('two sharing a prefix is under the threshold - do not cry fleet');
+
+  console.log('operatorClusters: 3/3 self-tests pass (1 asserts it stays SILENT on a clean set)');
+  process.exit(0);
+}
+
+
 for (const c of CHAIN_LIST) {
   if (!CHAINS[c]) { console.error(`unknown chain "${c}". known: ${Object.keys(CHAINS).join(', ')}`); process.exit(2); }
 }
@@ -834,6 +860,7 @@ async function priceAndRank(chain, payers, tokensSeen) {
 
   const rows = [];
   for (const rec of payers.values()) {
+    const opc = operatorClusters([...rec.callers]);
     let usd = 0, unpricedCount = 0, spotOnly = false, lowConfidence = false;
     const tokens = [];
     for (const [tok, amt] of Object.entries(rec.tokens)) {
@@ -865,6 +892,9 @@ async function priceAndRank(chain, payers, tokensSeen) {
     rows.push({
       chain, contract: rec.contract, selector: rec.selector,
       hits: rec.hits, distinct_callers: rec.callers.size,
+      // distinct_callers counts ADDRESSES and is an upper bound; this is the corrected count.
+      distinct_operators: opc.operators,
+      operator_clustering: opc.fleets.length ? opc : null,
       gross_usd: +grossUsd.toFixed(6),
       gross_usd_per_call: +(grossUsd / rec.hits).toFixed(6),
       gas_usd_per_call: gasUsd == null ? null : +gasUsd.toFixed(6),
@@ -1088,6 +1118,120 @@ async function simulatePayout(chain, rows, nativePx) {
   await Promise.all(Array.from({ length: Math.min(3, targets.length) }, worker));
 }
 
+
+/* ── NAME THE THRESHOLD THAT WOULD MAKE IT POSSIBLE ──────────────────────────────────────────────
+ *
+ * Global rules §7: "'Impossible' is a measurement, not a conclusion. When something looks capped,
+ * enumerate where else it exists before accepting the cap... Is the cost per unit or per BATCH?
+ * Name the threshold that would make it possible and aim at it."
+ *
+ * A row that pays $0.0003 against $0.002 of gas reads as a dead end. It is not obviously one, because
+ * the two numbers have DIFFERENT DENOMINATORS: a bounty is earned per unit of work, while gas is
+ * charged per TRANSACTION. Batch enough units into one transaction and the per-transaction part
+ * amortises away.
+ *
+ * But only that part, and this is the trap worth writing down: batching saves the **21,000 intrinsic
+ * gas** and nothing else. Execution gas is spent per call however you bundle it. So the honest test
+ * is not "payout vs gas" — it is **payout vs EXECUTION gas**:
+ *
+ *   net(N) = N·payout − (INTRINSIC + N·execGas)·gasPrice·nativeUsd
+ *
+ *   · payout > execGasCost  → profitable for N ≥ ceil(intrinsicCost / (payout − execGasCost)).
+ *                             That N is the threshold. It is a build target, not a hope.
+ *   · payout ≤ execGasCost  → NO batch size ever helps. That is a real cap, measured, and the only
+ *                             remaining lever is someone else paying the gas.
+ *
+ * And that last lever is real for us: ZERO holds free relay capacity and there are live public
+ * paymasters. With gas sponsored the comparison collapses to `payout > 0`, so `sponsored_net_usd`
+ * is reported for every row — it is what the route is worth on a rail we already own. */
+const INTRINSIC_GAS = 21000n;
+
+function addThresholds(rows, gasPriceWei, nativePx) {
+  if (nativePx == null || !gasPriceWei) return;
+  const weiToUsd = (wei) => Number(formatUnits(wei, 18)) * nativePx;
+  for (const r of rows) {
+    const payout = r.simulated_payout_usd;
+    if (typeof payout !== 'number') continue;
+
+    // Execution gas from the simulation where we have it; the receipt average is a fallback and
+    // includes the intrinsic, so subtract it rather than quietly overstating the per-unit cost.
+    const execGas = r.simulated_gas != null
+      ? BigInt(Math.max(0, Math.round(r.simulated_gas)))
+      : BigInt(Math.max(0, Math.round((r.avg_gas || 0)))) - INTRINSIC_GAS;
+    if (execGas <= 0n) continue;
+
+    const execCost = weiToUsd(execGas * gasPriceWei);
+    const intrinsicCost = weiToUsd(INTRINSIC_GAS * gasPriceWei);
+
+    r.exec_gas = Number(execGas);
+    r.exec_gas_usd = +execCost.toFixed(8);
+    r.sponsored_net_usd = +payout.toFixed(8);          // someone else pays the gas → payout is the profit
+    r.margin_per_unit_usd = +(payout - execCost).toFixed(8);
+
+    if (payout > execCost) {
+      const n = Math.ceil(intrinsicCost / (payout - execCost));
+      r.batch_breakeven_n = Math.max(1, n);
+      r.threshold_note = `profitable at ${Math.max(1, n)} per transaction — each unit clears execution gas by $${(payout - execCost).toFixed(8)}`;
+    } else {
+      r.batch_breakeven_n = null;
+      r.threshold_note = `no batch size helps: one unit costs $${execCost.toFixed(8)} of EXECUTION gas and pays $${payout.toFixed(8)}. `
+        + `Sponsored gas is the only remaining lever, worth $${payout.toFixed(8)}/call on a free rail.`;
+    }
+  }
+}
+
+/* -- OPERATORS, NOT ADDRESSES. The correction that saved a build. ------------------------------
+ *
+ * `distinct_callers` was this map's core permissionless signal: many callers => anyone may call =>
+ * we may call. On 2026-08-21 that signal was measured wrong in the most expensive direction.
+ *
+ * Gnosis ERC-4337 bundling looked like a textbook open market: 52 distinct callers, flat 2.2-2.6%
+ * each, HHI 201 (under 1500 reads "competitive"). Whole-pie arithmetic came out at 10.7x break-even
+ * and it was one step from becoming a build.
+ *
+ * Then: 48 of those 52 addresses begin `0x4337` -- the ERC-4337 vanity prefix, ground out on purpose.
+ * Probability for one address is 16^-4 = 1.53e-5; for 48 of them, ~6.4e-232. It is ONE operator
+ * round-robining a wallet pool for nonce parallelism, carrying 96.3% of volume. The genuinely
+ * independent remainder was 3.7% -- 0.4x break-even, i.e. dead.
+ *
+ * THE TRAP, written down so it is never re-entered: **splitting one operator across more addresses
+ * makes every concentration metric look MORE competitive.** HHI computed over addresses cannot see
+ * address-splitting, and address-splitting is the cheapest thing an on-chain operator can do. A crowd
+ * of addresses is evidence of nothing until you have counted operators.
+ *
+ * Every distinct_callers figure this map has ever produced is therefore an UPPER BOUND on real
+ * competition, and rows now carry the corrected count beside it. */
+const VANITY_PREFIX_LEN = 4;   // hex chars after 0x; 16^4 = 65,536:1 against by chance
+const FLEET_MIN_MEMBERS = 3;
+
+function operatorClusters(addresses) {
+  const addrs = [...new Set((addresses || []).map((a) => String(a).toLowerCase()))];
+  const byPrefix = new Map();
+  for (const a of addrs) {
+    const pre = a.slice(2, 2 + VANITY_PREFIX_LEN);
+    if (!/^[0-9a-f]+$/.test(pre) || pre.length < VANITY_PREFIX_LEN) continue;
+    if (!byPrefix.has(pre)) byPrefix.set(pre, []);
+    byPrefix.get(pre).push(a);
+  }
+  const fleets = [];
+  for (const [pre, members] of byPrefix) {
+    if (members.length < FLEET_MIN_MEMBERS) continue;
+    const oddsAgainst = Math.pow(16, VANITY_PREFIX_LEN * (members.length - 1));
+    fleets.push({ prefix: '0x' + pre, members: members.length, addresses: members.slice(0, 8), odds_against: oddsAgainst });
+  }
+  const clustered = fleets.reduce((a, f) => a + f.members, 0);
+  return {
+    addresses: addrs.length,
+    operators: addrs.length - clustered + fleets.length,
+    fleets,
+    note: fleets.length
+      ? clustered + ' of ' + addrs.length + ' addresses share ' + fleets.length + ' vanity prefix(es) - a controlled fleet, not competitors'
+      : 'no vanity clustering detected (does not rule out common funding or timing correlation)',
+  };
+}
+
+if (argv.includes('--test-clusters')) selfTestClusters();
+
 /* Re-order a probed list so what ZERO can actually do comes first. Rank, not filter: CLOSED rows stay
  * in the map because tomorrow's role change or tomorrow's clone makes them live again. */
 const CALLABLE_RANK = { OPEN: 0, KEEPER: 1, 'NO-ARCHIVE': 2, undefined: 3, CLOSED: 4 };
@@ -1146,8 +1290,10 @@ function mergeIntoMap(all) {
                          'tokens', 'native_usd', 'avg_gas', 'sample_tx', 'family', 'fully_priced',
                          'zero_callable', 'callable_note', 'shape', 'sample_block',
                          'rung', 'spot_only', 'low_confidence_price', 'executable_usd_per_call',
+                         'distinct_operators', 'operator_clustering',
                          'sim', 'simulated_payout_usd', 'sim_note', 'simulated_receipts',
-                         'simulated_net_usd']) {
+                         'simulated_net_usd', 'exec_gas_usd', 'margin_per_unit_usd',
+                         'batch_breakeven_n', 'sponsored_net_usd', 'threshold_note']) {
           if (r[k] !== undefined) ex[k] = r[k];
         }
         updated++;
@@ -1196,6 +1342,7 @@ for (const chain of CHAIN_LIST) {
       await simulatePayout(chain, accepted, ranked.nativePx);
       // Only rows where the simulation actually moves money to ZERO are actionable. NO-PAY rows stay
       // in the durable map -- they are a real finding, just not a route.
+      addThresholds(accepted, BigInt(ranked.gasPrice || '0'), ranked.nativePx);
       ranked.actionable = rankActionable(accepted.filter(r => r.sim === 'PAYS' || r.sim === 'unavailable'));
       ranked.noPay = accepted.filter(r => r.sim === 'NO-PAY' || r.sim === 'reverts');
       ranked.losers = accepted.filter(r => r.sim === 'PAYS-BUT-LOSES');
@@ -1225,8 +1372,20 @@ for (const chain of CHAIN_LIST) {
     }
     if (ranked.losers && ranked.losers.length) {
       console.log(`\n=== [${chain}] PAYS US, BUT COSTS MORE THAN IT PAYS (${ranked.losers.length}) ===`);
-      ranked.losers.slice(0, 6).forEach(r => console.log(
-        ` pays $${String(r.simulated_payout_usd).padStart(10)} · gas $${String(r.gas_usd_per_call).padStart(9)} · NET $${String(r.simulated_net_usd).padStart(10)} · ${r.contract} ${r.selector}`));
+      ranked.losers.slice(0, 8).forEach(r => {
+        console.log(` pays $${String(r.simulated_payout_usd).padStart(10)} · exec-gas $${String(r.exec_gas_usd ?? '?').padStart(10)} · ${r.contract} ${r.selector}`);
+        if (r.threshold_note) console.log(`      → ${r.threshold_note}`);
+      });
+      const batchable = ranked.losers.filter(r => r.batch_breakeven_n);
+      if (batchable.length) {
+        console.log(`\n  ⭐ ${batchable.length} of these FLIP POSITIVE when batched. Thresholds: ` +
+          batchable.slice(0, 6).map(r => `${r.selector}×${r.batch_breakeven_n}`).join(', '));
+      }
+      const sponsorable = ranked.losers.filter(r => (r.sponsored_net_usd || 0) > 0);
+      if (sponsorable.length) {
+        const tot = sponsorable.reduce((a, r) => a + r.sponsored_net_usd, 0);
+        console.log(`  ⭐ on SPONSORED gas all ${sponsorable.length} are profitable — $${tot.toFixed(8)} per full pass of them.`);
+      }
     }
     if (ranked.noPay && ranked.noPay.length) {
       console.log(`\n=== [${chain}] ACCEPTED BUT PAYS US NOTHING (${ranked.noPay.length}) - the trap this gate exists to catch ===`);
@@ -1235,8 +1394,18 @@ for (const chain of CHAIN_LIST) {
     }
     const open = ranked.rows.filter(r => r.distinct_callers >= 2);
     console.log(`\n=== [${chain}] PERMISSIONLESS-LOOKING (2+ distinct callers) : ${open.length} ===`);
+    /* Print OPERATORS next to addresses. This line is where the wrong read gets made: on gnosis it
+     * said "51 callers", which is true and means nothing, because 48 of them were one operator's
+     * vanity fleet. Never show the address count on its own again. */
     open.sort((a, b) => b.distinct_callers - a.distinct_callers)
-      .slice(0, 15).forEach(r => console.log(` ${String(r.distinct_callers).padStart(3)} callers · ${r.hits} hits · ${r.contract} ${r.selector} · ${r.fully_priced ? '$' + r.gross_usd_per_call + '/call' : 'UNPRICED(' + r.unpriced_tokens + ')'}`));
+      .slice(0, 15).forEach(r => {
+        const oc = r.operator_clustering;
+        const who = oc
+          ? `${String(oc.addresses).padStart(3)} addrs -> ${String(oc.operators).padStart(2)} OPERATORS`
+          : `${String(r.distinct_callers).padStart(3)} callers            `;
+        console.log(` ${who} · ${r.hits} hits · ${r.contract} ${r.selector} · ${r.fully_priced ? '$' + r.gross_usd_per_call + '/call' : 'UNPRICED(' + r.unpriced_tokens + ')'}`);
+        if (oc) console.log(`      !! ${oc.note} (prefix ${oc.fleets[0].prefix}, ~${oc.fleets[0].odds_against.toExponential(1)} against by chance)`);
+      });
     if (ranked.unpriced.length) {
       console.log(`\n=== [${chain}] UNPRICED — real payouts we could not value (NOT zero) ===`);
       ranked.unpriced.slice(0, 10).forEach(r => console.log(` ${r.hits}h ${r.distinct_callers}c · ${r.contract} ${r.selector} · ` +
