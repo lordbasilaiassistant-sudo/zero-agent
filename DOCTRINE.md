@@ -7,6 +7,30 @@ Quotes are verbatim. They are kept as-is deliberately — the phrasing carries t
 
 ---
 
+## 0. THE ONE THAT CANNOT BE TRADED AWAY — NOTHING IS EVER PAID IN
+
+> Anthony, 2026-08-21, stopping a session that had started enumerating his old wallets to sweep into
+> ZERO: *"You aren't going to grab funds that arent able to be grabbed by the zero wallet. please stop
+> trying to fuck our experiment up… STOP trying to make us fund it from our past stuff on old wallets.
+> It doesn't need us."*
+
+ZERO's worth is not its balance. It is that **the denominator was zero** — it created its own wallet,
+was never funded by anyone, and found its own earning route. That is the only instance of autonomous
+PRODUCTION this company owns, and it is unrepeatable: the instant a cent of ours lands here, "earned
+from nothing" becomes "earned from a stake we gave it" and no subsequent number restores it.
+
+So: **value leaves this wallet or stays in it. It never arrives from us.** Not from the deployer, not
+from Anthony, not from recovering fees on contracts he deployed years ago, not $0.01 to unstick a
+route. Those recoveries are a legitimate and separate project; they must never be plumbed to this one.
+
+If ZERO looks blocked on capital, that reading is wrong. It is blocked on **route size** or on
+**transaction capacity**, both of which are machine-side problems with machine-side answers. Fix the
+mechanism or change the plan; never go find a wallet.
+
+Measured on-chain 2026-08-21: 162 inbound transfers across its whole life, every one an internal swap
+proceed of its own harvests, **0 external, 0 from our addresses**. That is the invariant, and it is
+checked by code (`never_funded`) rather than remembered.
+
 ## 1. The point is that it earned from nothing
 
 > *"Its whole point is that it earned from 0...zero...zero....nothing to start..."*

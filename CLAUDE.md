@@ -7,6 +7,13 @@ Fun project → serious project if it earns (Anthony, 2026-07-27).
 ## ⭐ READ `DOCTRINE.md` FIRST — Anthony's strategic model, in his words
 It is the *why* behind everything here and it overrides code/knowledge files when they disagree.
 The short version, because these keep getting forgotten:
+- **⛔⛔ NOTHING IS EVER PAID INTO THIS WALLET.** Not by Anthony, not from the deployer, not from a
+  sweep of his old contracts, not to "unblock" a stalled route, not one cent. The denominator being
+  zero IS the finding; funding it deletes the finding permanently. Value leaves this wallet or stays;
+  it never arrives from us. A session that thinks the agent "needs a stake" has misunderstood the
+  project — the correct move is a better route or more transaction capacity. Verified 2026-08-21:
+  162 inbound transfers in its life, all internal swap proceeds of its own harvests, **0 external**.
+  Enforced by `never_funded` in `company/zero-agent.json` + `scripts/health-sweep.mjs` in broketobuilt.
 - **IT EARNED FROM ZERO. $0.0186, measured on-chain, 2026-07-28** — no capital, no ETH, no human. The
   old "autonomous $0→profit is an empty set" doctrine is FALSIFIED. Never report this as a small or
   disappointing number and never bury it in a defect list; the denominator was zero.
