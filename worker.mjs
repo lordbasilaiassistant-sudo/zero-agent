@@ -21,6 +21,12 @@ import { probeMany } from './oracle.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { readChainState, splitLifetime } from './chainstate.mjs';
+/* route_log's merge path called mutateKV with no import, so EVERY route_log threw
+   "ReferenceError: mutateKV is not defined" and the route ledger recorded nothing from
+   2026-08-12T18:16Z onward — 10 days and ~200 sessions in which the agent kept dutifully calling
+   route_log 2-3x per session and lost every conclusion. Found 2026-08-23 by reading /last: the
+   session reported routes_logged:false while its own transcript showed three route_log calls. */
+import { mutateKV } from './kv.mjs';
 import { checkInvariants, invariantBrief } from './invariants.mjs';
 import { docSearch, loadCorpus, buildLlmsTxt, reassembleDoc } from './docs.mjs';
 import { diagnose } from './health.mjs';
@@ -1299,6 +1305,23 @@ async function tick(env, trigger) {
       } catch (e) {
         result = { error: String(e.message || e).slice(0, 400) };
         state.events.push({ round: state.round, tool: name, ok: false, err: result.error.slice(0, 120) });
+        /* A THROWING TOOL MUST NOT BE INVISIBLE. route_log threw "mutateKV is not defined" on every
+           call for 10 days: the error was caught here, handed to the model as a string, and buried
+           in one session's transcript that nobody reads. The agent went on calling it 2-3x per
+           session and lost every conclusion, while the ledger looked merely "quiet". Errors now
+           accumulate in KV where the status payload publishes them, so a dead tool shows up as a
+           number on the outside instead of as silence. Never let this write break the session. */
+        try {
+          await mutateKV(ctx.env, 'state:toolerrors', (t) => {
+            t.tools ||= {};
+            const e0 = t.tools[name] ||= { count: 0, first_at: new Date().toISOString() };
+            e0.count += 1;
+            e0.last_at = new Date().toISOString();
+            e0.last_error = result.error.slice(0, 160);
+            e0.last_session = state.session;
+            return t;
+          });
+        } catch { /* telemetry must never cost a session */ }
       }
       const preview = jstr(result, 0);
       state.messages.push({ role: 'tool', tool_call_id: call.id, content: preview.length > 6000 ? preview.slice(0, 6000) + '…[truncated]' : preview });
@@ -1458,50 +1481,63 @@ export default {
     // the entry points, check whether it has ever paid a caller) is pure procedure — leaving it to the
     // agent meant 214 candidates sat untouched for eleven sessions while it spent its rounds
     // re-deriving its own status. It grinds here instead, every tick, forever.
-    c.waitUntil(
-      prospectTick(env, async (u) => { const r = await fetch(u, { headers: { 'User-Agent': 'zero-agent/0.4' } }); return { status: r.status, text: await r.text() }; })
-        .then(r => console.log('prospect: ' + jstr(r, 0)))
-        .catch(e => console.log('PROSPECT ERROR: ' + String(e.message).slice(0, 200)))
-    );
+    /* ⚠️ MEMORY: PROSPECT AND DISCOVERY MUST NOT RUN AT THE SAME TIME (2026-08-23).
+       Both read-modify-write the SAME KV value, `discover:state`, and that value has grown to
+       4.0 MB (6,639 candidates, MEASURED with `wrangler kv key get`). A 4 MB JSON parses into an
+       object graph many times its wire size, and each holder keeps its own copy plus the string it
+       stringifies back — so two concurrent waitUntil blocks over that key, on a 128 MB isolate, is
+       a coin flip. It landed tails: every cron from 04:20 to 05:00 died `exceededMemory`, the agent
+       stopped dead for ~40 minutes (session 933 never started), and because an over-memory
+       invocation is KILLED rather than thrown, nothing appeared in the logs as an exception and the
+       ledger simply looked "quiet" again.
+       Discovery only runs every 3rd tick, so chaining it AFTER prospect costs no throughput and
+       lets the first 4 MB graph be collected before the second is built. The concurrency here was
+       never buying anything: they contend on one key anyway (see prospect.mjs's D6 merge note).
+       ⚠️ The underlying hazard is that `discover:state` grows without bound. Serializing buys
+       headroom, it does not remove the ceiling — this key needs pruning or splitting before it
+       doubles again. Tracked in the journal, not just this comment. */
+    c.waitUntil((async () => {
+      try {
+        const r = await prospectTick(env, async (u) => { const rr = await fetch(u, { headers: { 'User-Agent': 'zero-agent/0.4' } }); return { status: rr.status, text: await rr.text() }; });
+        console.log('prospect: ' + jstr(r, 0));
+      } catch (e) { console.log('PROSPECT ERROR: ' + String(e.message).slice(0, 200)); }
+
+      const tickNo = Math.floor((event.scheduledTime || Date.now()) / 120000);
+      if (tickNo % 3 !== 0) return;
+      const DISCOVERY_ROTATION = ['gnosis', 'unichain', 'polygon', 'base', 'optimism', 'arbitrum'];
+      const dChain = DISCOVERY_ROTATION[Math.floor(tickNo / 3) % DISCOVERY_ROTATION.length];
+      /* RECORD THE OUTCOME WHERE SOMEONE WILL SEE IT (2026-08-13).
+         Every failure path in discoveryPass ends at console.log — inside a Worker, which nobody
+         reads. One of its own comments says "never again silent" and then logs into the void. So
+         discovery could have been erroring on gnosis/unichain for weeks and it would look exactly
+         like "those chains are barren" — which is the story we have been telling ourselves while
+         10 relay slots sat idle there. Now every pass writes its result to KV, readable at
+         /discovery, so "found nothing" and "failed to look" can never again be confused. */
+      try {
+        const r = await discoveryPass(env, { chain: dChain, rpcRaw: (m, p) => rpcCall(dChain, m, p) });
+        console.log('discovery(' + dChain + '): ' + jstr(r, 0));
+        try {
+          const log = (await env.KV.get('discover:log', 'json')) || {};
+          log[dChain] = { at: new Date().toISOString(), ok: true, result: r };
+          await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
+        } catch { /* logging must never break discovery */ }
+      } catch (e) {
+        const msg = String(e?.message || e).slice(0, 300);
+        console.log('DISCOVERY ERROR ' + dChain + ': ' + msg);
+        try {
+          const log = (await env.KV.get('discover:log', 'json')) || {};
+          log[dChain] = { at: new Date().toISOString(), ok: false, error: msg };
+          await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
+        } catch { /* ditto */ }
+      }
+    })());
     // Candidate GENERATION used to run only when the model remembered to call discover_new_sources —
     // it never once pointed it at gnosis/unichain, so those chains sat at 5/5 free slots with
     // "nothing is paying" for the project's entire life. Generation is pure procedure: rotate it
-    // through every chain on the cron, every 3rd tick, idle chains first. The prospector above then
+    // through every chain on the cron, every 3rd tick, idle chains first. The prospector then
     // triages whatever this turns up, and the batcher harvests whatever the prospector proves.
-    {
-      const tickNo = Math.floor((event.scheduledTime || Date.now()) / 120000);
-      if (tickNo % 3 === 0) {
-        const DISCOVERY_ROTATION = ['gnosis', 'unichain', 'polygon', 'base', 'optimism', 'arbitrum'];
-        const dChain = DISCOVERY_ROTATION[Math.floor(tickNo / 3) % DISCOVERY_ROTATION.length];
-        /* RECORD THE OUTCOME WHERE SOMEONE WILL SEE IT (2026-08-13).
-           Every failure path in discoveryPass ends at console.log — inside a Worker, which nobody
-           reads. One of its own comments says "never again silent" and then logs into the void. So
-           discovery could have been erroring on gnosis/unichain for weeks and it would look exactly
-           like "those chains are barren" — which is the story we have been telling ourselves while
-           10 relay slots sat idle there. Now every pass writes its result to KV, readable at
-           /discovery, so "found nothing" and "failed to look" can never again be confused. */
-        c.waitUntil(
-          discoveryPass(env, { chain: dChain, rpcRaw: (m, p) => rpcCall(dChain, m, p) })
-            .then(async (r) => {
-              console.log('discovery(' + dChain + '): ' + jstr(r, 0));
-              try {
-                const log = (await env.KV.get('discover:log', 'json')) || {};
-                log[dChain] = { at: new Date().toISOString(), ok: true, result: r };
-                await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
-              } catch { /* logging must never break discovery */ }
-            })
-            .catch(async (e) => {
-              const msg = String(e?.message || e).slice(0, 300);
-              console.log('DISCOVERY ERROR ' + dChain + ': ' + msg);
-              try {
-                const log = (await env.KV.get('discover:log', 'json')) || {};
-                log[dChain] = { at: new Date().toISOString(), ok: false, error: msg };
-                await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
-              } catch { /* ditto */ }
-            })
-        );
-      }
-    }
+    // ⬆️ It now runs CHAINED AFTER prospectTick in the block above, not as its own waitUntil —
+    // see the memory note there. Both touch the same 4 MB key; only one may hold it at a time.
     c.waitUntil(
       experimentTick(env, (ch, m, p) => rpcCall(ch, m, p), 'base')
         .then(r => console.log('experiment: ' + jstr(r, 0)))
@@ -2229,6 +2265,25 @@ export async function computeStatusPayload(env) {
         last_session: meta.lastSession || null,
         session_in_progress: cur ? { session: cur.session, round: cur.round, started: new Date(cur.startedAt).toISOString() } : null,
         routes,
+        /* TOOL HEALTH — published so a broken tool is a number on the outside, not silence.
+           This is the check that would have caught route_log's 10-day ReferenceError on day one. */
+        tool_health: await (async () => {
+          try {
+            const t = JSON.parse((await env.KV.get('state:toolerrors')) || '{}');
+            const tools = t.tools || {};
+            const broken = Object.entries(tools)
+              .map(([name, v]) => ({ tool: name, count: v.count, last_at: v.last_at, last_error: v.last_error, last_session: v.last_session }))
+              .sort((a, b) => b.count - a.count);
+            return {
+              tools_erroring: broken.length,
+              worst: broken[0] || null,
+              all: broken.slice(0, 8),
+              means: broken.length
+                ? 'A tool the agent calls is THROWING. Its conclusions are being dropped on the floor — check this before trusting any "the agent tried X" claim.'
+                : 'No tool has thrown since this counter was last cleared.',
+            };
+          } catch { return null; }
+        })(),
         endpoints: ['/journal', '/ledger', '/genesis', '/frontier', '/method', '/toolcraft', '/recovery', '/prospect', '/harvest', '/last'],
       };
       return payload;

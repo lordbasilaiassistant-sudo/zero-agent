@@ -1,0 +1,324 @@
+{
+ "measured_at": "2026-08-23T07:04:36.198Z",
+ "rung": "2 (simulated from ZERO EOA, not settled)",
+ "chain": "base",
+ "beneficiary": "0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A",
+ "total_usd": 0.122893,
+ "queue": [
+  {
+   "contract": "0xaff4f20e5f340f11944db3ec9ade6a29c13fe67d",
+   "payoutUsd": 0.03302599,
+   "fn": "harvest(address)",
+   "gasUsd": 0.04478263,
+   "netUsdSelfFunded": -0.01175664
+  },
+  {
+   "contract": "0x295ee9dc968b939b4276911217d6c9883d6f588f",
+   "payoutUsd": 0.02785326,
+   "fn": "harvest(address)",
+   "gasUsd": 0.02357088,
+   "netUsdSelfFunded": 0.00428238
+  },
+  {
+   "contract": "0xac3c1d42e3f26fc2c6fe3737b2665373304e1891",
+   "payoutUsd": 0.02325783,
+   "fn": "harvest(address)",
+   "gasUsd": 0.03866438,
+   "netUsdSelfFunded": -0.01540655
+  },
+  {
+   "contract": "0xd38301cb6882489125bc1c52eccee27671797f50",
+   "payoutUsd": 0.01108889,
+   "fn": "harvest(address)",
+   "gasUsd": 0.04364522,
+   "netUsdSelfFunded": -0.03255633
+  },
+  {
+   "contract": "0x6aea497106845bce2cce35e770a12a63288c5b65",
+   "payoutUsd": 0.00888526,
+   "fn": "harvest(address)",
+   "gasUsd": 0.05127001,
+   "netUsdSelfFunded": -0.04238475
+  },
+  {
+   "contract": "0xd2691f374f3c79083fd974cc5d25e504f7dd2032",
+   "payoutUsd": 0.00240601,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01275499,
+   "netUsdSelfFunded": -0.01034898
+  },
+  {
+   "contract": "0x16f11f6866faa3e2363eedd275c08771c71ba184",
+   "payoutUsd": 0.00210818,
+   "fn": "harvest(address)",
+   "gasUsd": 0.0116259,
+   "netUsdSelfFunded": -0.00951772
+  },
+  {
+   "contract": "0x9d829f1915979d95e56ea1fd1c335b144cb7e717",
+   "payoutUsd": 0.00173176,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00905233,
+   "netUsdSelfFunded": -0.00732057
+  },
+  {
+   "contract": "0xbb8815fa8006ea1c343ddb30962811a78ab5529d",
+   "payoutUsd": 0.00170051,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01192135,
+   "netUsdSelfFunded": -0.01022084
+  },
+  {
+   "contract": "0xe9ac227f37dc85f3007cdd45bf7b95965608beeb",
+   "payoutUsd": 0.00131566,
+   "fn": "harvest(address)",
+   "gasUsd": 0.03473443,
+   "netUsdSelfFunded": -0.03341876
+  },
+  {
+   "contract": "0xdc4043c4e1e230aa3bcdd21ab39cafaac4d2620d",
+   "payoutUsd": 0.00098241,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00934464,
+   "netUsdSelfFunded": -0.00836222
+  },
+  {
+   "contract": "0x0ea64ee4aff8df63a0a15b3babf218d3ba4b9861",
+   "payoutUsd": 0.00095049,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01194689,
+   "netUsdSelfFunded": -0.0109964
+  },
+  {
+   "contract": "0x84c1566378ae01222ab22d69b39a47223cdc0c43",
+   "payoutUsd": 0.00076608,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01473875,
+   "netUsdSelfFunded": -0.01397267
+  },
+  {
+   "contract": "0x019c75c8524c89e50a96c379577a571c044c1f06",
+   "payoutUsd": 0.00070188,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00893762,
+   "netUsdSelfFunded": -0.00823574
+  },
+  {
+   "contract": "0xf4ec3ff311e099a916fb4d1e0904d2649f569457",
+   "payoutUsd": 0.00068144,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00918431,
+   "netUsdSelfFunded": -0.00850287
+  },
+  {
+   "contract": "0xf14d4b88f0e780d257d946b3e79660edc0972c00",
+   "payoutUsd": 0.00062593,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01246743,
+   "netUsdSelfFunded": -0.0118415
+  },
+  {
+   "contract": "0x4ca84fb2f1c3aed52848bcb213807c0d021da054",
+   "payoutUsd": 0.00060579,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01368926,
+   "netUsdSelfFunded": -0.01308347
+  },
+  {
+   "contract": "0x8fefa37fee1277fa40169f94bf8432a50e570669",
+   "payoutUsd": 0.00052445,
+   "fn": "harvest(address)",
+   "gasUsd": 0.04035804,
+   "netUsdSelfFunded": -0.03983359
+  },
+  {
+   "contract": "0x9c23e7c0c8b8f1b94959214da77c35f2a97de602",
+   "payoutUsd": 0.00042075,
+   "fn": "harvest(address)",
+   "gasUsd": 0.03555075,
+   "netUsdSelfFunded": -0.03513
+  },
+  {
+   "contract": "0x036c0f2ddd93b2f14ad11d7e94a4bf47860018bc",
+   "payoutUsd": 0.00040458,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01135752,
+   "netUsdSelfFunded": -0.01095294
+  },
+  {
+   "contract": "0xf80e2fe60ccf4d6586a72444f4576e4e1f2978cd",
+   "payoutUsd": 0.00037041,
+   "fn": "harvest(address)",
+   "gasUsd": 0.04133386,
+   "netUsdSelfFunded": -0.04096345
+  },
+  {
+   "contract": "0xd698c2f165ce3cd67a7e07766af0825b20f88917",
+   "payoutUsd": 0.00033951,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00907812,
+   "netUsdSelfFunded": -0.00873861
+  },
+  {
+   "contract": "0xa28d5a576432687e9d6e8bea54ab816a9a0f0293",
+   "payoutUsd": 0.00030522,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01807883,
+   "netUsdSelfFunded": -0.0177736
+  },
+  {
+   "contract": "0x57b29d2a839b6a89cba2f0534a22c55ed3caceb6",
+   "payoutUsd": 0.00028951,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00988459,
+   "netUsdSelfFunded": -0.00959508
+  },
+  {
+   "contract": "0x389ee7e9c351e398f72851a82f58622b0850b23d",
+   "payoutUsd": 0.00028307,
+   "fn": "harvest(address)",
+   "gasUsd": 0.0090604,
+   "netUsdSelfFunded": -0.00877733
+  },
+  {
+   "contract": "0x97f0609d2d1faded374fdacdf5fdf912ff0f656a",
+   "payoutUsd": 0.00026641,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01902612,
+   "netUsdSelfFunded": -0.01875971
+  },
+  {
+   "contract": "0x2e55414d4df1461e1f3255591068df90b9639174",
+   "payoutUsd": 0.00022396,
+   "fn": "harvest(address)",
+   "gasUsd": 0.0107774,
+   "netUsdSelfFunded": -0.01055344
+  },
+  {
+   "contract": "0x868cd345aa76583b0916eda1d0c2c8181142d4ab",
+   "payoutUsd": 0.00012991,
+   "fn": "harvest(address)",
+   "gasUsd": 0.0090604,
+   "netUsdSelfFunded": -0.00893049
+  },
+  {
+   "contract": "0x8178daf364e7639e262c77873b291a4dff81578a",
+   "payoutUsd": 0.00010688,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00915287,
+   "netUsdSelfFunded": -0.00904598
+  },
+  {
+   "contract": "0x77651027c84265318fcf7e45fe1e32ea22d62b4f",
+   "payoutUsd": 0.00009675,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01131684,
+   "netUsdSelfFunded": -0.01122009
+  },
+  {
+   "contract": "0x03ea2f5cc492e705be467eaa3fd3d42187485c87",
+   "payoutUsd": 0.00009455,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00952881,
+   "netUsdSelfFunded": -0.00943426
+  },
+  {
+   "contract": "0x0c2526d9ae8d516349cbf440df45b598b4a8ff2a",
+   "payoutUsd": 0.00008516,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01267543,
+   "netUsdSelfFunded": -0.01259027
+  },
+  {
+   "contract": "0xb59241442e41816be1bcafc735f61f2c78c0d80e",
+   "payoutUsd": 0.00006391,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00924594,
+   "netUsdSelfFunded": -0.00918203
+  },
+  {
+   "contract": "0x4d680177b35df07cc1a7616dfd90b290f7ab74e0",
+   "payoutUsd": 0.00005877,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00890431,
+   "netUsdSelfFunded": -0.00884555
+  },
+  {
+   "contract": "0xc541dd13df6844c9ba1b60d233e9524ea8d06dfb",
+   "payoutUsd": 0.000037,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00918442,
+   "netUsdSelfFunded": -0.00914742
+  },
+  {
+   "contract": "0x6ff5cdc987b04093da9dae3a51fd524981a11736",
+   "payoutUsd": 0.00003165,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00867661,
+   "netUsdSelfFunded": -0.00864495
+  },
+  {
+   "contract": "0x027ac7aec1edb5714b6f8d9694774cd4c59a1905",
+   "payoutUsd": 0.00002224,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00902082,
+   "netUsdSelfFunded": -0.00899858
+  },
+  {
+   "contract": "0x85b62c1ccf2e29017ba92ca7913f35ccf94dcf42",
+   "payoutUsd": 0.0000216,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01009104,
+   "netUsdSelfFunded": -0.01006944
+  },
+  {
+   "contract": "0x3724127b026eb3d1c6f3735683661667d72a56d9",
+   "payoutUsd": 0.00001684,
+   "fn": "harvest(address)",
+   "gasUsd": 0.04533525,
+   "netUsdSelfFunded": -0.04531841
+  },
+  {
+   "contract": "0x2913966e88490b5a65d67298801c0c51f377bb9c",
+   "payoutUsd": 0.00000958,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01686814,
+   "netUsdSelfFunded": -0.01685856
+  },
+  {
+   "contract": "0x67b20f5366078f284bf9679ad5ad5d5c38d5dec0",
+   "payoutUsd": 0.00000311,
+   "fn": "harvest(address)",
+   "gasUsd": 0.0090604,
+   "netUsdSelfFunded": -0.00905729
+  },
+  {
+   "contract": "0x07a2bf16b9e8f9cf66ad8a8cd8250373a4fd4f41",
+   "payoutUsd": 1.2e-7,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00952451,
+   "netUsdSelfFunded": -0.0095244
+  },
+  {
+   "contract": "0xddb30c70a90d582c69aa29f2cfe8723633238e7b",
+   "payoutUsd": 4e-8,
+   "fn": "harvest(address)",
+   "gasUsd": 0.01115729,
+   "netUsdSelfFunded": -0.01115725
+  },
+  {
+   "contract": "0xc5656402389740f217546d83374e0486561c65ef",
+   "payoutUsd": 2e-8,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00907812,
+   "netUsdSelfFunded": -0.0090781
+  },
+  {
+   "contract": "0x8b7d3b8d2cb234ac16f3af4ac042c55f402092ef",
+   "payoutUsd": 2e-8,
+   "fn": "harvest(address)",
+   "gasUsd": 0.00907812,
+   "netUsdSelfFunded": -0.0090781
+  }
+ ]
+}
