@@ -163,8 +163,46 @@ export async function sweepCycle(env, rpc, safe, { escapeNeedsBase = null } = {}
   if (state.pending.length && !holdBase) {
     const p = state.pending[0];
     // Resolve the burn tx hash if the relay had not surfaced it yet when the burn leg ran.
+    // F5 FIX: `relayStatus.status` was fetched and never read, so a task stuck in
+    // ExecReverted/Cancelled looked exactly like a slow one and blocked LEG A forever. Count polls,
+    // read terminal states, and retire dead entries so the rail keeps moving.
+    p.polls = (p.polls || 0) + 1;
     if (!p.tx && p.taskId) {
-      try { const st = await relayStatus(p.taskId, CHAINS[p.chain].chainId); if (st.tx) p.tx = st.tx; } catch { /* next tick */ }
+      try {
+        const st = await relayStatus(p.taskId, CHAINS[p.chain].chainId);
+        if (st.tx) p.tx = st.tx;
+        p.lastStatus = st.status;
+        if (/revert|cancel|fail|expired/i.test(String(st.status || ''))) p.dead = true;
+      } catch { /* next tick */ }
+    }
+    if (!p.tx && (p.dead || p.polls > 60)) {   // 60 ticks ≈ 2h at */2min — no honest burn waits that long
+      state.done.unshift({ ...p, abandoned: true, reason: p.dead ? `relay task ${p.lastStatus}` : 'no tx hash after 60 polls', at: new Date().toISOString() });
+      state.done = state.done.slice(0, 20);
+      state.pending.shift();
+      await mutateKV(env, 'sweep:state', () => ({ ...state }), { fallback: { pending: [], done: [] } });
+      out.pending_abandoned = `burn task never produced a tx (${p.dead ? p.lastStatus : `${p.polls} polls`}) — retired so LEG A is not blocked forever. INVESTIGATE chain ${p.chain}, usd $${p.usd}.`;
+      return out;
+    }
+    // ── F4 FIX: confirm a previously-submitted MINT before anything else. 201 from the relay means
+    // "task accepted", not "receiveMessage executed" — marking minted:true there deleted the only
+    // record holding the burn's tx hash + source domain, i.e. the only retry path for USDC that
+    // had already been burned on the source chain. Nothing leaves `pending` without a status-1 receipt.
+    if (!p.minted && p.mintTaskId && !p.mintConfirmed) {
+      try {
+        const st = await relayStatus(p.mintTaskId, 8453).catch(() => ({}));
+        if (st.tx) {
+          const rc = await rpc('base', 'eth_getTransactionReceipt', [st.tx]).catch(() => null);
+          if (rc && String(rc.status) === '0x1') {
+            state.done.unshift({ ...p, minted: true, mintTx: st.tx, at: new Date().toISOString() });
+            state.done = state.done.slice(0, 20);
+            state.pending.shift();
+            out.minted = st.tx;
+            await mutateKV(env, 'sweep:state', () => ({ ...state }), { fallback: { pending: [], done: [] } });
+            return out;
+          }
+          if (rc) { p.mintTaskId = null; out.mint_reverted = st.tx; }   // fall through: re-deliver next tick
+        }
+      } catch { /* confirmation is best-effort this tick; the record stays */ }
     }
     if (p.tx) {
       try {
@@ -180,10 +218,12 @@ export async function sweepCycle(env, rpc, safe, { escapeNeedsBase = null } = {}
           if (slot && typeof slot.remaining === 'number' && slot.remaining > 0) {
             const sent = await relayExec(env, rpc, safe, SWEEP_RAIL.messageTransmitter, data, 'base', 8453, 0);
             if (sent.ok) {
-              state.done.unshift({ ...p, minted: true, mintTaskId: sent.taskId, at: new Date().toISOString() });
-              state.done = state.done.slice(0, 20);
-              state.pending.shift();
-              out.minted = true;
+              // F4 FIX: 201 = the RELAY ACCEPTED THE TASK. Keep the pending entry (it holds the
+              // burn tx hash and source domain — the only way to re-derive the attestation) until
+              // the confirmation block above sees a status-1 receipt for receiveMessage.
+              p.mintTaskId = sent.taskId;
+              p.mintSentAt = Date.now();
+              out.mint_submitted = sent.taskId;
             } else out.mint_error = sent.error;
           } else out.mint_waiting = 'no base slot';
         } else out.attestation = j?.messages?.[0]?.status || 'not yet indexed';
@@ -281,7 +321,10 @@ export async function sweepCycle(env, rpc, safe, { escapeNeedsBase = null } = {}
       const sent = await relayExec(env, rpc, safe, MULTISEND, msData, chain, CHAINS[chain].chainId, 1); // DELEGATECALL
       if (sent.ok) {
         const p = { chain, taskId: sent.taskId, tx: null, usd: +usd.toFixed(6), burn_units: burnAmount.toString(), prior_residue_swept: priorUsdc.toString(), at: new Date().toISOString() };
-        try { for (let i = 0; i < 6 && !p.tx; i++) { await new Promise(r => setTimeout(r, 5000)); const st = await relayStatus(sent.taskId, CHAINS[chain].chainId); if (st.tx) p.tx = st.tx; } } catch { /* resolved next tick */ }
+        // F15 FIX: this used to be six 5-second sleeps — up to 30s blocking the cron ahead of the
+        // escape's successors and all six batch calls in the same waitUntil. Two attempts max; the
+        // tick loop re-resolves p.tx on the next pass anyway.
+        try { for (let i = 0; i < 2 && !p.tx; i++) { await new Promise(r => setTimeout(r, 5000)); const st = await relayStatus(sent.taskId, CHAINS[chain].chainId); if (st.tx) p.tx = st.tx; } } catch { /* resolved next tick */ }
         state.pending.push(p);
         // Up to 30s of relay-status polling happened above; re-read before committing.
         await mutateKV(env, 'sweep:state', () => state, { fallback: { pending: [], done: [] } });

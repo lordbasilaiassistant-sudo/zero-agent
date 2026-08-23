@@ -35,21 +35,39 @@
 // that losing the race degrades to "applied late" instead of "silently discarded".
 export const KV_MUTATE_RETRIES = 3;
 
-export async function mutateKV(env, key, mutate, { retries = KV_MUTATE_RETRIES, fallback = {} } = {}) {
+// ⚠️ CORRECTION, MEASURED 2026-08-13. The paragraph above claims "an accumulating mutation applied
+// twice to fresh state is still correct". THAT IS FALSE, and it inflated our own success metrics.
+//
+// The retry re-runs `mutate` against re-read state. But our PUT may well have LANDED — the version
+// check fails whenever ANOTHER writer bumps `_v` after us, not only when we lost. So attempt 2 reads
+// state that ALREADY CONTAINS our `wins + 1`, and adds 1 again. Same for weiEarned.
+// Independently measured against four block explorers: the chain shows 77 incoming token transfers
+// to ZERO's addresses; this counter claimed 207. A batch of 6 harvests emits 6 transfers but only 1
+// win, so on-chain transfers must EXCEED wins — finding them at a third of it proves over-counting,
+// and it is also why measured_usd ($0.0744) sat above the chain floor ($0.0482).
+//
+// This is the failure mode we are least able to see: a scoreboard we wrote, grading us, with no
+// outside reading. The fix is idempotency, not more retries — pass `opId` for any non-idempotent
+// mutation (counters, accumulators) and the same logical event can never be applied twice.
+export async function mutateKV(env, key, mutate, { retries = KV_MUTATE_RETRIES, fallback = {}, opId = null } = {}) {
   let last = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const fresh = (await env.KV.get(key, 'json')) || fallback;
+    // Already applied this logical event? Then a previous attempt's write DID land. Re-running the
+    // mutation now would double count, so treat it as success and leave state untouched.
+    if (opId && Array.isArray(fresh._ops) && fresh._ops.includes(opId)) {
+      return { ok: true, value: fresh, attempts: attempt + 1, deduped: true };
+    }
     const beforeV = Number(fresh._v || 0);
     const next = (await mutate(fresh)) ?? fresh;
     next._v = beforeV + 1;
+    if (opId) next._ops = [opId, ...(Array.isArray(fresh._ops) ? fresh._ops : [])].slice(0, 200);
     await env.KV.put(key, JSON.stringify(next));
-    // Confirm nobody landed between our read and our write. This is detection, not prevention —
-    // but a detected clobber that gets re-applied beats an undetected one that vanishes.
     const check = await env.KV.get(key, 'json');
     if (Number(check?._v || 0) === next._v) return { ok: true, value: next, attempts: attempt + 1 };
     last = { theirs: Number(check?._v || 0), ours: next._v };
   }
-  return { ok: false, contended: last, note: `lost the write race on ${key} after ${retries + 1} attempts — the mutation was re-applied to fresh state each time, so no read was stale, but a concurrent writer kept winning` };
+  return { ok: false, contended: last, note: `lost the write race on ${key} after ${retries + 1} attempts` };
 }
 
 // Accumulating helpers. These are written so that applying them to FRESH state is always correct,

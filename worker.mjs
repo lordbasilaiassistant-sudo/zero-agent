@@ -17,6 +17,7 @@ import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
 import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
+import { probeMany } from './oracle.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
 import { readChainState, splitLifetime } from './chainstate.mjs';
@@ -28,7 +29,10 @@ import { bruteforceContract } from './bruteforce.mjs';
 import { experimentTick, experimentReport } from './experiments.mjs';
 import { gasSources } from './gasrouter.mjs';
 import { prospectTick, prospectIntel } from './prospect.mjs';
-import { scanGasless, sweepGasless } from './gasless.mjs';
+// P2-4 fix: sweepGasless was imported here for the project's whole life and NEVER invoked — the
+// entire ERC-2771 branch of the moat was dead code. Removed from the import; gasless_scan +
+// gasless_control cover the interactive use.
+import { scanGasless } from './gasless.mjs';
 import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
 
 // Multiple upstreams: Base's own public RPC rate-limits Cloudflare's shared egress
@@ -160,11 +164,19 @@ export function isDead(r, id) {
      MONEY ARRIVING OUTRANKS ANY FLAG, and wei is how you know money arrived. */
   if (r.earned_usd > 0) return false;
   try { if (BigInt(r.earned_wei || 0) > 0n || BigInt(r.unpriced_wei || 0) > 0n) return false; } catch { /* malformed counter is not evidence of death */ }
-  if (r.dead === true || r.blocked >= 2) return true;
-  if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
+  // P0-2 FIX (mirrors tools.mjs): relay-slot exhaustion, rate limits and quota walls are TRANSIENT
+  // CAPACITY, not a property of the route. Three aliases of the earning rail were permanently killed
+  // by two "Relay budget exhausted" notes each. Capacity noise no longer trips counter-death.
+  const notes = (r.notes || []).join(' ');
+  const capacityNoise = !HUMAN_GATE_RE.test(notes) && CAPACITY_NOISE_RE.test(notes);
+  if (r.dead === true && !capacityNoise) return true;
+  if (r.blocked >= 2 && !capacityNoise) return true;
+  if (HUMAN_GATE_RE.test(notes)) return true;
   if (id && closedCategory(id)) return true;
   return false;
 }
+// Phrases that mean "could not run right now", never "this route is worthless".
+export const CAPACITY_NOISE_RE = /relay|slot|budget exhaust|rate limit|429|capacity|quota|refill|temporar/i;
 
 // Categories the operator has permanently closed. Guarded at the ACTION layer, not just at
 // logging time — session 4 burned all 12 rounds re-hunting faucets by renaming the route id.
@@ -194,7 +206,7 @@ function notARoute(id) {
   if (!NON_ROUTE_RE.test(id)) return null;
   // "...-earnings" / "...-fees" / "...-rewards" are real even if the id also contains a noise word.
   // "bount" not "bounty": the agent writes "bounties", which /bounty/ does not match.
-  if (/(earning|fee|reward|bount|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  if (/(earning|fee|reward|bount|payout|sale|tip|grant|revenue|claim|skim|airdrop|refund|yield|interest|commission|bonus|x402|invoice)/i.test(id)) return null;
   // gig/job/task rescue only as whole tokens — "taskmarket-api-check" must not ride on "task".
   if (/(^|[-_])(gig|job|task)s?([-_]|$)/i.test(id)) return null;
   return `"${id}" is not an earning route — it is housekeeping. A route is a way MONEY CAN ARRIVE, and a budget/status/list/scan check can never pay you. Logging these polluted your ledger with ten dead pseudo-routes that then blocked your real ones. NOT LOGGED, and this costs you nothing. Just read the value you got and act on it. Only call route_log when you actually tried to GET PAID.`;
@@ -332,16 +344,26 @@ function makeTools(ctx) {
       return { status: r.status, data: clip(r.text, 6000) };
     },
 
-    async eth_call({ chain, to, signature, args = [] }) {
+    async eth_call({ chain, to, signature, args = [], from, value_eth }) {
       ctx.budget();
       const sig = signature.trim().startsWith('function') ? signature.trim() : `function ${signature.trim()}`;
       const iface = new ethers.Interface([sig]);
       const fn = iface.fragments[0];
       const data = iface.encodeFunctionData(fn.name, args);
-      const ret = await ctx.rpc(chain, 'eth_call', [{ to, data }, 'latest']);
+      // P1-4 FIX (mirrors tools.mjs): simulate AS YOUR WALLET by default. address(0) is a different
+      // caller with a different answer — measured live: working routes got FALSE reverts
+      // ("transfer from the zero address") and msg.sender-crediting harvests got FALSE successes.
+      const sender = from || ctx.wallet().address;
+      const call = { to, data, from: sender };
+      if (value_eth) call.value = '0x' + ethers.parseEther(String(value_eth)).toString(16);
+      let ret;
+      try { ret = await ctx.rpc(chain, 'eth_call', [call, 'latest']); }
+      catch (e) {
+        return { reverted: true, from: sender, reason: String(e.message || e).replace(/RPC eth_call failed on all upstreams — /, '').slice(0, 300) };
+      }
       let decoded;
       try { decoded = JSON.parse(jstr([...iface.decodeFunctionResult(fn.name, ret)])); } catch { decoded = ret; }
-      return { result: decoded };
+      return { result: decoded, from: sender };
     },
 
     async send_tx({ chain, to, value_eth = '0', data = '0x', gas_limit }) {
@@ -356,8 +378,11 @@ function makeTools(ctx) {
       ]);
       let gas;
       try {
+        // P2-20 FIX: the raw estimate went in as the limit with no headroom — any state change
+        // between estimate and inclusion reverts out-of-gas and burns the FULL limit from a wallet
+        // whose lifetime income is $0.08. Standard 20% headroom.
         gas = gas_limit ? BigInt(gas_limit)
-          : BigInt(await ctx.rpc(chain, 'eth_estimateGas', [{ from: w.address, to, value: '0x' + value.toString(16), data }]));
+          : BigInt(await ctx.rpc(chain, 'eth_estimateGas', [{ from: w.address, to, value: '0x' + value.toString(16), data }])) * 12n / 10n;
       } catch (e) {
         throw new Error(`gas estimate failed (tx would revert, or zero balance): ${String(e.message).slice(0, 250)}`);
       }
@@ -437,9 +462,12 @@ function makeTools(ctx) {
       }
       return {
         hash,
-        status: rcpt ? (rcpt.status === '0x1' ? 'success' : 'REVERTED') : 'sent, not yet confirmed — check the explorer link',
-        // Human-readable link: prefer the chain's `viewer` (Basescan on Base), fall back to scout.
+        mined: rcpt ? (rcpt.status === '0x1' ? 'no-revert' : 'REVERTED') : 'sent, not yet confirmed — check the explorer link',
+        // P1-5 FIX (mirrors tools.mjs): "no-revert" is NOT payment. gas_paid is what it COST; a
+        // positive net (after + gasPaid vs before) or an inbound Transfer log is the only evidence.
+        gas_paid_wei: rcpt ? ((BigInt(rcpt.gasUsed || '0x0')) * (BigInt(rcpt.effectiveGasPrice || '0x0'))).toString() : null,
         explorer: `${CHAINS[chain].viewer || CHAINS[chain].scout}/tx/${hash}`,
+        note: 'status "no-revert" means the EVM did not revert — NOT that anything arrived. Log earned_usd only with this hash plus a measured balance delta.',
       };
     },
 
@@ -458,23 +486,34 @@ function makeTools(ctx) {
       const key = 'knowledge:' + String(name).toLowerCase().replace(/\.md$/, '').replace(/[^a-z0-9_-]/g, '-').slice(0, 60);
       const v = await ctx.kvGet(key);
       if (v === null) throw new Error(`no knowledge file "${name}" — use knowledge_list`);
-      return { name: key.replace('knowledge:', '') + '.md', content: clip(v, 20000) };
+      // P1-3 FIX (mirrors tools.mjs): clip() served the OLDEST 20 KB while knowledge_write keeps a
+      // rolling TAIL — the model could not read its own recent past (80% of the journal was cut).
+      const content = v.length > 20000
+        ? `…[${v.length - 20000} older chars omitted — below is the most RECENT 20,000]\n` + v.slice(-20000)
+        : v;
+      return { name: key.replace('knowledge:', '') + '.md', bytes: v.length, content };
     },
 
     async knowledge_write({ name, content, mode = 'append' }) {
       if (typeof content !== 'string' || !content.trim()) throw new Error('content required');
+      // P2-15 FIX (mirrors tools.mjs): unknown/case-shifted modes silently became APPEND and the
+      // response echoed the input as if honoured. Reject loudly.
+      const m = String(mode).toLowerCase();
+      if (!['append', 'overwrite'].includes(m)) throw new Error(`mode must be "append" or "overwrite" (got "${mode}")`);
       const key = 'knowledge:' + String(name).toLowerCase().replace(/\.md$/, '').replace(/[^a-z0-9_-]/g, '-').slice(0, 60);
       let next = content.slice(0, 100000);
-      if (mode !== 'overwrite') {
+      if (m !== 'overwrite') {
         const prev = await ctx.kvGet(key);
         next = ((prev ? prev + '\n\n' : '') + next).slice(-100000);
       }
       await ctx.kvPut(key, next);
-      return { saved: key.replace('knowledge:', '') + '.md', mode, bytes: next.length };
+      return { saved: key.replace('knowledge:', '') + '.md', mode: m, bytes: next.length };
     },
 
     async route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
-      if (!['success', 'fail', 'blocked', 'pending'].includes(outcome)) throw new Error('outcome must be one of: success | fail | blocked | pending');
+      // P0-2 FIX (mirrors tools.mjs): 'deferred' = could not run because a scarce resource was
+      // empty; retry later. It must not increment `blocked` or set `dead`.
+      if (!['success', 'fail', 'blocked', 'deferred', 'pending'].includes(outcome)) throw new Error('outcome must be one of: success | fail | blocked | deferred | pending');
       const db = JSON.parse((await ctx.kvGet('state:routes')) || '{"routes":{}}');
       const id = String(route_id).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 50);
       const closedCat = closedCategory(id) || closedCategory(note);
@@ -484,6 +523,11 @@ function makeTools(ctx) {
       if (noise && !(outcome === 'success' && parseFloat(earned_usd) > 0)) {
         return { refused: true, route: id, logged: false, not_a_route: true, reason: noise };
       }
+      // P1-5 FIX (mirrors tools.mjs): an unbacked income claim must never enter earned_usd (it
+      // feeds the leaderboard and "lifetime earned"), but the ATTEMPT is still recorded — refusing
+      // whole logs is what left the agent with no memory of routes it had tried.
+      const claimedUsd = parseFloat(earned_usd) || 0;
+      const backed = !(claimedUsd > 0) || /0x[0-9a-fA-F]{64}/.test(String(note));
       // trivial renames ("...-attempt" vs "...-attempts") must not resurrect a dead route
       const deadTwin = Object.entries(db.routes).find(([k, v]) => normId(k) === normId(id) && isDead(v, k));
       if ((isDead(db.routes[id], id) || deadTwin) && outcome !== 'success') {
@@ -502,25 +546,41 @@ function makeTools(ctx) {
       const res = await mutateKV(ctx.env, 'state:routes', (fresh) => {
         fresh.routes ||= {};
         r = fresh.routes[id] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
-        r.attempts += 1;
-        if (outcome === 'success') r.successes += 1;
-        if (outcome === 'blocked') r.blocked += 1;
-        r.earned_usd = +(r.earned_usd + (parseFloat(earned_usd) || 0)).toFixed(6);
-        r.last = { at: new Date().toISOString(), outcome };
         if (note) { r.notes = [...(r.notes || []), clip(String(note), 200)].slice(-5); }
-        if (/HUMAN-GATED|captcha|social login|KYC/i.test(note) || r.blocked >= 2) r.dead = true;
+        // P0-2 FIX (mirrors tools.mjs): 'deferred' records the attempt and the capacity context but
+        // never increments `blocked` — capacity exhaustion is not a route property.
+        if (outcome !== 'deferred') {
+          r.attempts += 1;
+          if (outcome === 'success') r.successes += 1;
+          if (outcome === 'blocked') r.blocked += 1;
+          if (backed) r.earned_usd = +(r.earned_usd + claimedUsd).toFixed(6);
+          else r.unbacked_usd = +((r.unbacked_usd || 0) + claimedUsd).toFixed(6);   // parked, never counted
+        }
+        r.last = { at: new Date().toISOString(), outcome };
+        const joinedNotes = (r.notes || []).join(' ');
+        if (/HUMAN-GATED|captcha|social login|KYC/i.test(note)) r.dead = true;
+        else if (r.blocked >= 2 && !CAPACITY_NOISE_RE.test(joinedNotes)) r.dead = true;
         return fresh;
       }, { fallback: { routes: {} } });
       db.routes = res.value?.routes || db.routes;
       const leaderboard = Object.entries(db.routes).filter(([k, v]) => !isDead(v, k))
         .map(([k, v]) => ({ route: k, attempts: v.attempts, successes: v.successes, earned_usd: v.earned_usd }))
         .sort((a, b) => b.earned_usd - a.earned_usd).slice(0, 10);
-      return { logged: id, outcome, dead: !!r.dead, live_routes_leaderboard: leaderboard };
+      return {
+        logged: id, outcome, dead: !!r.dead,
+        unbacked_warning: backed ? undefined : `claimed $${claimedUsd} was NOT banked — earned_usd needs the tx hash + measured delta in the note ("no-revert" is not payment). The attempt itself IS recorded.`,
+        live_routes_leaderboard: leaderboard,
+      };
     },
 
     async secret_store({ name, value }) {
       if (!name || typeof value !== 'string' || !value.trim()) throw new Error('name and value required');
       if (/^0x[0-9a-fA-F]{64}$/.test(value.trim())) throw new Error('that looks like a private key — never store or handle raw private keys');
+      // P3 fix (mirrors tools.mjs): a BIP-39 mnemonic is exactly as forbidden as a raw key.
+      const words = String(value).trim().split(/\s+/);
+      if ((words.length === 12 || words.length === 24) && words.every(w => /^[a-z]{3,}$/i.test(w))) {
+        throw new Error('that looks like a BIP-39 seed phrase (12/24 lowercase words) — never store or handle mnemonics');
+      }
       const key = 'creds:' + String(name).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 60);
       await ctx.kvPut(key, jstr({ value: value.trim(), savedAt: new Date().toISOString() }));
       return { stored: key.replace('creds:', ''), note: 'saved in cloud KV (survives sessions)' };
@@ -553,16 +613,61 @@ function makeTools(ctx) {
       // that truncation hid 6 of the 10 highest real payers and 56.2% of the live pool value.
       // It bought nothing either: rankByCallReward batches 100 per aggregate3, so the whole
       // 241-strategy universe prices out in 3 subrequests — one more than the truncated scan cost.
-      const ranked = await rankByCallReward((c, m, p) => ctx.rpc(c, m, p), strategies, 'base');
+      // MEASURED 2026-08-13, and this used to rank by callReward() alone. That getter REVERTS on the
+      // eight highest-paying Base strategies we have — every one of them Aerodrome/CoW:
+      //   aerodrome-msusd-usdc 6021927790480 wei pending · usdc-aero 3968119143793 · weth-vvv
+      //   3063762203776 · aero-cow-eurc-cbbtc 2101264873157 · usdc-mai 2000841644203 ·
+      //   mellow-aero-weth-usdc 1503610589316 — all with callReward() reverting.
+      // rankByCallReward drops any call where `!r.success`, so a revert did not sort last, it VANISHED.
+      // This is the tool ZERO itself calls to decide where to spend a slot, so the agent's whole view
+      // of its opportunity set had the best targets deleted from it. Best available at measurement was
+      // $0.01135 on one call, ~9x our lifetime average of $0.0013 — that gap WAS this bug.
+      // So: rank by the delta oracle, which measures the balance change a harvest actually produces
+      // and does not care whether a reporting getter exists. callReward stays as an annotation only.
+      const BASE_WETH = '0x4200000000000000000000000000000000000006';
       const top = [];
-      for (const c of ranked.slice(0, Math.min(Number(limit) || 10, 15))) {
-        const sim = await simulate((ch, m, p) => ctx.rpc(ch, m, p), c.strategy, safe, recipient);
-        top.push({ id: c.id, strategy: c.strategy, callReward_wei: c.callReward, callable: sim.ok });
-        if (ctx.sub > SLICE_SUBREQUESTS - 4) break;
+      let priced = [];
+      try {
+        priced = await probeMany((c, m, p) => ctx.rpc(c, m, p), 'base', strategies.map(s => s.strategy), BASE_WETH);
+      } catch { /* fall through to the getter below rather than return nothing */ }
+      const byAddr = new Map(strategies.map(s => [s.strategy.toLowerCase(), s]));
+      if (priced.length) {
+        // No per-candidate simulate() here, deliberately. simulate() is only a REVERT check — it reads
+        // no balance and a harvest that succeeds paying zero passes it. A positive delta from probeMany
+        // is strictly stronger: the call already executed inside the aggregate3 AND moved our balance.
+        // Simulating each one again cost ~1 subrequest apiece on top of what probeMany already spent,
+        // so the loop hit the slice ceiling and returned ONE row — the agent saw a single option and
+        // could not compare. Measured 2026-08-13: 8 requested, 1 returned. Trust the delta, list them all.
+        for (const p of priced.slice(0, Math.min(Number(limit) || 10, 15))) {
+          const cand = byAddr.get(p.contract.toLowerCase());
+          top.push({ id: cand?.id, strategy: p.contract, pays_wei: p.wei, callable: true, evidence: 'positive balance delta in aggregate3' });
+        }
+      } else {
+        // Oracle unreachable. Degrade to the getter, but LABEL it — a caller must never mistake a
+        // fallback ordering for a measured one.
+        const ranked = await rankByCallReward((c, m, p) => ctx.rpc(c, m, p), strategies, 'base');
+        for (const c of ranked.slice(0, Math.min(Number(limit) || 10, 15))) {
+          const sim = await simulate((ch, m, p) => ctx.rpc(ch, m, p), c.strategy, safe, recipient);
+          top.push({ id: c.id, strategy: c.strategy, callReward_wei: c.callReward, callable: sim.ok, ranking: 'FALLBACK: callReward, blind to revert-on-getter payers' });
+          if (ctx.sub > SLICE_SUBREQUESTS - 4) break;
+        }
       }
       return {
-        note: 'callReward is a RANKING signal only, and it is denominated in the REWARD token (AERO, Cake) with no conversion to native — it overstates the real caller fee by price(reward)/price(ETH): measured 4,478x on AERO, 1,284x on Cake. Never quote it as money. A callReward_wei of "0" does NOT mean no payout — three Morpho strategies read 0 and pay. Only "callable: true" entries are worth a relay slot.',
+        note: 'RANKED BY MEASURED PAYOUT (2026-08-13). pays_wei is a real balance delta: the wrapped-native this harvest would actually move to us, simulated in one eth_call. Spend slots top-down on callable:true. If you instead see callReward_wei and ranking:"FALLBACK", the oracle was unreachable and the order is UNTRUSTWORTHY — callReward reverts on our eight best Aerodrome/CoW strategies and they disappear from that ordering entirely, it is denominated in the reward token (measured 4,478x overstatement on AERO, 1,284x on Cake), and a 0 there does not mean no payout (three Morpho strategies read 0 and pay). Never quote callReward as money.',
         budget: await relayBudget(safe), candidates: top,
+        // How much of the universe was actually priced. Without this, a short list reads as "few
+        // opportunities" when it may mean "most batches never ran".
+        coverage: {
+          universe: strategies.length,
+          priced: priced.length,
+          batches_ok: priced.batchesOk || 0,
+          batches_failed: priced.batchesFailed || 0,
+          strategies_unpriced: priced.unpriced || 0,
+          last_error: priced.lastError || null,
+          verdict: (priced.unpriced || 0) > 0
+            ? `INCOMPLETE — ${priced.unpriced} strategies never priced. Ranking is over a fraction of the pool; the real best may be missing.`
+            : 'complete — every strategy priced',
+        },
       };
     },
 
@@ -626,7 +731,10 @@ function makeTools(ctx) {
       // watched pay a keeper four times.
       // Simulating callable beats a source regex — three Beefy strategies match `onlyOwner` and are
       // callable by us anyway. Never exclude a contract that an eth_call says we can call.
-      const scored = c.filter(x => (x.callable_now?.length || !x.access_controlled) && !x.tried)
+      // D7 FIX: honour the prospector's eliminations. A candidate the payout history PROVED pays
+      // zero still scored 1000+ (callable_now is the top signal) and was served as "work down this
+      // list" — the exact path from a measured zero to a wasted relay slot.
+      const scored = c.filter(x => !x.retired && (x.callable_now?.length || !x.access_controlled) && !x.tried)
         .map(x => ({ ...x, score: (x.callable_now?.length ? 1000 : 0) + (x.payouts_seen || 0) * 10 + (x.pays_a_caller ? 5 : 0) + (x.verified ? 1 : 0) }))
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score);
@@ -678,7 +786,17 @@ function makeTools(ctx) {
     // me, carried by somebody else, make this contract do something".
     async gasless_scan({ chain = 'base', contract }) {
       ctx.budget(); ctx.sub += 2;
-      return await scanGasless(chain, contract);
+      // P1-7 FIX: pass the worker's multi-upstream rpc — the module's local 3-chain single-URL map
+      // could not scan gnosis/unichain/polygon, exactly where free relay quota lives.
+      return await scanGasless(chain, contract, (c, m, p) => ctx.rpc(c, m, p));
+    },
+
+    // THE CONTROL for the rail detector: the Safe singleton we transact through and the live v0.7
+    // EntryPoint must both expose their rails, or every "no rail" verdict is suspect.
+    async gasless_control({ chain = 'base' }) {
+      ctx.budget(); ctx.sub += 4;
+      const { controlTest } = await import('./gasless.mjs');
+      return await controlTest(chain, (c, m, p) => ctx.rpc(c, m, p));
     },
 
     // The whole species of gas sponsors, found by behaviour rather than by name. Catalogue lookup gave
@@ -758,17 +876,17 @@ const TOOL_DEFS = [
   { name: 'web_search', description: 'Search the web (DuckDuckGo). Up to 8 results with title, url, snippet.', parameters: S({ query: str('search query') }, ['query']) },
   { name: 'http_fetch', description: 'Fetch a URL (GET/POST/etc). HTML becomes plain text unless raw=true. JS-app pages return little — prefer APIs and docs pages.', parameters: S({ url: str('http(s) URL'), method: str('HTTP method, default GET'), headers: { type: 'object', description: 'request headers' }, body: str('request body'), max_chars: { type: 'number', description: 'max chars, default 5000, cap 12000' }, raw: { type: 'boolean', description: 'true = keep HTML' } }, ['url']) },
   { name: 'explorer', description: "Blockscout explorer API (free, no key). chain: 'base' | 'base-sepolia'. api_path examples: 'addresses/{addr}', 'smart-contracts/{addr}' (verified source!), 'stats', 'transactions/{hash}'.", parameters: S({ chain: str("'base' | 'base-sepolia'"), api_path: str('path after /api/v2/') }, ['chain', 'api_path']) },
-  { name: 'eth_call', description: "Read any contract. signature is a human ABI fragment, e.g. 'balanceOf(address) view returns (uint256)'.", parameters: S({ chain: str("'base' | 'base-sepolia'"), to: str('contract address'), signature: str('function signature'), args: { type: 'array', description: 'arguments', items: {} } }, ['chain', 'to', 'signature']) },
-  { name: 'send_tx', description: 'Sign and send a transaction from YOUR wallet. Fails clearly if you lack gas. Real gas on base — be sure.', parameters: S({ chain: str("'base' | 'base-sepolia'"), to: str('recipient/contract'), value_eth: str("ETH amount, default '0'"), data: str('hex calldata, default 0x'), gas_limit: str('optional gas limit') }, ['chain', 'to']) },
+  { name: 'eth_call', description: "Read any contract, simulated AS YOUR WALLET (a call from a different sender proves nothing). Reverts return {reverted:true, reason}. signature is a human ABI fragment e.g. 'balanceOf(address) view returns (uint256)'.", parameters: S({ chain: str('chain name'), to: str('contract address'), signature: str('function signature'), args: { type: 'array', description: 'arguments', items: {} }, from: str('optional msg.sender override'), value_eth: str('optional ETH value for payable calls') }, ['chain', 'to', 'signature']) },
+  { name: 'send_tx', description: 'Sign and send a transaction from YOUR wallet. Fails clearly if you lack gas or if simulation says it will not profit. Returns mined + gas_paid_wei: "no-revert" is NOT payment — log earnings only with a measured delta.', parameters: S({ chain: str('chain name'), to: str('recipient/contract'), value_eth: str("ETH amount, default '0'"), data: str('hex calldata, default 0x'), gas_limit: str('optional gas limit') }, ['chain', 'to']) },
   { name: 'sign_message', description: 'Sign a message with your wallet key (free, no gas). Your passport for signature-auth flows.', parameters: S({ message: str('exact message text') }, ['message']) },
   { name: 'knowledge_list', description: 'List your permanent knowledge files.', parameters: S() },
   { name: 'knowledge_read', description: 'Read a knowledge file (genesis, recovery, journal…).', parameters: S({ name: str('name without .md') }, ['name']) },
   { name: 'knowledge_write', description: "Write permanent memory — the ONLY thing that survives sessions. mode 'append' (default) or 'overwrite'. Journal every session; update 'recovery' the moment a route is proven.", parameters: S({ name: str('name without .md'), content: str('markdown'), mode: str("'append' | 'overwrite'") }, ['name', 'content']) },
-  { name: 'route_log', description: 'Record an earning-route attempt. ALWAYS log after trying. outcome: success | fail | blocked | pending. Dead routes are refused.', parameters: S({ route_id: str('short stable id'), outcome: str('success | fail | blocked | pending'), earned_usd: { type: 'number', description: 'USD earned (testnet = 0)' }, note: str('one-line lesson') }, ['route_id', 'outcome']) },
+  { name: 'route_log', description: 'Record an earning-route attempt. ALWAYS log after trying. outcome: success | fail | blocked (PERMANENT gate — never retry) | deferred (no slot / rate limited / out of gas — retry later, costs the route nothing) | pending. earned_usd > 0 requires the tx hash + measured delta in the note. Dead routes are refused.', parameters: S({ route_id: str('short stable id'), outcome: str('success | fail | blocked | deferred | pending'), earned_usd: { type: 'number', description: 'USD earned (testnet = 0)' }, note: str('one-line lesson; REQUIRED with tx hash when earned_usd > 0') }, ['route_id', 'outcome']) },
   { name: 'secret_store', description: 'Save an earned credential (API key, token) permanently. NEVER put credentials in knowledge_write. Refuses private keys.', parameters: S({ name: str('credential name'), value: str('value') }, ['name', 'value']) },
   { name: 'secret_get', description: 'Retrieve a stored credential by name.', parameters: S({ name: str('credential name') }, ['name']) },
   { name: 'secret_list', description: 'List stored credential names (never values).', parameters: S() },
-  { name: 'harvest_scan', description: 'YOUR BREAD AND BUTTER. Rank Beefy strategy contracts on Base by callReward() and simulate each one — returns which are actually callable right now. Simulation is free and unlimited. Costs no relay slots.', parameters: S({ limit: { type: 'number', description: 'how many candidates to simulate, default 10' } }) },
+  { name: 'harvest_scan', description: 'YOUR BREAD AND BUTTER. Ranks Beefy strategies on Base by MEASURED PAYOUT — pays_wei is the actual wrapped-native balance change a harvest would move to us, simulated in one eth_call — then checks each is callable. Free, unlimited, costs no relay slot. Spend slots top-down on callable:true. If a row shows callReward_wei and ranking:"FALLBACK", the oracle was down and the order is untrustworthy: callReward() REVERTS on our eight best Aerodrome/CoW strategies, so they vanish from that ordering entirely.', parameters: S({ limit: { type: 'number', description: 'how many candidates to simulate, default 10' } }) },
   { name: 'harvest_batch', description: 'HARVEST THE WHOLE POOL IN ONE SLOT. A relay slot carries a transaction, and a transaction can DELEGATECALL MultiSend with a couple dozen harvests inside it — measured: 26 batched harvests simulate clean. So 5 slots/day was never 5 harvests/day. Every candidate is individually simulated first because MultiSend is all-or-nothing. Prefer this over harvest_run.', parameters: S({ chain: str('chain name'), max: { type: 'number', description: 'max harvests per batch, default 12' } }) },
   { name: 'harvest_run', description: 'Fire a harvest BATCH now (walks every chain, batches all paying strategies into one relay slot). NOTE: this exact pass already runs AUTOMATICALLY every 2 minutes — calling it almost never adds anything. Your rounds are worth more on discovery.', parameters: S() },
   { name: 'harvest_stats', description: 'Your lifetime harvest record. MEASURED_ON_CHAIN is the truth (real WETH at both your addresses, plus how much is spendable vs stranded); the tracker figure is a lower bound. Also returns the live relay budget and everything actually measured about when it refills.', parameters: S() },
@@ -1175,7 +1293,7 @@ async function tick(env, trigger) {
         const impl = tools[name];
         if (!impl) throw new Error(`unknown tool ${name}`);
         result = await impl(args);
-        if (name === 'knowledge_write') state.flags.wroteJournal = true;
+        if (name === 'knowledge_write' && /^journal$/i.test(String(args?.name || '').replace(/\.md$/i, ''))) state.flags.wroteJournal = true;
         if (name === 'route_log' && !result?.refused) state.flags.loggedRoute = true;
         state.events.push({ round: state.round, tool: name, ok: true });
       } catch (e) {
@@ -1199,14 +1317,18 @@ async function tick(env, trigger) {
 
 export default {
   async scheduled(event, env, c) {
-    /* WARM THE PUBLIC PAGE (2026-08-13). The status cache made a warm page 0.079s, but only a
-       VISITOR refilled it — so the first person after a quiet spell still paid the full 13s
-       recompute. That is the cron's job, not a stranger's: it already runs every 2 minutes and the
-       cache holds 150s, so warming it here means the page is never cold again.
-       `?fresh=1` skips the cache read and writes a new snapshot; it cannot recurse. */
+    /* WARM THE PUBLIC PAGE (2026-08-13; fixed 2026-08-15, issue #210). The first version fetched
+       'https://zero-agent.broke2builtai.com/?fresh=1' — the worker's OWN custom domain, which
+       Cloudflare blocks (a Worker cannot subrequest a hostname routed to itself), and the catch
+       swallowed the error. So this warm never once landed, the 150s cache went cold between
+       visitors, and every real visit paid the full ~25-36s RPC fan-out (MEASURED: miss 36.2s,
+       hit 0.16s). Now it computes the snapshot directly — same code path the page uses, no
+       network hop, cannot be blocked. */
     c.waitUntil((async () => {
       try {
-        await fetch('https://zero-agent.broke2builtai.com/?fresh=1', { headers: { accept: 'application/json' } });
+        if (!env.KV) return;
+        const payload = await computeStatusPayload(env);
+        await env.KV.put('cache:status', JSON.stringify({ at: Date.now(), payload }), { expirationTtl: 86400 });
       } catch { /* warming is best-effort; never let it disturb the earning loops below */ }
     })());
 
@@ -1397,23 +1519,41 @@ export default {
          re-fetching prices before emitting a byte. A public page must not do an RPC fan-out
          per visitor.
          Fix: the two-minute cron already computes this. Serve its snapshot and let a visitor
-         wait on nothing. STALE_OK is 150s (just over the 120s cron period) so a normal
-         page view is always a KV read (~10ms). `?fresh=1` forces a live recompute for
-         debugging, and if the cache is empty we fall through and compute as before —
-         so this can only make the page faster, never break it. */
-      const CACHE_KEY = 'cache:status', STALE_OK_MS = 150000;
+         wait on nothing. `?fresh=1` forces a live recompute for debugging, and if the cache
+         is truly empty we fall through and compute as before — so this can only make the
+         page faster, never break it.
+         v2 (2026-08-15, issue #210): the original design served the cache only if <150s old and
+         relied on the cron warming it via a self-fetch of its own custom domain — which Cloudflare
+         BLOCKS (a Worker cannot fetch a hostname routed to itself), and the catch swallowed the
+         error. So after any quiet spell the cache was expired (TTL 600s) and every real visitor
+         paid the full ~25-36s RPC fan-out. MEASURED 2026-08-15: miss 36.2s, hit 0.16s.
+         Now: serve ANY cached snapshot immediately regardless of age, and if it is older than
+         STALE_OK refresh it in the background via waitUntil (stale-while-revalidate). The cron
+         also warms it by calling computeStatusPayload() DIRECTLY — no self-fetch. TTL is 24h so
+         a snapshot is always on hand; staleness is governed by the refresh, not by expiry. */
+      const CACHE_KEY = 'cache:status', STALE_OK_MS = 150000, CACHE_TTL_S = 86400;
       const wantsFresh = url.searchParams.has('fresh');
       if (!wantsFresh && url.pathname === '/' && env.KV) {
         try {
           const hit = await env.KV.get(CACHE_KEY, 'json');
-          if (hit?.payload && hit.at && (Date.now() - hit.at) < STALE_OK_MS) {
+          if (hit?.payload && hit.at) {
             const age = Math.round((Date.now() - hit.at) / 1000);
+            const stale = (Date.now() - hit.at) >= STALE_OK_MS;
+            if (stale) {
+              try {
+                c?.waitUntil?.((async () => {
+                  const payload = await computeStatusPayload(env);
+                  await env.KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: CACHE_TTL_S });
+                })());
+              } catch { /* refresh is best-effort; the stale copy is still served */ }
+            }
+            const xCache = `hit ${age}s${stale ? ' (stale, refreshing)' : ''}`;
             const html = (req.headers.get('accept') || '').includes('text/html');
             return html
               ? new Response(dashboardHTML(hit.payload), {
-                  headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': `hit ${age}s` },
+                  headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': xCache },
                 })
-              : Response.json(hit.payload, { headers: { 'x-cache': `hit ${age}s` } });
+              : Response.json(hit.payload, { headers: { 'x-cache': xCache } });
           }
         } catch { /* cache is an optimisation, never a dependency — fall through and compute */ }
       }
@@ -1816,6 +1956,35 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         }, { status: 404 });
       }
 
+      const payload = await computeStatusPayload(env);
+      // Refill the cache for the next visitor. waitUntil so the write never delays THIS response.
+      if (url.pathname === '/' && env.KV) {
+        try { c?.waitUntil?.(env.KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: CACHE_TTL_S })); }
+        catch { /* never let a cache write break the response */ }
+      }
+      const wantsHtml = (req.headers.get('accept') || '').includes('text/html');
+      if (wantsHtml && url.pathname === '/') {
+        return new Response(dashboardHTML(payload), {
+          headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': 'miss' },
+        });
+      }
+      return Response.json(payload, { headers: { 'x-cache': 'miss' } });
+    } catch (e) {
+      return Response.json({ error: String(e.message).slice(0, 300) }, { status: 500 });
+    }
+  },
+};
+
+/* ── STATUS PAYLOAD (extracted from the fetch handler 2026-08-15, issue #210) ─────────────────────
+   The full status document: every balance, health verdict and harvest stat the dashboard shows.
+   READ-ONLY — RPC reads, explorer reads and KV reads; it signs nothing and moves nothing.
+   Extracted so the cron can warm `cache:status` by calling this DIRECTLY: the previous warm
+   strategy fetched the worker's own custom domain, which Cloudflare blocks, so the cache went
+   cold and every visitor paid this function's ~25-36s cost inline. Indentation kept from the
+   original inline block to keep the diff reviewable. */
+export async function computeStatusPayload(env) {
+  const eoa = env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : null;
+  const payTo = SMART_ACCOUNT;
       const [metaRaw, curRaw, routesRaw] = await Promise.all([
         env.KV.get('state:meta'), env.KV.get('state:current'), env.KV.get('state:routes'),
       ]);
@@ -1845,8 +2014,19 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         balances.has_earned = balances.eth_like_total > 0 || (usdcA + usdcB) > 0;
         // The block above is Base-only, but ZERO harvests on Optimism and Arbitrum too — reporting
         // just Base understated its real net worth by ~7%. Every chain, or it isn't net worth.
+        /* ORDER MATTERS (2026-08-23). readChainState now runs FIRST so its price table can be
+           threaded into reconcileEarnings below. Previously both blocks fetched their own quotes and
+           the response published the SAME wei at two different ETH prices — full story on
+           reconcileEarnings in harvest.mjs. Read the price once, mark everything at it. */
+        let sharedPrices = null;
         try {
-          const m = await reconcileEarnings(env, (ch, mm, p) => rpcCall(ch, mm, p), address, payTo);
+          const cs0 = await readChainState((ch, mm, p) => rpcCall(ch, mm, p), address, payTo);
+          chainState = cs0;
+          sharedPrices = cs0.prices || null;
+        } catch (e) { balances.chain_read_error = String(e.message).slice(0, 140); }
+
+        try {
+          const m = await reconcileEarnings(env, (ch, mm, p) => rpcCall(ch, mm, p), address, payTo, sharedPrices);
           balances.all_chains_priced = m.per_chain;
           // ── THE SCOREBOARD, under a name that cannot be misread. ──
           // NOT republishing the legacy `spendable_usd` / `all_chains_usd` here: a concurrent change
@@ -1880,23 +2060,56 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         //     change its own denominator without saying so.
         //   * ONE price table per request, shared with treasury, so two figures in the same response
         //     can no longer disagree about the price of the same token.
+        //     ⚠️ That second claim was TRUE OF THIS MODULE AND FALSE OF THE RESPONSE until 2026-08-23:
+        //     reconcileEarnings fetched its own quotes, so the payload shipped the same wei at two
+        //     ETH prices and the dashboard's table could not be made to add up to its own headline.
+        //     The table is now threaded into reconcileEarnings above, and `balances.price_coherence`
+        //     asserts the two views agree instead of asking the reader to take this comment's word.
         // Deliberately ADDITIVE: it does not overwrite anything above it, and it never publishes the
         // ambiguous legacy names `spendable_usd` / `lifetime_earned_usd`.
+        /* Reuses the read taken above rather than repeating it: a second call would fetch fresh
+           quotes and re-open the very two-price split this change closes (and costs a second full
+           sweep of 6 chains per request for nothing). */
         try {
-          const cs = await readChainState((ch, mm, p) => rpcCall(ch, mm, p), address, payTo);
-          balances.holdings_usd = cs.holdings_usd;
-          balances.relay_spendable_usd = cs.relay_spendable_usd;
-          balances.native_liquid_usd = cs.native_liquid_usd;
-          balances.usdc_usd = cs.usdc_usd;
-          balances.stranded_on_eoa_usd = cs.stranded_on_eoa_usd;
-          balances.chains_configured = cs.chains_configured;
-          balances.chains_read_ok = cs.chains_read_ok;
-          balances.unreadable = cs.unreadable;
-          balances.prices = cs.prices;
-          balances.read_note = cs.read_note;
-          balances.per_chain_read = cs.per_chain;
-          chainState = cs;
+          const cs = chainState;
+          if (cs) {
+            balances.holdings_usd = cs.holdings_usd;
+            balances.relay_spendable_usd = cs.relay_spendable_usd;
+            balances.native_liquid_usd = cs.native_liquid_usd;
+            balances.usdc_usd = cs.usdc_usd;
+            balances.stranded_on_eoa_usd = cs.stranded_on_eoa_usd;
+            balances.chains_configured = cs.chains_configured;
+            balances.chains_read_ok = cs.chains_read_ok;
+            balances.unreadable = cs.unreadable;
+            balances.prices = cs.prices;
+            balances.read_note = cs.read_note;
+            balances.per_chain_read = cs.per_chain;
+          }
         } catch (e) { balances.chain_read_error = String(e.message).slice(0, 140); }
+
+        /* ── THE INVARIANT THAT WOULD HAVE CAUGHT THIS ───────────────────────────────────────────
+           Both published views must now sum to the same net worth, because both are marked at one
+           price table. Assert it in the payload rather than trusting the refactor: if they ever
+           split again, `price_coherent` goes false and says by how much, instead of the gap showing
+           up months later as a dashboard that quietly does not add up. Tolerance is a hair of
+           float/rounding noise, not a licence for a second price fetch. */
+        try {
+          const rows = balances.all_chains_priced;
+          if (Array.isArray(rows) && typeof balances.holdings_usd === 'number') {
+            const colTotal = rows.reduce((t, r) => t
+              + (r.eoa_native_usd || 0) + (r.safe_usd || 0) + (r.eoa_usd || 0) + (r.usdc_usd || 0), 0);
+            const gap = +(colTotal - balances.holdings_usd).toFixed(9);
+            balances.price_coherence = {
+              per_chain_total_usd: +colTotal.toFixed(8),
+              holdings_usd: balances.holdings_usd,
+              gap_usd: gap,
+              price_coherent: Math.abs(gap) <= 1e-6,
+              means: Math.abs(gap) <= 1e-6
+                ? 'The per-chain table and the headline net worth are marked at the same price table and agree. A reader can add up the table and land on the headline.'
+                : 'DEFECT: two views of the same balances disagree. Do not trust either figure until this is explained — it means something is pricing the same wei twice.',
+            };
+          }
+        } catch { /* a coherence check must never break the page */ }
 
         // ── RECORD WHAT WE ACTUALLY PUBLISHED, so the invariant checker can audit it ──────────────
         // This matters more than it looks. If the watchdog recomputed the balance itself and compared
@@ -2018,20 +2231,5 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
         routes,
         endpoints: ['/journal', '/ledger', '/genesis', '/frontier', '/method', '/toolcraft', '/recovery', '/prospect', '/harvest', '/last'],
       };
-      // Refill the cache for the next visitor. waitUntil so the write never delays THIS response.
-      if (url.pathname === '/' && env.KV) {
-        try { c?.waitUntil?.(env.KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: 600 })); }
-        catch { /* never let a cache write break the response */ }
-      }
-      const wantsHtml = (req.headers.get('accept') || '').includes('text/html');
-      if (wantsHtml && url.pathname === '/') {
-        return new Response(dashboardHTML(payload), {
-          headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': 'miss' },
-        });
-      }
-      return Response.json(payload, { headers: { 'x-cache': 'miss' } });
-    } catch (e) {
-      return Response.json({ error: String(e.message).slice(0, 300) }, { status: 500 });
-    }
-  },
-};
+      return payload;
+}

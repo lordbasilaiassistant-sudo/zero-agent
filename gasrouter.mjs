@@ -67,9 +67,11 @@ async function checkOwnGas(rpc, eoa) {
       if (wei === 0n) continue;
       const gp = BigInt(await rpc(name, 'eth_gasPrice', []));
       const perTx = gp * 250000n;
+      // P3-2 fix: gasPrice 0 is a failed read — `(perTx || 1n)` turned it into capacity 1e16.
+      if (perTx === 0n) continue;
       out.push({
         source: 'own-native-gas', chain: name,
-        available: wei > perTx, capacity: Number(wei / (perTx || 1n)),
+        available: wei > perTx, capacity: Number(wei / perTx),
         cost_usd: null, note: 'self-funded: no quota, no sponsor, nobody can revoke it',
       });
     } catch { /* chain unreachable */ }
@@ -99,7 +101,14 @@ export async function admissionTestPaymaster(rpc, chain, paymaster, account) {
     const [, validationData] = PM_IFACE.decodeFunctionResult('validatePaymasterUserOp', ret);
     return { paymaster, open: validationData === 0n, validationData: validationData.toString() };
   } catch (e) {
-    return { paymaster, open: false, reason: String(e.message).replace(/execution reverted:?/, '').trim().slice(0, 60) };
+    // P1-4 FIX: this catch could not tell a contract revert from an HTTP 429 / timeout / upstream
+    // outage, and filed every one as open:false — measured live: an RPC rate limit reported all
+    // eight busiest Base paymasters as "refusing us". A FAILED READ IS NOT A REFUSAL.
+    const m = String(e.message || '');
+    if (!/execution reverted|revert|invalid opcode|out of gas/i.test(m)) {
+      return { paymaster, open: null, unmeasured: true, reason: 'READ FAILED (not a refusal): ' + m.slice(0, 80) };
+    }
+    return { paymaster, open: false, reason: m.replace(/execution reverted:?/, '').trim().slice(0, 60) };
   }
 }
 
@@ -118,14 +127,24 @@ async function checkPaymasters(rpc, chain, account, { blocks = 400 } = {}) {
   } catch { return []; }
   const ranked = Object.entries(found).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const out = [];
+  let unmeasured = 0;
   for (const [pm, ops] of ranked) {
     const t = await admissionTestPaymaster(rpc, chain, pm, account);
+    // P3-1 FIX: JSON.stringify(Infinity) -> null on the KV round-trip, so an OPEN paymaster — the
+    // single most valuable result here — came back with capacity:null and any `capacity > 0` gate
+    // silently rejected it. A large sentinel plus an explicit flag survives serialisation.
+    if (t.unmeasured) unmeasured++;
     out.push({
       source: 'erc4337-paymaster', chain, paymaster: pm, ops_seen: ops,
-      available: t.open, capacity: t.open ? Infinity : 0, cost_usd: 0,
-      note: t.open ? 'OPEN — would sponsor an arbitrary account' : (t.reason || `closed (validationData=${t.validationData})`),
+      available: t.open === true, unlimited: t.open === true,
+      capacity: t.open ? Number.MAX_SAFE_INTEGER : 0,
+      unmeasured: !!t.unmeasured, cost_usd: 0,
+      note: t.unmeasured ? t.reason
+        : t.open ? 'OPEN — would sponsor an arbitrary account'
+          : (t.reason || `closed (validationData=${t.validationData})`),
     });
   }
+  if (unmeasured) out.unmeasured_count = unmeasured;   // open_paymasters:0 must never be reported off unmeasured probes
   return out;
 }
 
@@ -154,12 +173,17 @@ export async function checkSponsorApi(api, chainId, account, callData = '0x') {
         params: [op, ENTRYPOINT, '0x' + chainId.toString(16), {}] }),
     });
     const j = await r.json();
-    if (j.result) return { source: 'sponsor-api', id: api.id, available: true, capacity: Infinity, cost_usd: 0, note: 'ACCEPTED — free sponsored gas', result: j.result };
+    // P2-2 FIX: a STUB is by definition a gas-estimation placeholder (ERC-7677) — providers return
+    // one routinely and then refuse at pm_getPaymasterData. "It did not error" was being read as
+    // "it will pay". Only pm_getPaymasterData is a commitment.
+    if (j.result) return { source: 'sponsor-api', id: api.id, available: false, stub_ok: true, capacity: 0,
+      note: 'STUB ONLY — a gas-estimation placeholder, NOT a sponsorship. Re-ask with pm_getPaymasterData before treating this as capacity.', result: j.result };
     const msg = String(j.error?.message || 'unknown');
     const authWall = /api key|policy id is required|unauthor/i.test(msg);
     return {
       source: 'sponsor-api', id: api.id, available: false, capacity: 0,
-      wall_type: authWall ? 'AUTH — needs a key, do not re-probe' : 'TECHNICAL — policies exist, keep varying the op',
+      wall_type: authWall ? 'AUTH — needs a key, do not re-probe'
+        : 'TECHNICAL-WORDING — UNPROVEN. Measured 2026-07-31: eight callData/sender variations against Candide returned the identical string. Treat as CLOSED until some variation changes the message; do not burn ticks re-deriving this.',
       note: msg.slice(0, 110),
     };
   } catch (e) { return { source: 'sponsor-api', id: api.id, available: false, note: String(e.message).slice(0, 80) }; }
@@ -167,7 +191,11 @@ export async function checkSponsorApi(api, chainId, account, callData = '0x') {
 
 /** The whole picture, cached. This is what callers should ask instead of assuming the relay. */
 export async function gasSources(env, rpc, { safe, eoa, chain = 'base', maxAgeMs = 10 * 60000 } = {}) {
-  const cached = await env.KV.get('gas:sources', 'json').catch(() => null);
+  // P2-1 FIX: the cache key was global while everything in the payload is per-chain — /gas?chain=
+  // arbitrum within 10 minutes of base returned Base's paymasters and sponsor verdicts labelled as
+  // Arbitrum's, with cached:true. Scope the key and give it a TTL so stale scopes cannot persist.
+  const key = `gas:sources:${chain}`;
+  const cached = await env.KV.get(key, 'json').catch(() => null);
   if (cached && Date.now() - cached.at < maxAgeMs) return { ...cached, cached: true };
 
   const chainId = RELAY_CHAINS[chain] || 8453;
@@ -186,14 +214,21 @@ export async function gasSources(env, rpc, { safe, eoa, chain = 'base', maxAgeMs
     total_free_slots: relay.reduce((n, r) => n + (r.capacity || 0), 0),
     relay_chains_with_quota: relay.length,
     open_paymasters: pms.filter(p => p.available).length,
+    unmeasured_probes: pms.unmeasured_count || 0,
     open_sponsor_apis: apis.filter(a => a?.available).length,
     self_funded_chains: own.length,
     sources: all,
-    best: usable.sort((a, b) => (b.capacity === Infinity ? 1 : 0) - (a.capacity === Infinity ? 1 : 0) || (b.capacity - a.capacity))[0] || null,
+    // P3-2 FIX: sorting purely by capacity recommended spending our OWN irreplaceable ETH while
+    // free relay slots sat unused — contradicting `advice` two lines below. Free-and-revocable
+    // capacity comes first; and a zero gas price is a failed read, not infinite capacity.
+    best: usable.sort((a, b) =>
+      ((a.source === 'own-native-gas') - (b.source === 'own-native-gas'))
+      || ((b.unlimited ? 1 : 0) - (a.unlimited ? 1 : 0))
+      || (b.capacity - a.capacity))[0] || null,
     advice: usable.length
       ? 'Spend FREE capacity first and keep any native ETH — ETH is the only source nobody can revoke.'
       : 'No capacity anywhere. Do not wait: enumerate. Every previous dead end here was an unprobed chain or an unread refusal.',
   };
-  await env.KV.put('gas:sources', JSON.stringify(out)).catch(() => {});
+  await env.KV.put(key, JSON.stringify(out), { expirationTtl: 3600 }).catch(() => {});
   return out;
 }

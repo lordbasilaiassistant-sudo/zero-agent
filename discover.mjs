@@ -34,7 +34,10 @@ export const SEED_KEEPERS = {
 // A keeper's inbound transfers are full of NOISE: DEX pools and routers show up constantly because
 // the keeper swaps its rewards through them. Those are counterparties, not mechanisms â€” they never
 // pay an arbitrary caller for showing up. Filter them or the candidate list is 80% garbage.
-const NOISE_NAME = /Pool$|Pair$|Router|Swap|Quoter|Vault$|WETH|Token$|ERC20|Bridge|Multicall/i;
+// D14 FIX: the old regex discarded `…Pool` and `…Vault` payers before they were ever recorded —
+// and StrategyRewardPool is literally the implementation behind our own KNOWN_PAYERS, while every
+// ERC-4626 vault that pays a claim caller matches Vault$. Match only the DEX plumbing.
+const NOISE_NAME = /Pair$|Router|Quoter|^WETH|Multicall|SwapRouter|Bridge$/i;
 export function isNoise(name) { return !!name && NOISE_NAME.test(name); }
 
 // ⚠️ THE CLOSED LOOP — read this before trusting any candidate list this file produces.
@@ -89,6 +92,25 @@ export const KNOWN_PAYERS = {
   optimism: ['0x01087C3419CDf589b55c086AAF006D5D8e54f7a1', '0x20051a36204d4136E32D92e5b1015a311ee1a708', '0xD7E0Cde3479AFbF63ed7B7AD850A857db8629a32'],
 };
 
+// D2 FIX: all six KNOWN_PAYERS — every contract ZERO has personally harvested on any chain — are
+// 45-byte EIP-1167 minimal proxies. The implementation sits in RUNTIME CODE as a PUSH20 immediate:
+// no storage slot is set and implementation() does not exist, so resolveImpl's storage sweep
+// returned null for 100% of them (and 215/241 Beefy strategies). Resolution recovers 86-92
+// selectors and a paying harvest(address) on every one tested.
+import { implFromCode } from './minimalproxy.mjs';
+import { extractSelectors } from './bruteforce.mjs';
+
+// 4-byte → signature for maintenance shapes we can safely encode when there is no verified ABI.
+// Selectors verified with ethers.id() — never copy these from memory.
+const KNOWN_SIGS = {
+  [ethers.id('harvest()').slice(0, 10)]: 'harvest()',
+  [ethers.id('harvest(address)').slice(0, 10)]: 'harvest(address)',
+  [ethers.id('work()').slice(0, 10)]: 'work()',
+  [ethers.id('tend()').slice(0, 10)]: 'tend()',
+  [ethers.id('poke()').slice(0, 10)]: 'poke()',
+  [ethers.id('claim()').slice(0, 10)]: 'claim()',
+};
+
 const j = async (url) => {
   const r = await fetch(url, { headers: { 'User-Agent': 'zero-agent/0.4' } });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -134,13 +156,26 @@ export async function inspect(chain, contract, caller = '0x510601f59FDa068D70ad6
   // Resolve proxies FIRST — a proxy's own source describes the proxy, never the logic.
   const impl = await resolveImpl(chain, contract);
   const target = impl || contract;
-  try { meta = await j(`${base}/api/v2/smart-contracts/${target}`); }
-  catch { return { contract, verified: false, verdict: 'source not verified â€” cannot confirm caller is unrestricted' }; }
-  const src = meta.source_code || '';
-  if (!src) return { contract, verified: false, verdict: 'no source' };
-  const abi = meta.abi || [];
-  // candidate entry points: non-view functions whose names smell like maintenance work
-  const CANDIDATE = /harvest|claim|settle|finish|start|poke|update|compound|rebalance|liquidat|distribute|checkpoint|sync|execute|trigger|process|finalize/i;
+  try { meta = await j(`${base}/api/v2/smart-contracts/${target}`); } catch { meta = null; }
+  const src = meta?.source_code || '';
+  // D9 FIX: the missing-source path used to RETURN here, before a single eth_call — gating "the
+  // only thing that cannot lie" behind explorer verification, so the whole clone universe (no
+  // source, by definition) never got simulated and `callable_now` was [] because nothing was
+  // TRIED. Recover an ABI from the bytecode dispatch table instead.
+  let abi = meta?.abi || [];
+  if (!abi.length) {
+    const rpc = RPCS[chain];
+    let code = '';
+    try { code = String(await rawCall(rpc, 'eth_getCode', [target, 'latest']) || ''); } catch { /* explorer-only chain */ }
+    abi = extractSelectors(code || '0x').filter(s => KNOWN_SIGS[s]).map(s => {
+      const sig = KNOWN_SIGS[s], name = sig.slice(0, sig.indexOf('('));
+      const types = sig.slice(sig.indexOf('(') + 1, -1).split(',').filter(Boolean);
+      return { type: 'function', name, stateMutability: 'nonpayable', inputs: types.map(t => ({ type: t, name: '' })) };
+    });
+  }
+  // D15 FIX: work()/tend() (Keep3r/Yearn), performUpkeep (Chainlink), report/kick/ping/run/refill/
+  // sweep/skim/redeem are canonical entry points of entire keeper ecosystems this regex was blind to.
+  const CANDIDATE = /harvest|claim|settle|finish|start|poke|update|compound|rebalance|liquidat|distribute|checkpoint|sync|execute|trigger|process|finalize|^work$|^tend$|upkeep|^report$|^kick$|^ping$|^run$|refill|sweep$|skim$|redeem$/i;
   const fns = abi.filter(x => x.type === 'function' && x.stateMutability !== 'view' && x.stateMutability !== 'pure' && CANDIDATE.test(x.name || ''))
     .map(x => ({
       sig: `${x.name}(${(x.inputs || []).map(i => i.type).join(',')})`,
@@ -155,13 +190,15 @@ export async function inspect(chain, contract, caller = '0x510601f59FDa068D70ad6
   const callableNow = checked.filter(f => f.callable);
   return {
     contract, implementation: impl || null, callable_now: callableNow.map(f => f.sig),
-    name: meta.name || null, verified: true,
+    name: meta?.name || null, verified: !!src,
     access_controlled: GATE_RE.test(src),
     pays_a_caller: PAYS_CALLER_RE.test(src),
     candidate_functions: checked,
     verdict: callableNow.length
       ? 'CALLABLE NOW: ' + callableNow.map(f => f.sig).join(', ') + ' — simulated clean from our own address'
-      : 'every candidate reverts for us: ' + checked.map(f => f.revert).filter(Boolean).slice(0, 2).join(' | '),
+      : checked.length
+        ? 'every candidate reverts for us: ' + checked.map(f => f.revert).filter(Boolean).slice(0, 2).join(' | ')
+        : 'no source and no known maintenance selector in its bytecode — nothing safe to simulate',
   };
 }
 
@@ -210,6 +247,12 @@ export async function resolveImpl(chain, contract) {
   const rpc = RPCS[chain];
   if (!rpc) return null;
   try {
+    // D2 FIX, step 0: EIP-1167 minimal proxy — target is a PUSH20 immediate in the 45-byte runtime.
+    // Measured: 6/6 KNOWN_PAYERS and 215/241 Beefy strategies are this shape; every probe below
+    // returns null for them because a clone sets no storage slot and has no implementation().
+    const code0 = String(await rawCall(rpc, 'eth_getCode', [contract, 'latest']) || '');
+    const clone = implFromCode(code0);
+    if (clone) return clone;
     // 1. direct EIP-1967 / legacy implementation slots
     for (const slot of [IMPL_SLOT, LEGACY_SLOT]) {
       const a = addrFromWord(await rawCall(rpc, 'eth_getStorageAt', [contract, slot, 'latest']));
@@ -268,8 +311,12 @@ export async function bootstrapKeepers(chain, knownPayers = [], perContract = 25
     for (const it of (data.items || []).slice(0, perContract)) {
       const to = it.to?.hash;
       if (!to || to.toLowerCase() === c.toLowerCase()) continue;
+      // D17 FIX: the comment promised an EOA filter that did not exist — a fee splitter or router
+      // receiving ≥2 transfers came back as a "keeper" and poisoned the payer walk downstream.
+      if (it.to?.is_contract === true) continue;   // a fee splitter is not a keeper
       // EOAs receiving repeated fee payments are exactly what a keeper bot looks like
-      keepers[to] = (keepers[to] || 0) + 1;
+      // D18 FIX: keys are lowercased on write; blindSeed returns lowercase, Blockscout checksummed.
+      keepers[to.toLowerCase()] = (keepers[to.toLowerCase()] || 0) + 1;
     }
   }
   return Object.entries(keepers)
@@ -281,7 +328,13 @@ export async function bootstrapKeepers(chain, knownPayers = [], perContract = 25
 // One discovery pass: seeds -> payers -> inspected candidates, persisted for the agent to work through.
 export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, rpcRaw = null } = {}) {
   const state = (await env.KV.get('discover:state', 'json')) || { keepers: {}, candidates: {}, passes: 0 };
-  let seeds = [...(SEED_KEEPERS[chain] || []), ...Object.keys(state.keepers).filter(k => state.keepers[k] === chain)];
+  state.keepers ||= {};
+  // D18 FIX: normalise on read too — the dedupe below missed across casings before.
+  for (const k of Object.keys(state.keepers)) {
+    const lk = k.toLowerCase();
+    if (lk !== k) { state.keepers[lk] = state.keepers[k]; delete state.keepers[k]; }
+  }
+  let seeds = [...(SEED_KEEPERS[chain] || []).map(s => s.toLowerCase()), ...Object.keys(state.keepers).filter(k => state.keepers[k] === chain)];
 
   // BREAK THE CLOSED LOOP. Every few passes, inject keepers found MECHANISM-BLIND from raw block
   // data rather than from the family we already farm. Without this the engine only ever rediscovers
@@ -291,8 +344,8 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
   if (rpcRaw && (state.passes % 3 === 0 || !seeds.length)) {
     try {
       const blind = await blindSeed(chain, rpcRaw, 12);
-      const fresh = blind.filter(a => !state.keepers[a]);
-      for (const a of fresh) state.keepers[a] = chain;
+      const fresh = blind.filter(a => !state.keepers[a.toLowerCase()]);
+      for (const a of fresh) state.keepers[a.toLowerCase()] = chain;
       state.blindSeeded = (state.blindSeeded || 0) + fresh.length;
       seeds = [...fresh, ...seeds];
     } catch (e) { console.log('blindSeed FAILED (' + chain + '): ' + String(e && e.message).slice(0, 140)); /* enhancement, never a blocker — but never again silent: this catch hid a ReferenceError for the life of the module */ }
@@ -320,8 +373,8 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
         // encodes that judgement for the payer lane; reuse it rather than re-deriving it here.
         const fresh = rows
           .map(r => r.contract || r.address)
-          .filter(a => a && !state.keepers[a] && !isNoise(a.name));
-        for (const a of fresh) state.keepers[a] = chain;
+          .filter(a => a && !state.keepers[String(a).toLowerCase()] && !isNoise(a.name));
+        for (const a of fresh) state.keepers[String(a).toLowerCase()] = chain;
         state.behaviourSeeded = (state.behaviourSeeded || 0) + fresh.length;
         seeds = [...fresh, ...seeds];
         console.log(`behaviourScan ${chain}: ${scan.transfersCounted} transfers over ${scan.blocksScanned} blocks via ${scan.transport} → ${rows.length} candidates → ${fresh.length} new`);
@@ -341,20 +394,36 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
     if (!known.length && !seeds.length) return { skipped: 'no seed keepers and no known payers for ' + chain };
     if (known.length) {
       const found = await bootstrapKeepers(chain, known);
-      for (const k of found.slice(0, 6)) state.keepers[k.address] = chain;
+      for (const k of found.slice(0, 6)) state.keepers[k.address.toLowerCase()] = chain;
       seeds = [...found.slice(0, 4).map(k => k.address), ...seeds];
     }
     if (!seeds.length) return { skipped: 'bootstrap found no keepers on ' + chain };
   }
 
+  // D8 FIX: seeds are in stable insertion order and slice(0,4) was deterministic — every pass after
+  // the first walked the SAME keepers, re-derived the identical payer list and returned
+  // new_candidates: 0 while 5 of 6+ collected keepers were never used. Rotate with a cursor.
+  state.seedCursor = state.seedCursor || 0;
+  const wheel = seeds.length
+    ? Array.from({ length: Math.min(4, seeds.length) }, (_, i) => seeds[(state.seedCursor + i) % seeds.length])
+    : [];
+  state.seedCursor = (state.seedCursor + wheel.length) % Math.max(1, seeds.length);
+
   const found = [];
-  for (const keeper of seeds.slice(0, 4)) {
+  for (const keeper of wheel) {
     let payers = [];
     try { payers = await payersOf(chain, keeper); } catch { continue; }
     for (const p of payers.slice(0, maxPayers)) {
-      if (isNoise(p.name)) continue; // swap counterparty, not a payer of callers
+      if (isNoise(p.name)) { (state.noise ||= {})[`${chain}:${(p.contract || '').toLowerCase()}`] = p.name; continue; }   // D14: recorded, not silent
       const key = `${chain}:${(p.contract || '').toLowerCase()}`;
-      if (state.candidates[key]) { state.candidates[key].seen += 1; continue; }
+      if (state.candidates[key]) {
+        // D12 FIX: payouts_seen/tokens/last were FROZEN at first sighting while `seen` counted a
+        // constant of the loop. The ranking keys on payouts_seen*10 — a contract paying 400 times
+        // since discovery ranked as its day-one self. Refresh from live observation instead.
+        const ex = state.candidates[key];
+        ex.seen += 1; ex.payouts_seen = p.n; ex.tokens = p.tokens; ex.last = p.last;
+        continue;
+      }
       let ins = {};
       try { ins = await inspect(chain, p.contract); } catch { /* keep going */ }
       state.candidates[key] = {
@@ -373,6 +442,7 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
         triaged_at: Array.isArray(ins.callable_now) ? Date.now() : null,
         functions: ins.candidate_functions || [], verdict: ins.verdict || null,
         seen: 1, tried: false,
+        first_seen: new Date().toISOString(),   // the "oldest first" stale walk needs a real timestamp
       };
       found.push(state.candidates[key]);
     }
@@ -380,8 +450,11 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
   // RE-INSPECT STALE CANDIDATES. A candidate is inspected once, at discovery time, and then never
   // looked at again — so when the proxy resolver was fixed, 214 already-stored candidates would have
   // stayed mis-scored forever. Refresh a few every pass: any candidate never scored for callability,
-  // oldest first. This is also how the list self-heals whenever inspection gets smarter.
-  const stale = Object.values(state.candidates).filter(c => c.callable_now === undefined && !c.tried);
+  // oldest first (D4 FIX: the old filter tested `callable_now === undefined`, which no candidate can
+  // satisfy because every write coerces to [] — this loop never re-inspected anything).
+  const stale = Object.values(state.candidates)
+    .filter(c => !c.triaged_at && !c.tried)
+    .sort((a, b) => String(a.first_seen || '').localeCompare(String(b.first_seen || '')));
   let refreshed = 0;
   for (const c of stale.slice(0, 4)) {
     try {
@@ -394,13 +467,29 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
       c.functions = ins.candidate_functions || c.functions || [];
       c.verdict = ins.verdict || c.verdict;
       c.name = c.name || ins.name || null;
+      c.triaged_at = Array.isArray(ins.callable_now) ? Date.now() : null;   // attempted = triaged
       refreshed++;
-    } catch { c.callable_now = []; /* mark attempted so it does not block the queue forever */ }
+    } catch { c.callable_now = []; c.triaged_at = Date.now(); /* mark attempted so it does not block the queue forever */ }
   }
 
   state.passes += 1;
   state.lastPass = new Date().toISOString();
-  await env.KV.put('discover:state', JSON.stringify(state));
+  // D6 FIX: prospectTick writes this same key CONCURRENTLY (separate waitUntil in worker.mjs).
+  // Writing our in-memory snapshot back wholesale reverted every verdict the prospector recorded
+  // while this pass ran — up to several minutes of triage erased every 3rd tick. Re-read and merge.
+  let merged = state;
+  try {
+    const fresh = (await env.KV.get('discover:state', 'json'));
+    if (fresh && fresh.candidates) {
+      merged = {
+        ...fresh, ...state,
+        candidates: { ...fresh.candidates, ...state.candidates },
+        families: { ...(fresh.families || {}), ...(state.families || {}) },
+        keepers: { ...state.keepers },
+      };
+    }
+  } catch { /* fall back to our own snapshot rather than skip the write */ }
+  await env.KV.put('discover:state', JSON.stringify(merged));
   // Gating on `pays_a_caller` — a REGEX OVER SOURCE — threw away every one of 214 candidates while
   // reporting "0 promising", which is what stalled expansion for eleven sessions. It was the weakest
   // signal available and it was being used as a hard gate.
@@ -414,8 +503,10 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
   // A contract that SIMULATES CALLABLE is never excluded for having `onlyOwner` somewhere in its
   // source. Measured: StrategyERC4626, StrategyPassiveManagerVelodromeV4 and StrategyMerkl all match
   // the access-control regex AND all three simulate clean from our own address. The eth_call wins.
+  // D7 FIX: honour the prospector's eliminations — a candidate PROVEN to pay zero used to score
+  // 1000+ here (callable_now is the top signal) and was handed back as "work down this list".
   const scored = Object.values(state.candidates)
-    .filter(c => c.callable_now?.length || !c.access_controlled)
+    .filter(c => !c.retired && (c.callable_now?.length || !c.access_controlled))
     .map(c => ({
       ...c,
       score: (c.callable_now?.length ? 1000 : 0) + (c.payouts_seen || 0) * 10 + (c.pays_a_caller ? 5 : 0) + (c.verified ? 1 : 0),

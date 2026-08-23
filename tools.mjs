@@ -24,6 +24,38 @@ const CHAINS = {
     scout: 'https://base-sepolia.blockscout.com',
     label: 'Base Sepolia (testnet — practice, not money)',
   },
+  // P2-18 fix: ZERO earns on six chains; this harness only knew two, so get_status/eth_call/explorer
+  // could not see or touch the other four and threw "unknown chain". Mirrors worker.mjs CHAINS.
+  optimism: {
+    chainId: 10,
+    rpc: process.env.OPTIMISM_RPC || 'https://optimism-rpc.publicnode.com',
+    scout: 'https://optimism.blockscout.com',
+    label: 'Optimism (REAL money)',
+  },
+  arbitrum: {
+    chainId: 42161,
+    rpc: process.env.ARBITRUM_RPC || 'https://arbitrum-one-rpc.publicnode.com',
+    scout: 'https://arbitrum.blockscout.com',
+    label: 'Arbitrum One (REAL money)',
+  },
+  polygon: {
+    chainId: 137,
+    rpc: process.env.POLYGON_RPC || 'https://polygon-bor-rpc.publicnode.com',
+    scout: 'https://polygon.blockscout.com',
+    label: 'Polygon (REAL money)',
+  },
+  gnosis: {
+    chainId: 100,
+    rpc: process.env.GNOSIS_RPC || 'https://gnosis-rpc.publicnode.com',
+    scout: 'https://gnosis.blockscout.com',
+    label: 'Gnosis (REAL money)',
+  },
+  unichain: {
+    chainId: 130,
+    rpc: process.env.UNICHAIN_RPC || 'https://mainnet.unichain.org',
+    scout: 'https://unichain.blockscout.com',
+    label: 'Unichain (REAL money)',
+  },
 };
 
 // Operator blocklist — the agent must never interact with these token contracts.
@@ -141,7 +173,14 @@ async function get_status() {
       }
     }
   } catch { /* fresh addresses often 404 here */ }
-  out.broke = Object.values(out.chains).every(c => !c.eth || parseFloat(c.eth) === 0);
+  out.broke = (() => {
+    // P2-19 FIX: a chain whose RPC errored used to satisfy `!c.eth` and count as broke — the agent
+    // was told it was broke when its balance was merely UNREAD. Errored chains are unknown, not
+    // zero, and are excluded from the verdict; if every chain errored there is no verdict at all.
+    const known = Object.values(out.chains).filter(c => !c.error);
+    if (!known.length) return undefined;
+    return known.every(c => parseFloat(c.eth || '0') === 0);
+  })();
   return out;
 }
 
@@ -185,16 +224,29 @@ async function explorer({ chain, api_path }) {
   return { status: r.status, data: clip(r.text, 6000) };
 }
 
-async function eth_call({ chain, to, signature, args = [] }) {
+async function eth_call({ chain, to, signature, args = [], from, value_eth, block = 'latest' }) {
   const sig = signature.trim().startsWith('function') ? signature.trim() : `function ${signature.trim()}`;
   const iface = new ethers.Interface([sig]);
   const fn = iface.fragments[0];
   const data = iface.encodeFunctionData(fn.name, args);
-  const ret = await provider(chain).call({ to, data });
+  // P1-4 FIX: this simulation used to run as msg.sender = address(0) while the system prompt
+  // mandates eth_call as the pre-spend safety check. Both error directions are live and measured:
+  // a working route gets a FALSE REVERT ("transfer from the zero address"), and a msg.sender-crediting
+  // harvest gets a FALSE SUCCESS that says nothing about whether OUR address is paid. Simulate AS
+  // YOURSELF by default — a call simulated from a different sender proves nothing.
+  const sender = from || loadWallet()?.address;
+  const tx = { to, data };
+  if (sender) tx.from = sender;
+  if (value_eth) tx.value = ethers.parseEther(String(value_eth));
+  let ret;
+  try { ret = await provider(chain).call(tx, block); }
+  catch (e) {
+    return { reverted: true, from: sender || null, reason: String(e.shortMessage || e.message).slice(0, 300) };
+  }
   let decoded;
   try { decoded = JSON.parse(jstr([...iface.decodeFunctionResult(fn.name, ret)])); }
   catch { decoded = ret; }
-  return { result: decoded };
+  return { result: decoded, from: sender || null };
 }
 
 async function send_tx({ chain, to, value_eth = '0', data = '0x', gas_limit }) {
@@ -208,7 +260,7 @@ async function send_tx({ chain, to, value_eth = '0', data = '0x', gas_limit }) {
   const tx = { to, value, data };
   let gas;
   try {
-    gas = gas_limit ? BigInt(gas_limit) : await p.estimateGas({ ...tx, from: w.address });
+    gas = gas_limit ? BigInt(gas_limit) : (await p.estimateGas({ ...tx, from: w.address })) * 12n / 10n;
   } catch (e) {
     throw new Error(`gas estimate failed (tx would revert, or zero balance): ${String(e.shortMessage || e.message).slice(0, 300)}`);
   }
@@ -217,12 +269,27 @@ async function send_tx({ chain, to, value_eth = '0', data = '0x', gas_limit }) {
   if (bal < cost) {
     throw new Error(`insufficient funds on ${chain}: balance ${ethers.formatEther(bal)} ETH, need ~${ethers.formatEther(cost)} ETH. You are broke here — earn gas first.`);
   }
+  const before = await p.getBalance(w.address);
   const sent = await signer.sendTransaction({ ...tx, gasLimit: gas });
   const rcpt = await sent.wait(1, 90000).catch(() => null);
+  // P1-5 FIX: `status === 1` means "the EVM did not revert" — it never meant anything arrived.
+  // The model's only way to fill route_log.earned_usd was to GUESS, and the guess became the
+  // leaderboard sort key and "lifetime earned". These fields are the actual evidence of payment:
+  const after = await p.getBalance(w.address);
+  const gasPaid = rcpt ? rcpt.gasUsed * (rcpt.gasPrice ?? 0n) : 0n;
+  const net = after - before;
+  const TRANSFER = ethers.id('Transfer(address,address,uint256)');
+  const inbound = (rcpt?.logs || []).filter(l =>
+    l.topics?.[0] === TRANSFER &&
+    l.topics[2] && ('0x' + l.topics[2].slice(26).toLowerCase()) === w.address.toLowerCase());
   return {
     hash: sent.hash,
-    status: rcpt ? (rcpt.status === 1 ? 'success' : 'REVERTED') : 'sent, not confirmed within 90s — check explorer',
-    gas_used: rcpt ? rcpt.gasUsed.toString() : null,
+    mined: rcpt ? (rcpt.status === 1 ? 'no-revert' : 'REVERTED') : 'sent, not confirmed within 90s — check explorer',
+    // "no-revert" is NOT payment. net_eth_change + tokens_received are the only payment evidence.
+    net_eth_change: ethers.formatEther(net),
+    gas_paid_eth: ethers.formatEther(gasPaid),
+    tokens_received: inbound.map(l => ({ token: l.address, raw: BigInt(l.data).toString() })),
+    paid_you: net + gasPaid > 0n || inbound.length > 0,
     explorer: `${CHAINS[chain].scout}/tx/${sent.hash}`,
   };
 }
@@ -250,16 +317,31 @@ async function knowledge_list() {
 async function knowledge_read({ name }) {
   const p = kpath(name);
   if (!fs.existsSync(p)) throw new Error(`no knowledge file "${name}" — use knowledge_list`);
-  return { name: path.basename(p), content: clip(fs.readFileSync(p, 'utf8'), 20000) };
+  const all = fs.readFileSync(p, 'utf8');
+  // P1-3 FIX: clip() took the HEAD. Knowledge files are append-only and the journal/frontier hold
+  // their history in the newest entries, so this handed the model the OLDEST 20 KB of itself —
+  // measured: 80% of journal.md and 40% of frontier were unreachable, and falsified hypotheses got
+  // re-derived because the refutation sat past the cut. The TAIL is the recent past.
+  const content = all.length > 20000
+    ? `…[${all.length - 20000} older chars omitted — below is the most RECENT 20,000]\n` + all.slice(-20000)
+    : all;
+  return { name: path.basename(p), bytes: all.length, content };
 }
 
 async function knowledge_write({ name, content, mode = 'append' }) {
   if (typeof content !== 'string' || !content.trim()) throw new Error('content required');
+  // P2-15 FIX: mode was compared case-sensitively and invalid values silently became APPEND — an
+  // "overwrite" of a stale playbook appended a contradicting copy underneath it and reported
+  // success. Reject unknown modes loudly; normalise casing.
+  const m = String(mode).toLowerCase();
+  if (!['append', 'overwrite'].includes(m)) {
+    throw new Error(`mode must be "append" or "overwrite" (got "${mode}")`);
+  }
   fs.mkdirSync(KNOWLEDGE, { recursive: true });
   const p = kpath(name);
-  if (mode === 'overwrite') fs.writeFileSync(p, content.slice(0, 100000));
+  if (m === 'overwrite') fs.writeFileSync(p, content.slice(0, 100000));
   else fs.appendFileSync(p, (fs.existsSync(p) ? '\n\n' : '') + content.slice(0, 100000));
-  return { saved: path.basename(p), mode, bytes: fs.statSync(p).size };
+  return { saved: path.basename(p), mode: m, bytes: fs.statSync(p).size };
 }
 
 const CREDS = process.env.AUTOGLM_CREDS || path.join(path.dirname(SECRETS), 'autoglmwallet-creds.json');
@@ -272,6 +354,12 @@ async function secret_store({ name, value }) {
   if (!name || typeof value !== 'string' || !value.trim()) throw new Error('name and value required');
   const key = String(name).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 60);
   if (/^0x[0-9a-fA-F]{64}$/.test(value.trim())) throw new Error('that looks like a private key — never store or handle raw private keys');
+  // P3 fix: ensure_wallet writes BIP-39 mnemonics to disk, so a mnemonic is exactly as forbidden
+  // here as a raw key — but only the 0x+64-hex shape was refused.
+  const words = value.trim().split(/\s+/);
+  if ((words.length === 12 || words.length === 24) && words.every(w => /^[a-z]{3,}$/i.test(w))) {
+    throw new Error('that looks like a BIP-39 seed phrase (12/24 lowercase words) — never store or handle mnemonics');
+  }
   const db = readCreds();
   db[key] = { value: value.trim(), savedAt: new Date().toISOString() };
   fs.mkdirSync(path.dirname(CREDS), { recursive: true });
@@ -307,12 +395,26 @@ export const CLOSED_CATEGORY = {
 export function isDead(r, id) {
   if (!r) return false;
   // A route that has actually PAID can never be dead by counter — money arrived = the route is real.
-  if (r.earned_usd > 0 && r.dead !== true) return false;
-  if (r.dead === true || r.blocked >= 2) return true;
-  if (HUMAN_GATE_RE.test((r.notes || []).join(' '))) return true;
+  // P0-1 FIX: the old `&& r.dead !== true` DISABLED this escape hatch — the next line killed the
+  // route anyway, so the only proven earner ($0.074421, 26 successes) was served to the model as
+  // DEAD_NEVER_REVISIT. Matches the hardened worker.mjs isDead: money outranks every flag, and wei
+  // counts as money (a price-feed outage must not bury a paying route behind earned_usd 0).
+  if (r.earned_usd > 0) return false;
+  try { if (BigInt(r.earned_wei || 0) > 0n || BigInt(r.unpriced_wei || 0) > 0n) return false; } catch { /* malformed counter is not evidence of death */ }
+  const notes = (r.notes || []).join(' ');
+  // P0-2 FIX: relay-slot exhaustion, rate limits and quota walls are TRANSIENT CAPACITY, not a
+  // property of the route. Three aliases of the earning rail were permanently killed by two
+  // "Relay budget exhausted" notes each; one of them even said "proven route but cannot execute
+  // until slots refill". Capacity noise no longer trips the blocked-counter death.
+  const capacityNoise = !HUMAN_GATE_RE.test(notes) && CAPACITY_NOISE_RE.test(notes);
+  if (r.dead === true && !capacityNoise) return true;
+  if (r.blocked >= 2 && !capacityNoise) return true;
+  if (HUMAN_GATE_RE.test(notes)) return true;
   if (id && CLOSED_CATEGORY.test.test(id)) return true;
   return false;
 }
+// Phrases that mean "could not run right now", never "this route is worthless".
+export const CAPACITY_NOISE_RE = /relay|slot|budget exhaust|rate limit|429|capacity|quota|refill|temporar/i;
 const normId = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '').replace(/s$/, '');
 
 // Mirrors worker.mjs — a ROUTE is a way MONEY CAN ARRIVE. Budget/status/list/scan checks are
@@ -321,15 +423,24 @@ const NON_ROUTE_RE = /(^|[-_])(budget|status|api|list|scan|health|ping|state|bal
 export function notARoute(id) {
   if (!NON_ROUTE_RE.test(id)) return null;
   // "bount" not "bounty": the agent writes "bounties", which /bounty/ does not match.
-  if (/(earning|fee|reward|bount|payout|sale|tip|grant|revenue)/i.test(id)) return null;
+  // P2-12 FIX: claim/skim/airdrop/refund/yield/x402 are commonest words for actual on-chain earning
+  // actions — a refused log is never persisted, so the agent had no memory of having tried (e.g.
+  // "morpho-urd-claim-scan", the x402 rail) and retried it every session. NOTE 'harvest' is
+  // deliberately NOT a blanket rescue: the second-generation junk vocabulary is built ON it
+  // ("beefy-harvest-wait", "harvest-run-budget-check"), and genuine harvest routes always carry a
+  // money word of their own ("beefy-harvest-caller-fees").
+  if (/(earning|fee|reward|bount|payout|sale|tip|grant|revenue|claim|skim|airdrop|refund|yield|interest|commission|bonus|x402|invoice)/i.test(id)) return null;
   // gig/job/task rescue only as whole tokens — "taskmarket-api-check" must not ride on "task".
   if (/(^|[-_])(gig|job|task)s?([-_]|$)/i.test(id)) return null;
   return `"${id}" is not an earning route — it is housekeeping. A route is a way MONEY CAN ARRIVE, and a budget/status/list/scan check can never pay you. Logging these polluted your ledger with ten dead pseudo-routes that then blocked your real ones. NOT LOGGED, and this costs you nothing. Just read the value you got and act on it. Only call route_log when you actually tried to GET PAID.`;
 }
 
 async function route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
-  if (!['success', 'fail', 'blocked', 'pending'].includes(outcome)) {
-    throw new Error('outcome must be one of: success | fail | blocked | pending');
+  // P0-2 FIX: 'deferred' = "could not run because a scarce resource was empty; retry later". The
+  // old enum forced that honest case into 'blocked', whose counter set dead=true on the second
+  // occurrence — three aliases of the only earning rail were killed by two relay-capacity events.
+  if (!['success', 'fail', 'blocked', 'deferred', 'pending'].includes(outcome)) {
+    throw new Error('outcome must be one of: success | fail | blocked | deferred | pending');
   }
   const db = readRoutes();
   const id = String(route_id).toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 50);
@@ -340,27 +451,51 @@ async function route_log({ route_id, outcome, earned_usd = 0, note = '' }) {
   if (noise && !(outcome === 'success' && parseFloat(earned_usd) > 0)) {
     return { refused: true, route: id, logged: false, not_a_route: true, reason: noise };
   }
+  // P1-5 FIX: an UNBACKED income claim must never enter earned_usd — it becomes the leaderboard
+  // sort key and "lifetime earned" while being a guess ("send_tx said success" is not payment).
+  // But REFUSING the whole log repeats the P2-12 mistake (no memory of the attempt). So: the
+  // attempt is recorded, the claimed amount is parked in unbacked_usd until a hash proves it.
+  const claimedUsd = parseFloat(earned_usd) || 0;
+  const backed = !(claimedUsd > 0) || /0x[0-9a-fA-F]{64}/.test(String(note));
   const deadTwin = Object.entries(db.routes).find(([k, v]) => normId(k) === normId(id) && isDead(v, k));
   if ((isDead(db.routes[id], id) || deadTwin) && outcome !== 'success') {
     return {
       refused: true, route: id, logged: false,
-      reason: 'DEAD ROUTE — permanently out of scope (human-gated, or blocked twice). This attempt was NOT logged and the rounds you spent on it were wasted. Never revisit or research this route again; work a LIVE route instead.',
+      reason: 'DEAD ROUTE — permanently out of scope (human-gated, or blocked twice by real failures). This attempt was NOT logged and the rounds you spent on it were wasted. Never revisit or research this route again; work a LIVE route instead.',
     };
   }
   const r = db.routes[id] ||= { attempts: 0, successes: 0, blocked: 0, earned_usd: 0, notes: [] };
   r.attempts += 1;
   if (outcome === 'success') r.successes += 1;
   if (outcome === 'blocked') r.blocked += 1;
-  r.earned_usd = +(r.earned_usd + (parseFloat(earned_usd) || 0)).toFixed(6);
-  r.last = { at: new Date().toISOString(), outcome };
   if (note) { r.notes.push(clip(String(note), 200)); r.notes = r.notes.slice(-5); }
-  if (/HUMAN-GATED|captcha|social login|KYC/i.test(note) || r.blocked >= 2) r.dead = true;
+  // P0-2 FIX: only a PERMANENT gate kills a route. Capacity exhaustion is transient — it must not
+  // increment the death counter, and historical capacity-noise blocks no longer set `dead`.
+  if (outcome === 'deferred') {
+    r.last = { at: new Date().toISOString(), outcome };
+    fs.mkdirSync(STATE, { recursive: true });
+    fs.writeFileSync(routesFile(), jstr(db));
+    const leaderboard = Object.entries(db.routes).filter(([k, v]) => !isDead(v, k))
+      .map(([k, v]) => ({ route: k, attempts: v.attempts, successes: v.successes, earned_usd: v.earned_usd }))
+      .sort((a, b) => b.earned_usd - a.earned_usd).slice(0, 10);
+    return { logged: id, outcome, deferred: true, live_routes_leaderboard: leaderboard };
+  }
+  r.last = { at: new Date().toISOString(), outcome };
+  if (backed) r.earned_usd = +(r.earned_usd + claimedUsd).toFixed(6);
+  else r.unbacked_usd = +((r.unbacked_usd || 0) + claimedUsd).toFixed(6);   // parked, never counted
+  const joinedNotes = (r.notes || []).join(' ');
+  if (HUMAN_GATE_RE.test(note)) r.dead = true;
+  else if (r.blocked >= 2 && !CAPACITY_NOISE_RE.test(joinedNotes)) r.dead = true;
   fs.mkdirSync(STATE, { recursive: true });
   fs.writeFileSync(routesFile(), jstr(db));
   const leaderboard = Object.entries(db.routes).filter(([k, v]) => !isDead(v, k))
     .map(([k, v]) => ({ route: k, attempts: v.attempts, successes: v.successes, earned_usd: v.earned_usd }))
     .sort((a, b) => b.earned_usd - a.earned_usd).slice(0, 10);
-  return { logged: id, outcome, dead: !!r.dead, live_routes_leaderboard: leaderboard };
+  return {
+    logged: id, outcome, dead: !!r.dead,
+    unbacked_warning: backed ? undefined : `claimed $${claimedUsd} was NOT banked — earned_usd needs the tx hash + measured delta in the note ("success" from a tool is not payment). The attempt itself IS recorded.`,
+    live_routes_leaderboard: leaderboard,
+  };
 }
 
 // ── schemas the model sees ──────────────────────────────────────────────────
@@ -374,13 +509,13 @@ export const TOOL_DEFS = [
   { name: 'web_search', description: 'Search the web (DuckDuckGo). Returns up to 8 results with title, url, snippet. Use for discovering faucets, bounties, docs, opportunities.', parameters: S({ query: str('search query') }, ['query']) },
   { name: 'http_fetch', description: 'Fetch a URL (GET/POST/etc). HTML is converted to plain text unless raw=true. Many modern sites are JS apps and return little text — prefer their APIs or docs pages. Use for reading pages and calling public APIs.', parameters: S({ url: str('http(s) URL'), method: str('HTTP method, default GET'), headers: { type: 'object', description: 'request headers' }, body: str('request body for POST/PUT'), max_chars: { type: 'number', description: 'max chars returned, default 5000, cap 12000' }, raw: { type: 'boolean', description: 'true = do not strip HTML' } }, ['url']) },
   { name: 'explorer', description: "Blockscout explorer API (free, no key). chain: 'base' or 'base-sepolia'. api_path examples: 'addresses/{addr}', 'addresses/{addr}/transactions', 'smart-contracts/{addr}' (verified source code!), 'tokens/{addr}', 'stats', 'transactions/{hash}'.", parameters: S({ chain: str("'base' | 'base-sepolia'"), api_path: str('path after /api/v2/') }, ['chain', 'api_path']) },
-  { name: 'eth_call', description: "Read any contract directly. signature is a human ABI fragment, e.g. 'balanceOf(address) view returns (uint256)' or 'symbol() view returns (string)'. args are the arguments as strings/numbers.", parameters: S({ chain: str("'base' | 'base-sepolia'"), to: str('contract address'), signature: str('function signature'), args: { type: 'array', description: 'function arguments', items: {} } }, ['chain', 'to', 'signature']) },
-  { name: 'send_tx', description: 'Sign and send a transaction from YOUR wallet. Fails with a clear error if you lack gas. value_eth in ETH units, data optional hex calldata. Costs real gas on base — be sure before spending.', parameters: S({ chain: str("'base' | 'base-sepolia'"), to: str('recipient/contract address'), value_eth: str("ETH amount, e.g. '0.001', default '0'"), data: str('hex calldata, default 0x'), gas_limit: str('optional manual gas limit') }, ['chain', 'to']) },
+  { name: 'eth_call', description: "Read any contract, simulated AS YOUR WALLET by default (a call from a different sender proves nothing — pass 'from' only deliberately). Reverts come back as {reverted:true, reason}. signature is a human ABI fragment e.g. 'balanceOf(address) view returns (uint256)'. args as strings/numbers; value_eth for payable calls.", parameters: S({ chain: str("'base' | 'base-sepolia' | 'optimism' | 'arbitrum' | 'polygon' | 'gnosis' | 'unichain'"), to: str('contract address'), signature: str('function signature'), args: { type: 'array', description: 'function arguments', items: {} }, from: str('optional msg.sender override (defaults to YOUR wallet)'), value_eth: str('optional ETH value for payable calls') }, ['chain', 'to', 'signature']) },
+  { name: 'send_tx', description: 'Sign and send a transaction from YOUR wallet. Fails with a clear error if you lack gas. Returns mined + paid_you + net_eth_change + tokens_received: "no-revert" is NOT payment — check paid_you before logging earnings. value_eth in ETH units, data optional hex calldata.', parameters: S({ chain: str("'base' | 'base-sepolia' | 'optimism' | 'arbitrum' | 'polygon' | 'gnosis' | 'unichain'"), to: str('recipient/contract address'), value_eth: str("ETH amount, e.g. '0.001', default '0'"), data: str('hex calldata, default 0x'), gas_limit: str('optional manual gas limit') }, ['chain', 'to']) },
   { name: 'sign_message', description: 'Sign a message with your wallet key (free, no gas). Needed for signature-auth flows (SIWE login, claim proofs, ownership verification).', parameters: S({ message: str('exact message text to sign') }, ['message']) },
   { name: 'knowledge_list', description: 'List your permanent knowledge files.', parameters: S() },
   { name: 'knowledge_read', description: 'Read one of your knowledge files (e.g. genesis, recovery, journal).', parameters: S({ name: str('file name without .md') }, ['name']) },
   { name: 'knowledge_write', description: "Write to permanent memory — this is the ONLY thing that survives between sessions. mode 'append' (default) or 'overwrite'. Keep 'journal' updated every session; update 'recovery' the moment an earning route is proven.", parameters: S({ name: str('file name without .md'), content: str('markdown content'), mode: str("'append' | 'overwrite'") }, ['name', 'content']) },
-  { name: 'route_log', description: 'Record the outcome of an earning-route attempt in your permanent ledger. ALWAYS log after trying a route. outcome: success (earned something) | fail (tried, no payout) | blocked (needs human/account/captcha — do not retry) | pending (awaiting result).', parameters: S({ route_id: str('short stable id, e.g. chainlink-faucet-base-sepolia'), outcome: str('success | fail | blocked | pending'), earned_usd: { type: 'number', description: 'USD value earned this attempt (0 if none; estimate testnet as 0)' }, note: str('one-line lesson learned') }, ['route_id', 'outcome']) },
+  { name: 'route_log', description: 'Record the outcome of an earning-route attempt in your permanent ledger. ALWAYS log after trying a route. outcome: success (earned something) | fail (tried, no payout) | blocked (PERMANENT gate: human/captcha/KYC — never retry) | deferred (could not run: no relay slot, rate limit, out of gas — retry later, costs the route nothing) | pending (awaiting result). earned_usd > 0 requires the tx hash + measured delta in the note.', parameters: S({ route_id: str('short stable id, e.g. chainlink-faucet-base-sepolia'), outcome: str('success | fail | blocked | deferred | pending'), earned_usd: { type: 'number', description: 'USD value earned this attempt (0 if none; estimate testnet as 0)' }, note: str('one-line lesson learned; REQUIRED with the tx hash when earned_usd > 0') }, ['route_id', 'outcome']) },
   { name: 'secret_store', description: 'Save a credential you earned (platform API key, auth token, receipt) in permanent secure storage OUTSIDE your knowledge files. NEVER put credentials in knowledge_write — use this. Refuses private keys.', parameters: S({ name: str('credential name, e.g. clawtasks-api-key'), value: str('the credential value') }, ['name', 'value']) },
   { name: 'secret_get', description: 'Retrieve a stored credential by name (e.g. to use in an http_fetch Authorization header).', parameters: S({ name: str('credential name') }, ['name']) },
   { name: 'secret_list', description: 'List names of your stored credentials (never shows values).', parameters: S() },

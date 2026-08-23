@@ -29,10 +29,16 @@ const kread = (name) => {
 };
 
 function systemPrompt(meta) {
-  const genesis = kread('genesis') || '(genesis knowledge missing)';
-  const recovery = kread('recovery') || '(no recovery playbook yet)';
+  // P2-16 FIX: this prompt was ~89 KB because genesis/recovery/phases/frontier were injected IN FULL
+  // while the journal (the file of what actually HAPPENED) got 3%. Measured ≈22k tokens resent every
+  // round. Cap each block; knowledge_read reaches the rest (it now serves the recent tail).
+  const cap = (s, n, tail) => (!s ? s : s.length <= n ? s : (tail ? `…[${s.length - n} older chars omitted]\n` + s.slice(-n) : s.slice(0, n) + `\n…[${s.length - n} more chars — knowledge_read the file for the rest]`));
+  const genesis = cap(kread('genesis') || '(genesis knowledge missing)', 12000, false);
+  const recovery = cap(kread('recovery') || '(no recovery playbook yet)', 6000, false);
+  const phases = cap(kread('phases') || '(missing)', 6000, false);
+  const frontier = cap(kread('frontier') || '(none yet — create it with knowledge_write)', 8000, true);
   const journal = kread('journal');
-  const journalTail = journal ? journal.slice(-3000) : '(no journal yet — this may be your first session)';
+  const journalTail = journal ? journal.slice(-12000) : '(no journal yet — this may be your first session)';
   const routes = readRoutes();
   const walletInfo = (() => {
     try { return JSON.parse(fs.readFileSync(path.join(STATE, 'wallet.json'), 'utf8')); } catch { return null; }
@@ -76,10 +82,10 @@ ${genesis}
 ${recovery}
 
 ── PHASES (which phase you are in, and the difficulty curve — read this first) ──
-${kread("phases") || "(missing)"}
+${phases}
 
 ── FRONTIER (untested hypotheses — falsify one per session, invent new ones) ──
-${kread('frontier') || '(none yet — create it with knowledge_write)'}
+${frontier}
 
 ── JOURNAL (tail of journal.md — your recent past) ──
 ${journalTail}`;
@@ -119,7 +125,8 @@ async function glm(messages, retries = 4) {
       lastErr = e;
       const wait = [2, 8, 20, 45][i] * 1000;
       console.log(`  [glm retry ${i + 1}/${retries} in ${wait / 1000}s] ${String(e.message).slice(0, 140)}`);
-      await new Promise(r => setTimeout(r, wait));
+      // P3 fix: the old loop slept AFTER the final attempt too — a pointless 45s before the throw.
+      if (i < retries - 1) await new Promise(r => setTimeout(r, wait));
     }
   }
   throw lastErr;
@@ -141,72 +148,88 @@ async function runSession() {
 
   console.log(`\n══ ZERO session ${meta.sessions + 1} ═ model ${MODEL} ═ max ${MAX_ROUNDS} rounds ══\n`);
 
-  let wroteJournal = false, loggedRoute = false, nudged = false;
+  let wroteJournal = false, loggedRoute = false, nudged = false, wrapNudged = false;
 
-  for (let round = 1; round <= MAX_ROUNDS; round++) {
-    if (round === MAX_ROUNDS - 5 && !nudged) {
-      messages.push({ role: 'user', content: '[system notice] 6 rounds left. Wrap up now: route_log every route you touched, then knowledge_write your journal entry (append) with the single best next action for future-you.' });
-      nudged = true;
-    }
-
-    const msg = await glm(messages);
-    const assistant = { role: 'assistant', content: msg.content ?? '' };
-    if (msg.tool_calls?.length) assistant.tool_calls = msg.tool_calls;
-    messages.push(assistant);
-
-    if (msg.content?.trim()) console.log(`\n[zero] ${msg.content.trim()}\n`);
-
-    if (!msg.tool_calls?.length) {
-      if (!nudged && (!wroteJournal || !loggedRoute)) {
-        messages.push({ role: 'user', content: '[system notice] Before you sign off: you have not yet ' + (!loggedRoute ? 'route_log-ged your attempts' : '') + (!loggedRoute && !wroteJournal ? ' or ' : '') + (!wroteJournal ? 'written your journal' : '') + '. Do that now — future-you depends on it.' });
+  // P2-11 FIX: the stub write, final transcript and session-counter increment used to sit AFTER the
+  // round loop unprotected — one glm() crash past its retries skipped all three. Measured on disk:
+  // two transcripts both calling themselves session #3, meta one behind, and a crashed session's 36
+  // messages never journal-stubbed. The epilogue IS the continuity guarantee; it must run on crash.
+  try {
+    for (let round = 1; round <= MAX_ROUNDS; round++) {
+      // P3 fix: `round === MAX_ROUNDS - 5` never matched when MAX_ROUNDS <= 5, and one shared
+      // `nudged` flag let an early sign-off nudge consume the wrap-up nudge. Two flags, >= guard.
+      if (round >= Math.max(1, MAX_ROUNDS - 5) && !wrapNudged && round > 1) {
+        messages.push({ role: 'user', content: '[system notice] 6 rounds left. Wrap up now: route_log every route you touched, then knowledge_write your journal entry (append) with the single best next action for future-you.' });
+        wrapNudged = true;
         nudged = true;
-        continue;
       }
-      console.log('── session ended by agent ──');
-      break;
-    }
 
-    for (const call of msg.tool_calls) {
-      const name = call.function?.name;
-      let args = {};
-      let result;
+      const msg = await glm(messages);
+      const assistant = { role: 'assistant', content: msg.content ?? '' };
+      if (msg.tool_calls?.length) assistant.tool_calls = msg.tool_calls;
+      messages.push(assistant);
+
+      if (msg.content?.trim()) console.log(`\n[zero] ${msg.content.trim()}\n`);
+
+      if (!msg.tool_calls?.length) {
+        if (!nudged && (!wroteJournal || !loggedRoute)) {
+          messages.push({ role: 'user', content: '[system notice] Before you sign off: you have not yet ' + (!loggedRoute ? 'route_log-ged your attempts' : '') + (!loggedRoute && !wroteJournal ? ' or ' : '') + (!wroteJournal ? 'written your journal' : '') + '. Do that now — future-you depends on it.' });
+          nudged = true;
+          continue;
+        }
+        console.log('── session ended by agent ──');
+        break;
+      }
+
+      for (const call of msg.tool_calls) {
+        const name = call.function?.name;
+        let args = {};
+        let result;
+        try {
+          args = call.function?.arguments ? JSON.parse(call.function.arguments) : {};
+          const impl = TOOL_IMPL[name];
+          if (!impl) throw new Error(`unknown tool ${name}`);
+          result = await impl(args);
+          // P2-10 FIX: wroteJournal was set by ANY knowledge_write, so a session that appended to
+          // 'frontier' and died left no journal stub. Only an actual journal entry counts.
+          // P2-9 FIX: route_log REFUSES rather than throws ({refused:true}), so counting every call
+          // as "logged" suppressed the end-of-session nudge while nothing was persisted.
+          if (name === 'knowledge_write' && /^journal$/i.test(String(args?.name || '').replace(/\.md$/i, ''))) wroteJournal = true;
+          if (name === 'route_log' && !result?.refused) loggedRoute = true;
+        } catch (e) {
+          result = { error: String(e.message || e).slice(0, 500) };
+        }
+        const preview = jstr(result, 0);
+        console.log(`── r${round} ${name}(${jstr(args, 0).slice(0, 110)})`);
+        console.log(`   → ${preview.slice(0, 220)}${preview.length > 220 ? '…' : ''}`);
+        messages.push({
+          role: 'tool',
+          tool_call_id: call.id,
+          content: preview.length > 6000 ? preview.slice(0, 6000) + '…[truncated]' : preview,
+        });
+      }
+
+      fs.writeFileSync(logFile, jstr({ session: meta.sessions + 1, model: MODEL, messages }));
+      await new Promise(r => setTimeout(r, 800)); // be gentle with the free tier
+    }
+  } finally {
+    if (!wroteJournal) {
+      // continuity guarantee: if the agent died without journaling, the harness leaves a mechanical stub
+      const lastWords = [...messages].reverse().find(m => m.role === 'assistant' && m.content?.trim())?.content?.trim() || '(none)';
+      const routesTouched = messages.filter(m => m.role === 'assistant' && m.tool_calls)
+        .flatMap(m => m.tool_calls).filter(c => c.function?.name === 'route_log')
+        .map(c => { try { return JSON.parse(c.function.arguments).route_id; } catch { return '?'; } });
       try {
-        args = call.function?.arguments ? JSON.parse(call.function.arguments) : {};
-        const impl = TOOL_IMPL[name];
-        if (!impl) throw new Error(`unknown tool ${name}`);
-        result = await impl(args);
-        if (name === 'knowledge_write') wroteJournal = true;
-        if (name === 'route_log') loggedRoute = true;
-      } catch (e) {
-        result = { error: String(e.message || e).slice(0, 500) };
-      }
-      const preview = jstr(result, 0);
-      console.log(`── r${round} ${name}(${jstr(args, 0).slice(0, 110)})`);
-      console.log(`   → ${preview.slice(0, 220)}${preview.length > 220 ? '…' : ''}`);
-      messages.push({
-        role: 'tool',
-        tool_call_id: call.id,
-        content: preview.length > 6000 ? preview.slice(0, 6000) + '…[truncated]' : preview,
-      });
+        fs.appendFileSync(path.join(ROOT, 'knowledge', 'journal.md'),
+          `\n\n## Session ${meta.sessions + 1} — [auto-stub${messages.length && messages[messages.length - 1]?.error ? ': session CRASHED before journaling' : ': agent hit round limit before journaling'}]\n` +
+          `Routes touched: ${routesTouched.join(', ') || 'none'}\nLast words: ${lastWords.slice(0, 500)}\n`);
+      } catch (e) { console.error('stub write failed:', e.message); }
     }
-
-    fs.writeFileSync(logFile, jstr({ session: meta.sessions + 1, model: MODEL, messages }));
-    await new Promise(r => setTimeout(r, 800)); // be gentle with the free tier
+    fs.writeFileSync(logFile, jstr({ session: meta.sessions + 1, model: MODEL, messages, endedAt: new Date().toISOString() }));
+    // Increment only when this run actually owns the number: a crashed loop must not double-count.
+    fs.writeFileSync(metaFile, jstr({ ...meta, sessions: meta.sessions + 1, lastSession: new Date().toISOString() }));
+    console.log(`\n══ session ${meta.sessions + 1} complete — transcript: ${path.relative(ROOT, logFile)} ══`);
   }
-
-  if (!wroteJournal) {
-    // continuity guarantee: if the agent died without journaling, the harness leaves a mechanical stub
-    const lastWords = [...messages].reverse().find(m => m.role === 'assistant' && m.content?.trim())?.content?.trim() || '(none)';
-    const routesTouched = messages.filter(m => m.role === 'assistant' && m.tool_calls)
-      .flatMap(m => m.tool_calls).filter(c => c.function?.name === 'route_log')
-      .map(c => { try { return JSON.parse(c.function.arguments).route_id; } catch { return '?'; } });
-    fs.appendFileSync(path.join(ROOT, 'knowledge', 'journal.md'),
-      `\n\n## Session ${meta.sessions + 1} — [auto-stub: agent hit round limit before journaling]\n` +
-      `Routes touched: ${routesTouched.join(', ') || 'none'}\nLast words: ${lastWords.slice(0, 500)}\n`);
-  }
-  fs.writeFileSync(logFile, jstr({ session: meta.sessions + 1, model: MODEL, messages, endedAt: new Date().toISOString() }));
-  fs.writeFileSync(metaFile, jstr({ ...meta, sessions: meta.sessions + 1, lastSession: new Date().toISOString() }));
-  console.log(`\n══ session ${meta.sessions + 1} complete — transcript: ${path.relative(ROOT, logFile)} ══`);
 }
 
 if (LOOP) {

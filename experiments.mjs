@@ -64,29 +64,49 @@ export const SKIM = {
 };
 
 export async function runSkimScan(env, rpc, chain = 'base', { pairs = 240 } = {}) {
+  // P2-8 FIX: PRICED and SKIM.factories have a `base` key and nothing else, inside a function that
+  // takes `chain`. On any other chain this returned a confident negative after ZERO RPC calls,
+  // citing a Base measurement as if it applied — a config gap dressed as a result.
+  if (!PRICED[chain] || !SKIM.factories[chain]) {
+    return {
+      experiment: SKIM.id, chain, unsupported: true,
+      conclusion: `NOT MEASURED on ${chain}: no PRICED token table and no V2 factory list for this chain. This is a gap in the config, NOT a negative result — do not record it as "checked and found nothing".`,
+    };
+  }
   const st = (await env.KV.get('exp:skim', 'json')) || { cursor: {}, checked: 0, found: [] };
   const priced = PRICED[chain] || {};
   const facs = SKIM.factories[chain] || [];
   const list = [];
+  let failedBatches = 0;
 
   for (const f of facs) {
     const cur = st.cursor[f] || 0;
     let len = 0;
     try { len = Number(BigInt(await rpc(chain, 'eth_call', [{ to: f, data: '0x574f2ba3' }, 'latest']))); } catch { continue; }
     if (!len) continue;
-    const take = Math.ceil(pairs / facs.length);
+    // P2-17 FIX: every factory got `pairs / facs.length` slots regardless of size — an 80-slot tick
+    // covers 1/38k of Uniswap-V2 (3.04M pairs ≈ 105 days per pass) while re-reading BaseSwap's
+    // whole 8k-pair universe every 103 ticks. Allocate proportional to actual size.
+    const take = Math.max(1, Math.round(pairs * (len / facs.reduce((n, f2) => n + Number(st.factoryLen?.[f2] || 0), 0) || len)));
     const idx = [];
     for (let k = 0; k < take; k++) idx.push((cur + k) % len);
-    st.cursor[f] = (cur + take) % len;                  // walk forever, wrapping
+    // P2-7 FIX: the cursor used to be committed BEFORE any pair was read and every RPC failure was
+    // swallowed — one hiccup permanently skipped 240 pairs while writing "we checked and found
+    // nothing" into the log. Only advance past pairs we actually read.
+    let read = 0;
     for (let s = 0; s < idx.length; s += 60) {
-      const calls = idx.slice(s, s + 60).map(n => ({ target: f, allowFailure: true,
+      const sliceIdx = idx.slice(s, s + 60);
+      const calls = sliceIdx.map(n => ({ target: f, allowFailure: true,
         callData: '0x1e3dd18b' + n.toString(16).padStart(64, '0') }));
       try {
         for (const r of await agg(rpc, chain, calls)) {
           if (r.success && r.returnData !== '0x') list.push('0x' + r.returnData.slice(26));
         }
-      } catch { /* skip the batch */ }
+        read += sliceIdx.length;
+      } catch { failedBatches++; }
     }
+    st.cursor[f] = (cur + (read || 0)) % len;
+    st.factoryLen = { ...(st.factoryLen || {}), [f]: len };   // sizes for the proportional split above
   }
 
   const hits = [];
@@ -146,11 +166,15 @@ export async function runSkimScan(env, rpc, chain = 'base', { pairs = 240 } = {}
   return {
     experiment: SKIM.id, question: SKIM.question,
     pairs_sampled: list.length, priced_pairs_checked: st.checked,
+    rpc_batches_failed: failedBatches,
     hits: hits.slice(0, 10), best_usd: hits[0]?.usd || 0,
     cursor: st.cursor,
-    conclusion: hits.length
-      ? `${hits.length} pair(s) hold claimable priced excess — best $${hits[0].usd}. skim(to=YOUR SAFE) takes it.`
-      : 'No priced excess in this slice. Mechanism is real (measured: 2/420 pairs carried excess) but the leaks land in worthless microcaps — a selection effect, since only weird tokens leak. Cursor advanced; the sweep continues.',
+    // P2-7 FIX: a failed batch is INCONCLUSIVE, never a clean negative — those pairs were not measured.
+    conclusion: failedBatches
+      ? `INCONCLUSIVE — ${failedBatches} batch(es) failed; those pairs were NOT measured and the cursor did not advance past them. Retry next tick.`
+      : hits.length
+        ? `${hits.length} pair(s) hold claimable priced excess — best $${hits[0].usd}. skim(to=YOUR SAFE) takes it.`
+        : 'No priced excess in this slice. Mechanism is real (measured: 2/420 pairs carried excess) but the leaks land in worthless microcaps — a selection effect, since only weird tokens leak. Cursor advanced; the sweep continues.',
   };
 }
 
@@ -168,32 +192,53 @@ export const ABANDONED = {
   falsification: 'getLogs density collapse -> still holds priced token -> payout oracle returns delta > 0.',
   cost: 'free — read only',
   topics: {
-    Harvest: ethers.id('Harvest(address,uint256)'),
+    // P1-6 fix: Harvest/Compounded/Distributed measured ZERO logs in both windows on Base — 3 of the
+    // original 4 topics were dead, so 75% of the RPC cost bought nothing.
     RewardPaid: ethers.id('RewardPaid(address,uint256)'),
-    Compounded: ethers.id('Compounded(uint256,uint256)'),
-    Distributed: ethers.id('Distributed(address,uint256)'),
+    HarvesterHarvest: ethers.id('Harvest(address,address,uint256)'),
   },
 };
 
-export async function runAbandonScan(env, rpc, chain = 'base', { window = 900, lookback = 40 } = {}) {
+// P1-6 FIX. The old shape compared a 30-minute window against a 20-hour one and called the delta
+// "abandoned" — a healthy hourly harvester qualifies. Measured: 4 of 5 nominees were ALIVE (80%
+// false positives), each blacklisted forever via st.seen. Abandonment needs ~a month of silence,
+// assembled from ≤10,000-block getLogs windows (provider limit), and a partial failure must ABORT:
+// a failed recent window nominates every old emitter at once.
+const RECENT_SPAN_BLOCKS = 129600;   // ≈30 days at 2s blocks
+const SCAN_WINDOW = 10000;           // eth_getLogs range cap, measured
+
+export async function runAbandonScan(env, rpc, chain = 'base', { window = SCAN_WINDOW, recentSpan = RECENT_SPAN_BLOCKS, lookback = 40 } = {}) {
   const head = parseInt(await rpc(chain, 'eth_blockNumber', []), 16);
   const recent = {}, old = {};
+  let scanFailed = false;
   const scan = async (from, to, bucket) => {
     for (const [, topic] of Object.entries(ABANDONED.topics)) {
       try {
         const logs = await rpc(chain, 'eth_getLogs', [{ topics: [topic],
           fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]);
         for (const l of logs || []) bucket[l.address.toLowerCase()] = (bucket[l.address.toLowerCase()] || 0) + 1;
-      } catch { /* provider limits vary; a missing window is not fatal */ }
+      } catch { scanFailed = true; }
     }
   };
-  await scan(head - window, head, recent);
+  for (let b = Math.max(0, head - recentSpan); b < head; b += window) {
+    await scan(b, Math.min(b + window, head), recent);
+  }
   await scan(head - window * lookback, head - window * (lookback - 1), old);
 
-  // Went quiet: paid callers in the old window, silent in the recent one.
+  // A partial failure manufactures candidates out of nothing — refuse to nominate on incomplete data.
+  if (scanFailed) {
+    return {
+      experiment: ABANDONED.id,
+      aborted: 'one or more log windows failed; "went quiet" is unmeasurable this tick',
+      new_candidates: [],
+    };
+  }
+
+  // Went quiet: paid callers across the last month, silent in the old-window comparison.
   const quiet = Object.keys(old).filter(a => !recent[a]);
   const st = (await env.KV.get('exp:abandoned', 'json')) || { seen: {}, candidates: [] };
-  const fresh = quiet.filter(a => !st.seen[a]).slice(0, 12);
+  // seen-once must EXPIRE, or a false positive today blocks the real signal forever.
+  const fresh = quiet.filter(a => !st.seen[a] || Date.now() - Date.parse(st.seen[a]) > 30 * 864e5).slice(0, 12);
   for (const a of fresh) st.seen[a] = new Date().toISOString();
   st.lastRun = new Date().toISOString();
   st.candidates = [...fresh, ...(st.candidates || [])].slice(0, 60);
@@ -213,17 +258,35 @@ export async function runAbandonScan(env, rpc, chain = 'base', { window = 900, l
 
 // ── the loop ────────────────────────────────────────────────────────────────
 // Rotate so every tick does a different experiment and the whole space keeps getting swept.
+// P2-14 FIX: the "narrowing" in this file's header did not exist — selection was unconditional
+// round-robin, so an experiment measuring 80% false positives kept half of every tick forever.
+// An experiment with N consecutive null/failed runs is benched until config changes, visibly.
 const REGISTRY = [
   { id: SKIM.id, run: (env, rpc, chain) => runSkimScan(env, rpc, chain) },
   { id: ABANDONED.id, run: (env, rpc, chain) => runAbandonScan(env, rpc, chain) },
 ];
+const NULL_RUN = (r) => !r || r.unsupported || r.aborted ||
+  (/no priced excess|NOT MEASURED/i.test(String(r.conclusion || '')) && !(r.hits?.length));
 
 export async function experimentTick(env, rpc, chain = 'base') {
   const st = (await env.KV.get('exp:meta', 'json')) || { n: 0, log: [] };
-  const pick = REGISTRY[st.n % REGISTRY.length];
+  // Prefer an experiment that has not just gone barren; bench any with >=4 consecutive nulls.
+  const bench = new Set(Object.entries(st.nullStreak || {}).filter(([, k]) => k >= 4).map(([id]) => id));
+  let pool = REGISTRY.filter(r => !bench.has(r.id));
+  if (!pool.length) pool = REGISTRY;                    // all benched: keep rotating rather than stop
+  const pick = pool[st.n % pool.length];
+
   let result;
   try { result = await pick.run(env, rpc, chain); }
-  catch (e) { result = { experiment: pick.id, error: String(e.message).slice(0, 160) }; }
+  catch (e) { result = { experiment: pick.id, error: String(e?.message ?? e).slice(0, 160) }; }
+  st.nullStreak = { ...(st.nullStreak || {}) };
+  if (NULL_RUN(result)) st.nullStreak[pick.id] = (st.nullStreak[pick.id] || 0) + 1;
+  else delete st.nullStreak[pick.id];
+  if (bench.has(pick.id) && !pool.some(r => r.id === pick.id)) {
+    result.benched_note = `${pick.id} had ${st.nullStreak[pick.id] ?? '>=4'} consecutive nulls and was benched — it ran only because every experiment is currently benched.`;
+  } else if (st.nullStreak[pick.id] >= 4) {
+    result.benched_note = `${pick.id} now has ${st.nullStreak[pick.id]} consecutive nulls and will be benched from rotation.`;
+  }
 
   // Log EVERY run, negatives included — "we checked and found nothing" is what stops the next run
   // repeating the same slice, and it is the raw material for judging whether a class is worth more.

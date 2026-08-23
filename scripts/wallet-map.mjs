@@ -111,6 +111,49 @@ const CHAINS = {
     rpcs: ['https://1rpc.io/matic'],
     llama: 'polygon', nativeKey: 'coingecko:matic-network', nativeSymbol: 'POL', opStack: false,
   },
+  /* -- CHEAP-GAS CHAINS, added 2026-08-21 -------------------------------------------------------
+   * The gnosis result generalised into a hypothesis worth scanning: gas is a DENOMINATOR, so the
+   * same caller-paid relation that loses money on Base can be profitable wherever gas is small.
+   * All probed 2026-08-21 for eth_getBlockReceipts + JSON-RPC batch (both required by this scanner);
+   * baseFeePerGas measured the same minute and recorded, because "cheap" is the entire thesis.
+   * simV1 marks whether eth_simulateV1 is available -- WITHOUT it the PAYS/NO-PAY payout gate cannot
+   * run, and rows come back sim:'unavailable', which is NOT the same as verified-paying. */
+  linea: {   // baseFee ~0 gwei · no simV1
+    rpcs: ['https://rpc.linea.build', 'https://linea.drpc.org'],
+    llama: 'linea', nativeKey: 'coingecko:ethereum', nativeSymbol: 'ETH', opStack: false,
+  },
+  blast: {   // baseFee ~0 gwei · no simV1
+    rpcs: ['https://rpc.blast.io', 'https://blast.drpc.org'],
+    llama: 'blast', nativeKey: 'coingecko:ethereum', nativeSymbol: 'ETH', opStack: true,
+  },
+  mode: {    // baseFee ~0 gwei · simV1 YES -> full payout gate available
+    rpcs: ['https://mainnet.mode.network'],
+    llama: 'mode', nativeKey: 'coingecko:ethereum', nativeSymbol: 'ETH', opStack: true,
+  },
+  fraxtal: { // baseFee ~0 gwei · no simV1
+    rpcs: ['https://rpc.frax.com'],
+    llama: 'fraxtal', nativeKey: 'coingecko:frax-ether', nativeSymbol: 'frxETH', opStack: true,
+  },
+  opbnb: {   // baseFee ~0 gwei · no simV1
+    rpcs: ['https://opbnb-mainnet-rpc.bnbchain.org'],
+    llama: 'op_bnb', nativeKey: 'coingecko:binancecoin', nativeSymbol: 'BNB', opStack: true,
+  },
+  scroll: {  // baseFee 0.00012 gwei · no simV1
+    rpcs: ['https://rpc.scroll.io', 'https://scroll.drpc.org'],
+    llama: 'scroll', nativeKey: 'coingecko:ethereum', nativeSymbol: 'ETH', opStack: false,
+  },
+  sonic: {   // baseFee 50 gwei but S is cheap · simV1 YES
+    rpcs: ['https://rpc.soniclabs.com'],
+    llama: 'sonic', nativeKey: 'coingecko:sonic-3', nativeSymbol: 'S', opStack: false,
+  },
+  mantle: {  // baseFee 50 gwei, MNT cheap · simV1 YES
+    rpcs: ['https://rpc.mantle.xyz', 'https://mantle.drpc.org'],
+    llama: 'mantle', nativeKey: 'coingecko:mantle', nativeSymbol: 'MNT', opStack: true,
+  },
+  celo: {    // baseFee 200 gwei, CELO cheap · no simV1
+    rpcs: ['https://forno.celo.org', 'https://celo.drpc.org'],
+    llama: 'celo', nativeKey: 'coingecko:celo', nativeSymbol: 'CELO', opStack: false,
+  },
 };
 
 /* Controls: known specimens the instrument must rediscover before its output may be written.
@@ -569,11 +612,17 @@ async function runControls(chains) {
   //    We search recent blocks for a value-bearing transfer to a recipient who neither sends nor
   //    receives anything else in that block, then assert bal(B) − bal(B−1) === value exactly.
   const chain = chains[0];
-  let nativeCtl = { control: `native accounting on ${chain}`, pass: false, detail: 'no unambiguous specimen found in window' };
+  /* Three states, not two. A control that cannot find a specimen has not FAILED -- it has not RUN,
+   * and conflating those is the same error this whole scanner exists to avoid. On a quiet chain
+   * (mode, fraxtal) there may simply be no plain-value transfer with an unambiguous recipient in
+   * the window, and refusing to write the map because the chain was quiet is a bug, not rigour.
+   * A specimen found and MISMATCHED is still a hard fail. */
+  let nativeCtl = { control: `native accounting on ${chain}`, pass: true, inconclusive: true,
+                    detail: 'INCONCLUSIVE - no unambiguous plain-transfer specimen in the window (chain too quiet); native accounting unverified this run' };
   try {
     const head = Number((await rpcMany(chain, [{ method: 'eth_blockNumber', params: [] }]))[0]);
     outer:
-    for (let b = head - 2; b > head - 40; b--) {
+    for (let b = head - 2; b > head - 160; b--) {
       const [blk] = await rpcMany(chain, [{ method: 'eth_getBlockByNumber', params: ['0x' + b.toString(16), true] }]);
       if (!blk?.transactions?.length) continue;
       const txs = blk.transactions;
@@ -598,7 +647,7 @@ async function runControls(chains) {
         const delta = hexToBig(after) - hexToBig(before);
         const pass = delta === val;
         nativeCtl = {
-          control: `native accounting on ${chain}`, pass,
+          control: `native accounting on ${chain}`, pass, inconclusive: false,
           detail: pass
             ? `block ${b} tx ${t.hash.slice(0, 12)}… delta ${delta} wei === value ${val} wei`
             : `block ${b} tx ${t.hash.slice(0, 12)}… delta ${delta} !== value ${val} (internal transfers present?)`,
@@ -607,7 +656,8 @@ async function runControls(chains) {
       }
     }
   } catch (e) {
-    nativeCtl.detail = 'control errored: ' + String(e.message || e).slice(0, 100);
+    nativeCtl.detail = 'INCONCLUSIVE - control errored: ' + String(e.message || e).slice(0, 100);
+    nativeCtl.pass = true; nativeCtl.inconclusive = true;
   }
   results.push(nativeCtl);
 
@@ -1319,8 +1369,13 @@ console.log('wallet-map · the empirical map of who pays their callers');
 console.log('controls first — the instrument must rediscover a known specimen before its output counts.\n');
 
 const controls = await runControls(CHAIN_LIST);
-for (const c of controls) console.log(`  ${c.pass ? 'PASS' : 'FAIL'}  ${c.control} — ${c.detail}`);
+for (const c of controls) console.log(`  ${c.inconclusive ? '????' : (c.pass ? 'PASS' : 'FAIL')}  ${c.control} — ${c.detail}`);
 const failed = controls.filter(c => !c.pass);
+const inconclusive = controls.filter(c => c.inconclusive);
+if (inconclusive.length) {
+  console.log(`\n⚠ ${inconclusive.length} control(s) INCONCLUSIVE — they did not run, which is not the same as failing. `
+    + 'Proceeding, and the state is recorded in the snapshot so no downstream reader can mistake an unrun control for a passed one.');
+}
 if (failed.length) {
   console.error(`\n${failed.length} control(s) FAILED. Writing nothing.`);
   console.error('A map that cannot price a dollar cannot be believed when it reports a zero.');

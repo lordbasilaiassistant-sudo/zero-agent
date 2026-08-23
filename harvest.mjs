@@ -445,11 +445,35 @@ export const HOME_CHAIN = 'base';
 //   SPENDABLE  native ETH at the EOA on Base. No quota, no sponsor, nobody can revoke it. THE metric.
 //   HOLDINGS   everything, everywhere, priced in its own token. Real, but mostly cannot act yet.
 //   UNPRICED   value we can SEE but could not PRICE. Never folded into a dollar total as zero.
-export async function reconcileEarnings(env, rpc, eoa, safe) {
+/* `priceTable` (2026-08-23): an OPTIONAL shared price map, { chain: { usd, at, source } }, normally
+   readChainState's. Pass it and this function marks at exactly those quotes instead of fetching its
+   own — because it fetching its own is what broke the dashboard.
+   THE BUG: one /  response published TWO independently-priced views of the SAME wei. This function
+   fed `all_chains_priced` + `holdings_breakdown` (base marked at $2,409.59) while readChainState fed
+   `holdings_usd` + `native_liquid_usd` (base at $2,406.19, fetched seconds apart). Identical
+   balances, two quotes, so the dashboard's per-chain table summed to $0.441485 under a headline net
+   worth of $0.440937 — a $0.000549 gap that could never close no matter how carefully the page added
+   up, because the disagreement was upstream of the page. chainstate.mjs's own header already claimed
+   "ONE price table per request... so two figures in the same response can no longer disagree about
+   the price of the same token"; that was true of chainstate alone and false of the response, and
+   nothing checked it. Now the caller threads one table through both and an invariant asserts it. */
+export async function reconcileEarnings(env, rpc, eoa, safe, priceTable = null) {
   // Wei from different chains are DIFFERENT TOKENS and must never be added together. WETH ~$1915,
   // WPOL ~$0.07, WXDAI ~$1.00 — summing the raw wei and multiplying by the ETH price is how a
   // $0.0000076 Polygon fee got logged as $0.20. Convert each chain to USD at ITS OWN native price
   // first, then add the dollars.
+  /* Resolve one chain's price: the shared table wins when it carries a usable number, otherwise fall
+     back to this module's own fetch so a caller that passes nothing still works exactly as before.
+     A table entry that exists but priced null is a REAL "unknown" and is honoured as such — falling
+     back there would silently re-open the two-price split for that chain. */
+  const priceOf = async (name) => {
+    if (priceTable && Object.prototype.hasOwnProperty.call(priceTable, name)) {
+      const p = priceTable[name];
+      const v = p && typeof p === 'object' ? p.usd : p;
+      return (v === null || v === undefined || Number.isNaN(Number(v))) ? null : Number(v);
+    }
+    return nativeUsd(name);
+  };
   const per = [];
   const unpriced = [];
   const readErrors = [];
@@ -469,7 +493,7 @@ export async function reconcileEarnings(env, rpc, eoa, safe) {
           safeUsdc = await wethBalance(rpc, safe, name, USDC_BY_CHAIN[name]);
         } catch (e) { readErrors.push(`${name} usdc: ${String(e.message).slice(0, 60)}`); }
       }
-      const price = await nativeUsd(name);
+      const price = await priceOf(name);
 
       const anything = eoaWrapped || safeWrapped || eoaNative || safeNative || eoaUsdc || safeUsdc;
       if (!anything) continue;
@@ -987,6 +1011,14 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
     // to ~60 SECONDS of status polling — has happened while the agent's own session runs
     // concurrently in another waitUntil and writes this same key. Writing the captured blob back
     // would erase whatever it recorded in that minute. Re-read and apply the deltas to FRESH state.
+    // opId collapses this to ONE logical harvest no matter how often the retry loop re-runs it.
+    // Without it, a retry — which fires whenever ANY other writer bumps _v after our PUT already
+    // landed, not only when we truly lost the race — re-applied wins+1 and weiEarned+delta on top of
+    // our own written values. Measured 2026-08-13: the counter claimed 207 wins while four block
+    // explorers show 77 real incoming transfers, and a 6-harvest batch emits 6 transfers per 1 win,
+    // so the true count can only be HIGHER than wins, never a third of it. Key off the chain's own
+    // identifier for the event.
+    const opId = `harvest:${result?.tx || result?.taskId || result?.hash || `${chainName}:${Date.now()}`}`;
     await mutateKV(env, 'harvest:state', (s) => {
       if (delta > 0n) {
         s.wins = (s.wins || 0) + 1;
@@ -997,7 +1029,7 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
       s.attempts = (s.attempts || 0) + 1;
       s.log = [{ at: new Date().toISOString(), batch: good.length, ...result }, ...(s.log || [])].slice(0, 50);
       return s;
-    }, { fallback: { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] } });
+    }, { opId, fallback: { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] } });
   }
   return result;
 }

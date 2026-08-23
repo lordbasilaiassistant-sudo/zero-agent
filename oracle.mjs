@@ -63,7 +63,10 @@ const IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d3
 const BEACON_SLOT = '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50';
 const LEGACY_SLOT = '0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3';
 const addrWord = (v) => {
-  if (!v || v.length < 42) return null;
+  // F17 FIX: the upper 12 bytes of a storage word were discarded unchecked, so any uint256 that
+  // happens to occupy LEGACY_SLOT was silently reinterpreted as an implementation address.
+  if (!v || v.length !== 66) return null;
+  if (!/^0x0{24}[0-9a-fA-F]{40}$/.test(v)) return null;   // upper 12 bytes MUST be zero
   const a = '0x' + v.slice(-40);
   return /^0x0+$/.test(a) ? null : a;
 };
@@ -132,8 +135,20 @@ export async function probePayout(rpc, chain, contract, sig, token) {
   catch { return { sig, ok: false, reason: 'decode failed' }; }
   if (!rows?.[1]?.success) return { sig, ok: false, reason: 'call reverts for an arbitrary caller' };
 
-  let before = 0n, after = 0n;
-  try { before = BigInt(rows[0].returnData); after = BigInt(rows[2].returnData); } catch { /* keep zeros */ }
+  // F7 FIX: rows[0]/rows[2] carry allowFailure:true and their success was never checked. A CALL to
+  // a codeless address SUCCEEDS with returnData "0x" (verified on Base Multicall3) and BigInt('0x')
+  // throws — so the old catch turned a BROKEN MEASUREMENT into an indistinguishable "pays zero",
+  // byte-identical to a genuine zero. An instrument must never report a number it did not read.
+  // The second shape: rows[0] decoded but rows[2] threw → before set, after 0n → NEGATIVE delta.
+  const word = (r) => (r?.success && typeof r.returnData === 'string' && r.returnData.length >= 66)
+    ? BigInt(r.returnData.slice(0, 66)) : null;
+  const before = word(rows[0]), after = word(rows[2]);
+  if (before === null || after === null) {
+    return {
+      sig, ok: false,
+      reason: `balance probe failed — "${token}" did not return a uint256 to Multicall3 (wrong token address for this chain, or not an ERC-20). NOT a measurement of zero.`,
+    };
+  }
   const delta = after - before;
   return {
     sig, ok: true, callable: true,
@@ -185,7 +200,21 @@ export async function probeMany(rpc, chain, contracts, token, sig = 'harvest(add
     try {
       const ret = await rpc(chain, 'eth_call', [{ to: MULTICALL3, data: AGG.encodeFunctionData('aggregate3', [calls]) }, 'latest']);
       [rows] = AGG.decodeFunctionResult('aggregate3', ret);
-    } catch { continue; }
+      out.batchesOk = (out.batchesOk || 0) + 1;
+    } catch (e) {
+      // MEASURED 2026-08-13: this bare `catch { continue }` is the reason the live scan reported ONE
+      // payer while this exact code run locally found 228 of 234 paying $0.0707. A silently dropped
+      // batch is indistinguishable from a batch of non-payers — the same "failure reads as zero" shape
+      // this file's own docstring warns about four lines up, committed again one function below it.
+      // The usual culprit is the Worker subrequest ceiling (SLICE_SUBREQUESTS=26): ctx.rpc THROWS once
+      // spent, every remaining batch is swallowed, and the agent sees a fraction of its opportunities.
+      // Record it. A caller that cannot see how much of the universe went unpriced cannot know whether
+      // "the best available" means anything.
+      out.batchesFailed = (out.batchesFailed || 0) + 1;
+      out.unpriced = (out.unpriced || 0) + slice.length;
+      out.lastError = String(e?.message || e).slice(0, 120);
+      continue;
+    }
     for (let k = 0; k < slice.length; k++) {
       const before = rows[k * 2], call = rows[1 + k * 2], after = rows[2 + k * 2];
       if (!call?.success || !before?.success || !after?.success) continue;
@@ -252,21 +281,26 @@ export async function probeOne(rpc, chain, contract, token, recipient = MULTICAL
  */
 export async function probeContract(rpc, chain, contract, token, impl = null) {
   const found = await selectorsPresent(rpc, chain, contract, impl);
-  const sigs = [...found.zeroArg, ...found.withRecipient];
+  // F13 FIX: withRecipient FIRST. Those are the forms that can pay an address the caller names —
+  // harvest(address) is the only signature ZERO has ever actually been paid by — and concatenating
+  // them after 40 zero-arg candidates put them permanently on the wrong side of the slice(0,14).
+  const sigs = [...found.withRecipient, ...found.zeroArg];
   if (!sigs.length) return { contract, chain, exposed: 0, paying: [], verdict: 'no money-shaped function in its bytecode' };
   const results = [];
   for (const s of sigs.slice(0, 14)) results.push(await probePayout(rpc, chain, contract, s, token));
-  const paying = results.filter(r => r.ok && r.pays).sort((a, b) => (BigInt(b.paid_wei) > BigInt(a.paid_wei) ? 1 : -1));
+  const paying = results.filter(r => r.ok && r.pays).sort((a, b) => (BigInt(b.paid_wei) > BigInt(a.paid_wei) ? 1 : BigInt(b.paid_wei) < BigInt(a.paid_wei) ? -1 : 0));
   const callable = results.filter(r => r.ok);
   return {
     contract, chain,
     exposed: sigs.length,
+    measured_token: token,   // F8: every verdict below is a statement ABOUT THIS TOKEN ONLY
     callable_now: callable.map(r => r.sig),
     paying: paying.map(r => ({ sig: r.sig, paid: r.paid, paid_wei: r.paid_wei })),
     best_wei: paying[0]?.paid_wei || '0',
     verdict: paying.length
-      ? `PAYS AN ARBITRARY CALLER RIGHT NOW: ${paying[0].sig} → ${paying[0].paid}`
-      : callable.length ? 'callable but pays zero at this moment (state-dependent — worth re-probing)'
-        : 'every money-shaped function reverts for an arbitrary caller',
+      ? `PAYS AN ARBITRARY CALLER RIGHT NOW: ${paying[0].sig} → ${paying[0].paid} ${token}`
+      : callable.length
+        ? `callable but pays zero IN ${token} at this moment — NOT a claim about other tokens or native ETH (state-dependent, worth re-probing)`
+        : `every money-shaped function reverts for an arbitrary caller`,
   };
 }

@@ -30,14 +30,21 @@ const SCOUT = {
 };
 
 const lc = (s) => String(s || '').toLowerCase();
+// F10 FIX: `Number(0) || 18` === 18 — a 0-decimal token was divided by 1e18 and read as zero
+// (under-reported by 10^18). Use null checks, not falsiness, and never invent a number when there
+// is no value (ERC-721 transfers carry total:{token_id} and NO total.value — this used to return
+// the string "undefined" into settled_payouts).
 const fmt = (raw, dec) => {
+  if (raw === undefined || raw === null || raw === '') return null;
+  const D = (dec === undefined || dec === null || dec === '') ? 18 : Number(dec);
   try {
-    const d = BigInt(10) ** BigInt(Number(dec) || 18);
+    if (!Number.isInteger(D) || D < 0 || D > 36) return null;
+    const d = BigInt(10) ** BigInt(D);
     const v = BigInt(raw);
     const whole = v / d;
-    const frac = (v % d).toString().padStart(Number(dec) || 18, '0').slice(0, 8).replace(/0+$/, '');
+    const frac = D === 0 ? '' : (v % d).toString().padStart(D, '0').slice(0, 8).replace(/0+$/, '');
     return frac ? `${whole}.${frac}` : `${whole}`;
-  } catch { return String(raw); }
+  } catch { return null; }
 };
 
 /**
@@ -82,14 +89,28 @@ export async function payoutHistory(fetcher, { chain = 'base', contract, sample 
     try {
       const r = await fetcher(`${scout}/api/v2/transactions/${t.hash}/token-transfers`);
       for (const x of (JSON.parse(r.text).items || [])) {
-        moves.push({ from: lc(x.from?.hash), to: lc(x.to?.hash), toRaw: x.to?.hash, amount: fmt(x.total?.value, x.total?.decimals), token: x.token?.symbol || 'ERC20' });
+        // F14 FIX: the outer try wrapped the WHOLE loop, so one unparseable item silently discarded
+        // every remaining move in the transaction — including possibly the caller's own fee.
+        try {
+          moves.push({
+            from: lc(x.from?.hash), to: lc(x.to?.hash), toRaw: x.to?.hash,
+            // F2 FIX: carry what Blockscout already tells us about the recipient — a CONTRACT that
+            // only receives is a fee sink, not "a fee recipient the caller named".
+            toIsContract: !!x.to?.is_contract, toName: x.to?.name || null,
+            amount: fmt(x.total?.value, x.total?.decimals), token: x.token?.symbol || 'ERC20',
+          });
+        } catch { continue; }
       }
     } catch { /* a single tx failing to decode must not poison the verdict */ }
     try {
       const r = await fetcher(`${scout}/api/v2/transactions/${t.hash}/internal-transactions`);
       for (const x of (JSON.parse(r.text).items || [])) {
-        if (!(BigInt(x.value || '0') > 0n)) continue;
-        moves.push({ from: lc(x.from?.hash), to: lc(x.to?.hash), toRaw: x.to?.hash, amount: fmt(x.value, 18), token: 'native' });
+        try {
+          if (!(BigInt(x.value || '0') > 0n)) continue;
+          moves.push({ from: lc(x.from?.hash), to: lc(x.to?.hash), toRaw: x.to?.hash,
+            toIsContract: !!x.to?.is_contract, toName: x.to?.name || null,
+            amount: fmt(x.value, 18), token: 'native' });
+        } catch { continue; }   // F14: per-item guard — Blockscout has returned null/""/exponent forms
       }
     } catch { /* same */ }
 
@@ -101,7 +122,15 @@ export async function payoutHistory(fetcher, { chain = 'base', contract, sample 
     for (const m of moves) {
       if (m.from !== C) continue;             // value must leave the contract under test
       if (!m.to || m.to === C) continue;      // self-transfers are not payouts
+      if (m.to === '0x0000000000000000000000000000000000000000') continue;   // a burn is not a payout
+      if (m.amount === null) continue;        // F10: no value field (ERC-721 item) is not an amount
       if (senders.has(m.to)) continue;        // round-trip hop → plumbing
+      // F2 FIX — THE HEADER COMMENT'S LAW, NOW ACTUALLY ENFORCED. The comment says value moving to
+      // another CONTRACT is plumbing, but nothing implemented it: an address that ONLY receives
+      // (exactly what a fee sink does) was waved through as "named-recipient". Measured:
+      // beefyFeeRecipient() took 899x the caller's line and strategist() 50x, overstating what a
+      // caller can obtain by ~899x on every strategy tested.
+      if (m.toIsContract) continue;
       paid.push({
         tx: t.hash, method: t.method, paid_to: m.toRaw,
         beneficiary: m.to === caller ? 'caller' : 'named-recipient',
@@ -111,11 +140,18 @@ export async function payoutHistory(fetcher, { chain = 'base', contract, sample 
   }
 
   if (paid.length) {
+    // F2 FIX: only lines the CALLER received are money we could ever have. A hardcoded strategist
+    // EOA is not obtainable either, so it is reported but never used to size an expectation.
+    const toCaller = paid.filter(p => p.beneficiary === 'caller');
     return {
       verdict: 'PAYS_CALLERS', chain, contract, checked,
       distinct_callers: callers.size,
       settled_payouts: paid.slice(0, 8),
-      note: 'REAL settled payouts to the address that made the call. These amounts are evidence; a reward getter is not. Size your expectation on THESE numbers, never on a getter.',
+      caller_obtainable: toCaller.slice(0, 8),
+      size_expectation_on: toCaller.length
+        ? `${toCaller[0].amount} ${toCaller[0].token}`
+        : 'NOTHING — no line in this history went to the address that made the call. Every amount above went to a recipient hardcoded in the contract. DO NOT size a slot on them.',
+      note: 'REAL settled payouts to the address that made the call. These amounts are evidence; a reward getter is not. Size your expectation on caller_obtainable — never on a getter, never on the hardcoded-recipient lines.',
     };
   }
 

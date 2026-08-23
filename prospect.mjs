@@ -24,7 +24,9 @@ export function familyOf(name) {
   if (!name) return 'unknown';
   return String(name)
     .replace(/V\d+$/i, '')
-    .replace(/(Strategy|Vault|Pool|Gauge)$/i, '$1')
+    // P3 fix: this replace used to substitute the match with ITSELF ('$1') — a no-op. Strip the
+    // trailing specifics so ...VelodromeV4-Aero and ...VelodromeV4 land in one bucket.
+    .replace(/(Strategy|Vault|Pool|Gauge)[A-Za-z0-9_-]*$/i, '$1')
     .slice(0, 48) || 'unknown';
 }
 
@@ -35,7 +37,12 @@ const VERDICT = { PAYS: 'PAYS_CALLERS', ZERO: 'PAYS_ZERO', NONE: 'NO_EVIDENCE' }
 //   2. never scored for callability       — the raw backlog
 // Within each, prefer contracts we have actually watched pay somebody.
 function pickNext(candidates) {
-  const pending = Object.values(candidates).filter(c => !c.retired);
+  // D5 FIX: a candidate whose explorer lookup failed used to be re-selected on every tick forever
+  // (deterministic max on payouts_seen) — one 500ing Blockscout page head-of-line-blocked the whole
+  // grind. Backoff via payout_retry_after.
+  const pending = Object.values(candidates)
+    .filter(c => !c.retired || Date.now() - (c.retired_at || 0) > 30 * 86400e3)   // D13: eliminations expire
+    .filter(c => !(c.payout_retry_after > Date.now()));
   const needsPayout = pending.filter(c => c.callable_now?.length && !c.payout_verdict);
   if (needsPayout.length) return { c: needsPayout.sort((a, b) => (b.payouts_seen || 0) - (a.payouts_seen || 0))[0], why: 'callable, payout unproven' };
   // WAS: c.callable_now === undefined — which no candidate can ever satisfy, because every write site
@@ -80,14 +87,27 @@ export async function prospectTick(env, fetcher) {
     // A callable function that pays the caller nothing is worth exactly zero relay slots.
     try {
       const p = await payoutHistory(fetcher, { chain: c.chain, contract: c.contract, sample: 5 });
-      c.payout_verdict = p.verdict;
-      c.settled_examples = (p.settled_payouts || []).slice(0, 2);
+      // D13 FIX: NO_EVIDENCE means "we saw nothing", not "this contract never pays" — writing it as
+      // the verdict froze the candidate forever (neither queued nor eliminated). Re-check in 24h.
+      if (p.verdict === VERDICT.NONE) {
+        c.payout_retry_after = Date.now() + 24 * 3600e3;
+        out.stage = 'no evidence — will re-check';
+      } else {
+        c.payout_verdict = p.verdict;
+      }
+      // F2 follow-up: settled_payouts includes hardcoded fee sinks (strategist/feeRecipient) that
+      // the CALLER can never receive. Size expectations only on caller-obtainable money.
+      c.settled_examples = ((p.caller_obtainable || []).length ? p.caller_obtainable : p.settled_payouts || []).slice(0, 2);
       c.checked_at = new Date().toISOString();
-      if (p.verdict === VERDICT.ZERO) c.retired = true; // eliminated: never spend a slot here
-      out.stage = 'payout-checked';
+      if (p.verdict === VERDICT.ZERO) { c.retired = true; c.retired_at = Date.now(); }   // D13: expires in pickNext
+      out.stage = out.stage === 'no evidence — will re-check' ? out.stage : 'payout-checked';
       out.verdict = p.verdict;
       out.settled = c.settled_examples;
     } catch (e) {
+      // D5 FIX: a failing check must leave a marker with backoff, or the same contract is picked
+      // again on the very next tick and every tick after (proven: 4/4 ticks on one dead explorer).
+      c.payout_fails = (c.payout_fails || 0) + 1;
+      c.payout_retry_after = Date.now() + Math.min(6 * 3600e3, 300e3 * 2 ** c.payout_fails);
       out.stage = 'payout check failed';
       out.error = String(e.message).slice(0, 120);
     }
@@ -132,18 +152,46 @@ export async function prospectTick(env, fetcher) {
 
   state.prospected = (state.prospected || 0) + 1;
   state.lastProspect = new Date().toISOString();
-  await env.KV.put('discover:state', JSON.stringify(state));
+  // D6 FIX: discoveryPass runs concurrently (separate waitUntil, worker.mjs) and both read-modify-
+  // write 'discover:state'. A long prospect tick used to be clobbered wholesale by discovery's
+  // stale snapshot — verdicts, families and train:probes links vanished every 3rd cron tick.
+  // Re-read and merge ONLY the fields this tick touched.
+  const key = `${c.chain}:${String(c.contract).toLowerCase()}`;
+  const fresh = (await env.KV.get('discover:state', 'json')) || { candidates: {} };
+  fresh.candidates ||= {};
+  if (fresh.candidates[key]) {
+    fresh.candidates[key] = { ...fresh.candidates[key], ...pickFields(c) };
+    fresh.families = { ...(fresh.families || {}), ...(state.families || {}) };
+  } else {
+    fresh.candidates[key] = c;
+    fresh.families = { ...(fresh.families || {}), ...(state.families || {}) };
+  }
+  fresh.prospected = state.prospected;
+  fresh.lastProspect = state.lastProspect;
+  await env.KV.put('discover:state', JSON.stringify(fresh));
 
   const all = Object.values(state.candidates);
   out.progress = {
     total: all.length,
-    triaged: all.filter(x => x.callable_now !== undefined).length,
+    // D4 FIX: `callable_now !== undefined` was always true — every write coerces to []. The triage
+    // counters reported the backlog fully processed while never having simulated one candidate.
+    triaged: all.filter(x => x.triaged_at).length,
     callable: all.filter(x => x.callable_now?.length).length,
     proven_paying: all.filter(x => x.payout_verdict === VERDICT.PAYS).length,
-    eliminated: all.filter(x => x.retired).length,
-    remaining: all.filter(x => x.callable_now === undefined || (x.callable_now?.length && !x.payout_verdict)).length,
+    eliminated: all.filter(x => x.retired && !(Date.now() - (x.retired_at || 0) > 30 * 86400e3)).length,
+    remaining: all.filter(x => !x.triaged_at || (x.callable_now?.length && !x.payout_verdict)).length,
   };
   return out;
+}
+
+// The only fields prospectTick is authoritative for — everything else defers to fresher state.
+function pickFields(c) {
+  const { verified, access_controlled, pays_a_caller, implementation, callable_now, triaged_at,
+    functions, name, family, payout_verdict, settled_examples, checked_at, retired, retired_at,
+    payout_fails, payout_retry_after } = c;
+  return { verified, access_controlled, pays_a_caller, implementation, callable_now, triaged_at,
+    functions, name, family, payout_verdict, settled_examples, checked_at, retired, retired_at,
+    payout_fails, payout_retry_after };
 }
 
 // What the grinding has LEARNED — the map, not the individual squares.
@@ -161,11 +209,11 @@ export async function prospectIntel(env) {
   return {
     grind: {
       total_candidates: all.length,
-      triaged: all.filter(x => x.callable_now !== undefined).length,
-      still_queued: all.filter(x => x.callable_now === undefined).length,
+      triaged: all.filter(x => x.triaged_at).length,                 // D4 FIX: was always-true test
+      still_queued: all.filter(x => !x.triaged_at).length,
       callable_now: all.filter(x => x.callable_now?.length).length,
       PROVEN_PAYING: paying.length,
-      eliminated_forever: all.filter(x => x.retired).length,
+      eliminated_forever: all.filter(x => x.retired && !(Date.now() - (x.retired_at || 0) > 30 * 86400e3)).length,
       prospect_ticks: state.prospected || 0,
       last: state.lastProspect || null,
     },

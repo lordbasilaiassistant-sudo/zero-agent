@@ -46,7 +46,9 @@ export function extractSelectors(code) {
   for (let i = 0; i + 10 <= hex.length; i += 2) {
     if (hex.slice(i, i + 2) !== '63') continue;         // PUSH4
     const s = '0x' + hex.slice(i + 2, i + 10).toLowerCase();
-    if (/^0x0{4,}/.test(s)) continue;                    // padding, not a selector
+    if (/^0x0{8}$/.test(s)) continue;                    // true all-zero padding only — gas-golfed
+                                                         // keepers mine selectors starting 0000 and
+                                                         // the old /^0x0{4,}/ discarded those too
     if (SKIP.has(s)) continue;
     out.add(s);
   }
@@ -71,9 +73,15 @@ export async function implOf(rpc, chain, c) {
 
     const a = word(await rpc(chain, 'eth_getStorageAt', [c, IMPL_SLOT, 'latest']).catch(() => null));
     if (a) return a;
+    // D16 FIX: a beacon that does not answer implementation() (some use childImplementation())
+    // used to return null and never fall through to asking the contract directly.
     const b = word(await rpc(chain, 'eth_getStorageAt', [c, BEACON_SLOT, 'latest']).catch(() => null));
-    if (b) return word(await rpc(chain, 'eth_call', [{ to: b, data: '0x5c60da1b' }, 'latest']).catch(() => null));
-    return word(await rpc(chain, 'eth_call', [{ to: c, data: '0x5c60da1b' }, 'latest']).catch(() => null));
+    for (const [to, sel] of [[b, '0x5c60da1b'], [b, '0xda525716'], [c, '0x5c60da1b']]) {
+      if (!to) continue;
+      const a2 = word(await rpc(chain, 'eth_call', [{ to, data: sel }, 'latest']).catch(() => null));
+      if (a2) return a2;
+    }
+    return null;
   } catch { return null; }
 }
 
@@ -122,8 +130,13 @@ export async function bruteforceContract(rpc, chain, contract, token, { argShape
   }
 
   // Screening shares state across the batch, so re-measure each hit ALONE before believing it.
+  // D10 FIX: `hits` is in bytecode order — slicing the first 8 BEFORE ranking dropped the biggest
+  // payer whenever it sat past index 8, which becomes likely now that clone resolution raises probe
+  // counts to ~178 per contract. Rank first, then cut.
+  const threeWay = (a, b) => (BigInt(b.wei) > BigInt(a.wei) ? 1 : BigInt(b.wei) < BigInt(a.wei) ? -1 : 0);
+  const ranked = [...hits].sort(threeWay);
   const confirmed = [];
-  for (const hit of hits.slice(0, 8)) {
+  for (const hit of ranked.slice(0, 8)) {
     const calls = [
       { target: token, allowFailure: true, callData: balOf(MULTICALL3) },
       { target: contract, allowFailure: true, callData: hit.data },
@@ -137,7 +150,7 @@ export async function bruteforceContract(rpc, chain, contract, token, { argShape
       if (d > 0n) confirmed.push({ selector: hit.sel, shape: hit.shape, wei: d.toString(), eth: ethers.formatEther(d) });
     } catch { /* drop it rather than trust the batched number */ }
   }
-  confirmed.sort((a, b) => (BigInt(b.wei) > BigInt(a.wei) ? 1 : -1));
+  confirmed.sort(threeWay);
 
   return {
     contract, chain, implementation: impl,
@@ -148,7 +161,9 @@ export async function bruteforceContract(rpc, chain, contract, token, { argShape
     best_wei: confirmed[0]?.wei || '0',
     verdict: confirmed.length
       ? `PAYS: ${confirmed[0].selector}${confirmed[0].shape} → ${confirmed[0].eth}`
-      : 'no function on this contract pays an arbitrary caller right now',
+      // D11 FIX: the null verdict claimed a general result while ONE hardcoded token was measured.
+      // A strategy paying its caller in USDC/AERO/OP/native read as "pays nothing at all".
+      : `no function on this contract paid MULTICALL3 in ${token} at head — NOT a claim about other tokens, native ETH, or another block`,
   };
 }
 
@@ -163,6 +178,6 @@ export async function sweep(rpc, chain, contracts, token, { onProgress = null } 
     } catch { /* one bad contract must never stop the sweep */ }
     if (onProgress) onProgress(++n, contracts.length, found.length);
   }
-  found.sort((a, b) => (BigInt(b.wei) > BigInt(a.wei) ? 1 : -1));
+  found.sort((a, b) => (BigInt(b.wei) > BigInt(a.wei) ? 1 : BigInt(b.wei) < BigInt(a.wei) ? -1 : 0));
   return found;
 }
