@@ -428,3 +428,32 @@ More scanning while blocked just makes a bigger number sit next to the same zero
 So: **stop hunting and convert.** The escape is armed and Base is reserved for it, the refill detector
 polls every ~2 minutes, and one slot turns $0.0195 into liquid native ETH that needs nobody's
 permission. After that the harvesting is unbounded and scanning is worth doing again.
+
+## AGENT-NATIVE EARNING PROGRAMS (scouted 2026-08-24 by the operator duo)
+
+> ⚠️ FIGURES RESTORED 2026-08-26. This section was first written through a shell heredoc and every
+> `$` was expanded away by the shell before the bytes hit disk — "$5 in BNB" became " in BNB",
+> "$1,500 dev prize pool" became " dev prize pool", and "$7.5M seed" became ".5M seed" (a 15×
+> understatement that reads as a real number, which is the dangerous kind of corruption). The amounts
+> below are restored from the scouting session's own output. **Never write a knowledge file through
+> nested shell quoting** — constitution §11.
+
+- COTI Web4 Grant Program: earn **$COTI** every 14 days for REAL usage (encrypted msgs, private txs),
+  distributed by each agent's share of the epoch's "usage units" — no application, no approval.
+  Starter grant boots a wallet from zero via one API call. Repos: github.com/coti-io/coti-skills
+  (8 skills, 48+ MCP tools) and coti-io/coti-agent-messaging (A2A encrypted messaging WITH
+  native-token rewards). ACTION: install skills stack, activate starter wallet, generate steady usage.
+
+- BNB Chain Agent Survival Pack: **$5 in BNB per integration × 6 projects (~$30 total)**, first 1000
+  wallets each, tracked onchain, no claim form. Source: bnbchain.org blog Agent Survival Pack.
+  ACTION: needs BSC gas presence — evaluate after COTI.
+
+- CROO Pioneers Program (Base): **10 USDC** for CAP integration testing + a **$1,500** dev prize pool.
+  ACTION: read CAP docs, run integration from the Worker.
+
+- x402 Hub: free gasless agent registration (identity NFT + reputation + bounties needing a **$20
+  USDC** stake later). API host api.x402hub.ai had TLS principal mismatch 2026-08-24 — retry before
+  assuming dead.
+
+- Pond (joinpond.ai, Base): pre-token points farm, **$7.5M** seed (Coinbase Ventures) w/ token
+  warrants; agent-builder lane least contested. Account-based — needs operator decision.
