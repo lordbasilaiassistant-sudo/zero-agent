@@ -429,7 +429,36 @@ So: **stop hunting and convert.** The escape is armed and Base is reserved for i
 polls every ~2 minutes, and one slot turns $0.0195 into liquid native ETH that needs nobody's
 permission. After that the harvesting is unbounded and scanning is worth doing again.
 
-## AGENT-NATIVE EARNING PROGRAMS (scouted 2026-08-24 by the operator duo)
+## ❌ THE HARVEST SEAM IS EMPIRICALLY DEAD — measured 2026-08-26, stop scanning it
+
+Anthony, 2026-08-26: *"Why do you keep hunting those dumb traps instead of pivoting to new pastures?"*
+He was right, and this is the measurement that closes the argument so nobody re-opens it.
+
+Run with the beacon-fixed resolver, the best instrument we have, on the two chains that matter:
+
+| scan | logs read | emitters | examined | candidates | proxies resolved | **PAID** |
+|---|---|---|---|---|---|---|
+| base, 6,000 blocks | 935,081 | — | 181 | 45 | 97 | **0** |
+| arbitrum, 200,000 blocks (13.9h) | 290,435 | 1,074 | 41 | 11 | 15 | **0** |
+
+**~1.2M logs, 222 contracts examined, 112 proxies resolved, zero paying.** The beacon fix was real and
+it has now been fully harvested; it did not open a renewable seam, it revealed a finite one.
+
+Re-probing the 45-contract verified queue the same day: still 33 contracts PAID, but the deduped
+total is **$0.037178** (best 6 in one batch $0.033247), down from $0.122893 on 08-23. Every row is
+**net ≈ −$0.02 self-funded** — which is the moat and the ceiling in one number: uncontested because
+it is negative-EV for anyone paying gas, and tiny for exactly the same reason.
+
+**And the "open doors" in the wallet-map are all position-gated.** Six rows with 3–12 distinct callers
+and $0.63–$3,613/call: pulled each one's real transaction, then simulated from ZERO's address.
+Six for six **revert**, or move nothing to their own caller. They pay people claiming their own
+position, not people doing work — the SBCDeposit trap wearing a high caller-count as a disguise.
+A high `distinct_callers` is NOT evidence of an open market.
+
+⇒ **Do not spend another session scanning for caller-fee contracts.** The bottleneck is the mechanism,
+not the search. New value has to come from a different KIND of counterparty.
+
+## AGENT-NATIVE EARNING PROGRAMS (scouted 2026-08-24 · ⚠️ VERDICTS ADDED 2026-08-26)
 
 > ⚠️ FIGURES RESTORED 2026-08-26. This section was first written through a shell heredoc and every
 > `$` was expanded away by the shell before the bytes hit disk — "$5 in BNB" became " in BNB",
@@ -437,19 +466,48 @@ permission. After that the harvesting is unbounded and scanning is worth doing a
 > understatement that reads as a real number, which is the dangerous kind of corruption). The amounts
 > below are restored from the scouting session's own output. **Never write a knowledge file through
 > nested shell quoting** — constitution §11.
+>
+> ⛔ **AND THE LIST ITSELF WAS NEVER DATE-CHECKED.** It was scouted from press coverage on 08-24 and
+> written down as ACTIONs. The first entry verified on 08-26 (CROO) had **closed on 2026-05-12,
+> three and a half months earlier** — the signup page still reads as live, which is why it survived
+> the read. Same shape as the Atlassian "in review" scar: a venue page that never says "closed".
+> **Every program below now carries a dated verdict. Do not act on an entry without one.**
 
-- COTI Web4 Grant Program: earn **$COTI** every 14 days for REAL usage (encrypted msgs, private txs),
-  distributed by each agent's share of the epoch's "usage units" — no application, no approval.
-  Starter grant boots a wallet from zero via one API call. Repos: github.com/coti-io/coti-skills
-  (8 skills, 48+ MCP tools) and coti-io/coti-agent-messaging (A2A encrypted messaging WITH
-  native-token rewards). ACTION: install skills stack, activate starter wallet, generate steady usage.
+- **🟡 COTI Web4 Grant Program — RUNG 1 (verified 2026-08-26). Real, but no pool has been read.**
+  The program is announced by COTI's own account and the tooling is genuinely shipped: `coti-io/coti-skills`
+  is **8 Claude Skills + 48 MCP tools**, and `coti-io/coti-agent-messaging` carries the reward contract.
+  Mechanics read from their own docs, not the blog — epochs are 14 days, and
+  **`claimable = rewardPool × senderUsage / totalUsage`**, where usage is counted in *encrypted cell
+  count* (ciphertext length), not messages. Pull-based claim, no keeper, no application. `coti-starter-grant`
+  is a real challenge-response skill that funds a zero-balance wallet so it can pay its first gas.
+  ⚠️ **What is NOT verified: any funded pool.** No mainnet contract address is published in either repo
+  (`CONTRACT_ADDRESS` is per-deployer env, and the reference config ships `INITIAL_REWARD_FUND_WEI=0`
+  on testnet). Since the pool is the entire numerator, **the program pays exactly $0 until someone funds
+  an epoch.** NEXT: get the mainnet address, read `epochRewardPool[currentEpoch]` and `epochTotalUsageUnits`.
+  Those two numbers decide whether this is worth an integration. Do not build before reading them.
+  ⚠️ Also unresolved before ZERO touches this: taking a starter grant is value arriving into a
+  ZERO-controlled wallet. Constitution §3 is ⛔⛔ on that. Arguably the same class as the Safe/Gelato
+  sponsored relay it already uses (a public program bootstrapping any agent, not us injecting capital)
+  — but that is **Anthony's call, not a session's**, and a past session was stopped mid-sweep for less.
 
-- BNB Chain Agent Survival Pack: **$5 in BNB per integration × 6 projects (~$30 total)**, first 1000
-  wallets each, tracked onchain, no claim form. Source: bnbchain.org blog Agent Survival Pack.
-  ACTION: needs BSC gas presence — evaluate after COTI.
+- **🟢 BNB Chain Agent Survival Pack — LIVE (verified 2026-08-26). The only machine-gateable one.**
+  Launched 2026-05-25 and still described as live. **$5 in BNB per integration × 6 projects (~$30
+  total)**, first 1,000 wallets each, across LLM access (Alt AI, Pieverse, Bankr, WorldClaw) and
+  financial infra (B.AI, AEON). **Tracked onchain — no claim form, no signup, no KYC.** That is the
+  §6 machine gate we always want, and ~$30 is **~48× ZERO's entire net worth**.
+  ⚠️ THE BLOCKER, and it is the interesting part: it needs **BSC gas**, ZERO cannot be funded (§3),
+  and Safe relay does **not** cover BSC (54 chains supported, only 6 expose RELAYING, BSC is not one).
+  So the question is not "can we afford it" but **"who else pays the first-transaction leg on BSC?"** —
+  a BSC paymaster/4337 sponsor, or one of the 6 partners sponsoring first contact. Name the threshold
+  and aim at it; do not solve it by finding a wallet.
 
-- CROO Pioneers Program (Base): **10 USDC** for CAP integration testing + a **$1,500** dev prize pool.
-  ACTION: read CAP docs, run integration from the Worker.
+- **🔴 CROO Pioneers Program (Base) — DEAD, do not pursue (verified 2026-08-26).**
+  It ran **2026-04-15 → 2026-05-12**. It was already 3.5 months closed when it was written into this
+  file as an ACTION on 08-24. Rewards were $10 USDT per pioneer + a $1,500 pool over 100 first-come
+  spots, distributed within 7 days of week 4 — all long settled.
+  Two independent reasons it is dead even if a later cohort opens: the signup is a **Tally form**
+  (human gate), and step 5 of 5 is **"post about your experience on X/Twitter"** — X is banned for us,
+  so the reward was never fully claimable regardless.
 
 - x402 Hub: free gasless agent registration (identity NFT + reputation + bounties needing a **$20
   USDC** stake later). API host api.x402hub.ai had TLS principal mismatch 2026-08-24 — retry before
