@@ -1502,3 +1502,38 @@ Future-you should:
 - Base remains highest priority due to verified paying contracts and infrastructure reliability
 - Always verify contracts with payout_history BEFORE spending slots - automation database severely outdated
 - $0.0634 daily potential available on Base when relay slots refill
+# SESSION ZERO-KEEPER 2026-08-27T03:48Z — profit-loop cycle (Eli locked)
+
+Spark: is the harvest seam actually dead?
+
+Test (read-only, no keys, no relay POST):
+- Base KNOWN_PAYER 0xc664C800bC54229034A629335A231f279320a605 is 45-byte EIP-1167, impl 0x68Ecddba8D4CfCa13923fC8d66f2678BF17aB4e1. extractSelectors on clone = 0; on impl = 96 including harvest(address) 0x0e5c011e. eth_call harvest(address) from Safe 0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f returned 0x (did not revert).
+- Settled: same clone paid callers 2026-08-26T11:21:25Z tx 0x33d6c7f126b492a00827bd4ae8af65e3383b0d1cb4002b71d0ee69ef4fcbcfb4, method harvest() 0x4641257d. An EOA received 812822162 wei WETH.
+- The 2026-08-26 "1.2M logs, 0 paid" claim lives only in knowledge/frontier.md (commit 2978c87). No scan artifact in state/ or scripts/.
+- Gnosis 0x0B98057eA310F4d31F2a452B414647007d1645d9: harvest() and harvest(address) both revert.
+
+Eli-locked verdicts:
+- harvest-scan-new-callers: KILL
+- beefy-known-payer-base (0xc664C800): PURSUE as phase 0 through the worker, one idle Base/Arb slot. Keeper does not sign.
+- gnosis-0x0B98057-harvest: KILL
+
+Next spark: worker spends one idle slot on a proven payer. No new pasture. Not Apify. Never funded.
+
+# SESSION ZERO-KEEPER 2026-08-27T03:57Z — R&D cycle (queue recomputed)
+
+Spark: is the harvest seam actually dead? Test against source, not frontier.md.
+
+Test (read-only: eth_getCode / eth_call / explorer GET / MegaFuel pm_isSponsorable. No keys, no sign, no Safe-relay POST):
+- Recomputed state/verified-harvest-queue.json at 2026-08-27T03:57:34Z. n=46, paying=43, reverted=3, **n_net_negative=43**, total_usd=**$0.084553** (prev 2026-08-23 $0.122893). ETH=$2489.58, gasPrice=6e6 wei. Every paying row is negative-EV self-funded.
+- 2026-08-26 "1.2M logs, 0 paid" lives only in knowledge/frontier.md (git 2978c87, that file alone). No scan JSON/log/script artifact. Claim unverified as a measurement.
+- Base KNOWN_PAYER 0xc664C800bC54229034A629335A231f279320a605: 45-byte EIP-1167 (regex exact), impl 0x68ecddba8d4cfca13923fc8d66f2678bf17ab4e1. extractSelectors clone=0, impl=89 including harvest(address) 0x0e5c011e. eth_call harvest(address) from Safe 0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f returned 0x (success, no revert). probeOne → 769414697018 wei WETH to Safe (~$0.00192). Last settled harvest 2026-08-26T11:21:25Z tx 0x33d6c7f126b492a00827bd4ae8af65e3383b0d1cb4002b71d0ee69ef4fcbcfb4, harvest() 0x4641257d, EOA 0xd12D2544… received 812822162 wei WETH.
+- Experiment: Gnosis 0x0B98057eA310F4d31F2a452B414647007d1645d9. harvest() and harvest(address) both revert from Safe. Contract is SBCDepositContractProxy (claimWithdrawal / claimWithdrawals). Callers are withdrawing their own validator position — not an arbitrary-caller fee. KILL.
+- Fallback experiment (docs + one read): BSC Agent Survival Pack first-tx sponsor. Rail exists: BEP-414 EOA MegaFuel, not 4337. pm_isSponsorable on https://bsc-megafuel.nodereal.io for ZERO EOA dummy self-tx → sponsorable:false. PARK. Do not send BSC gas. COTI starter grant stays Anthony's call.
+
+Verdicts:
+- harvest-scan-new-callers: **KILL**
+- beefy-known-payer-0xc664C800: **PURSUE** as one idle Base/Arb worker slot (not a new scan). Keeper does not sign.
+- gnosis-0x0B98057-harvest: **KILL** (SBCDeposit trap)
+- bnb-survival-pack-first-tx-sponsor: **PARK** (rail exists, public policy will not sponsor this EOA)
+
+Next spark: one idle Safe slot on a proven Base payer already in the queue (best now 0xac3c1d42… ~$0.024 sim). No new pasture. Not Apify. Never funded.

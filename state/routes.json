@@ -7,7 +7,7 @@
       "earned_usd": 0,
       "notes": [
         "Multiple faucets attempted but all require human registration, captcha, or social login. No direct API access found for automated claiming.",
-        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+        "HUMAN-GATED \u2014 OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
       ],
       "last": {
         "at": "2026-07-27T23:26:47.270Z",
@@ -21,7 +21,7 @@
       "earned_usd": 0,
       "notes": [
         "Extensive research found no automated API-accessible faucets for Base Sepolia. All require human verification.",
-        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+        "HUMAN-GATED \u2014 OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
       ],
       "last": {
         "at": "2026-07-27T23:26:47.271Z",
@@ -50,7 +50,7 @@
       "earned_usd": 0,
       "notes": [
         "Requires USDC to start earning - no funding source found",
-        "NOT human-gated — machine-auth throughout (wallet sig + X402). Capital-gated only: unlocks at ~$1 USDC. Until then poll GET /api/tasks (free) to learn what sells."
+        "NOT human-gated \u2014 machine-auth throughout (wallet sig + X402). Capital-gated only: unlocks at ~$1 USDC. Until then poll GET /api/tasks (free) to learn what sells."
       ],
       "last": {
         "at": "2026-07-27T23:13:55.055Z",
@@ -64,7 +64,7 @@
       "earned_usd": 0,
       "notes": [
         "API returned server error when registering",
-        "NOT human-gated — API-only registration, your schema was correct. Their ENTIRE API is down (all endpoints 500, verified 2026-07-27). Recheck occasionally; if alive, claiming needs no capital. Ignore their skill.md posting demands (rule 7)."
+        "NOT human-gated \u2014 API-only registration, your schema was correct. Their ENTIRE API is down (all endpoints 500, verified 2026-07-27). Recheck occasionally; if alive, claiming needs no capital. Ignore their skill.md posting demands (rule 7)."
       ],
       "last": {
         "at": "2026-07-27T23:14:00.351Z",
@@ -77,8 +77,8 @@
       "blocked": 2,
       "earned_usd": 0,
       "notes": [
-        "Requires Basename, Builder Score ≥40, and human verification",
-        "HUMAN-GATED — OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
+        "Requires Basename, Builder Score \u226540, and human verification",
+        "HUMAN-GATED \u2014 OUT OF SCOPE PERMANENTLY (operator ruling 2026-07-27, rule 2b). Never attempt or research again."
       ],
       "last": {
         "at": "2026-07-27T23:26:47.271Z",
@@ -162,7 +162,7 @@
         "autoharvest ramses-cl-weth-usdc-vault: +0.000000013158559549 WETH ($0.00002501) (tx 0x3bba40c2adea6ec1ef77b5ce84d34bf713993706ad64cf67e503398f35e38bad)",
         "autoharvest velo-cow-op-weth-usdc-vault: +0.000000797913364574 WETH ($0.00151968) (tx 0x7f61f68a743ff1effa2b63611bdc2cc32771279f959b7cbe9cac6fd97e677246)",
         "autoharvest velodrome-v2-usdc-alusd-2: +0.000000896253604792 WETH ($0.00170683) (tx 0xfce863e5fdf2d13188d15bf534f8bc6d206274d93a762fba4273152556825d00)",
-        "OPERATOR 2026-07-30: blocked counter reset — the two blocks were relay-capacity noise, not route failure. This is your proven payer."
+        "OPERATOR 2026-07-30: blocked counter reset \u2014 the two blocks were relay-capacity noise, not route failure. This is your proven payer."
       ],
       "last": {
         "at": "2026-07-30T05:28:55.294Z",
@@ -319,7 +319,7 @@
         "Top Optimism candidate 0x18ff03A7456325b752Ff428dd65c10020C7971Fe shows NO_EVIDENCE - no successful external calls found in recent history",
         "Top Optimism candidates show NO_EVIDENCE - no successful external calls found in recent history. Cannot spend relay slots on unproven contracts.",
         "Top 4 Optimism candidates all show NO_EVIDENCE - no successful external calls found in recent history. Cannot spend relay slots on unproven contracts.",
-        "Discovered Optimism has 72 active Beefy vaults with 68 potentially paying contracts. Found 2 new candidates via discover_new_sources. Verified top 3 candidates return \"NO_EVIDENCE\" - meaning unproven, …[truncated 86 chars]"
+        "Discovered Optimism has 72 active Beefy vaults with 68 potentially paying contracts. Found 2 new candidates via discover_new_sources. Verified top 3 candidates return \"NO_EVIDENCE\" - meaning unproven, \u2026[truncated 86 chars]"
       ],
       "last": {
         "at": "2026-07-31T19:52:08.240Z",
@@ -767,10 +767,10 @@
       "attempts": 2,
       "successes": 2,
       "blocked": 0,
-      "earned_usd": 0.00003,
+      "earned_usd": 3e-05,
       "notes": [
-        "Successfully executed harvest_batch on Base with 5/5 relay slots available, processed 12 contracts, expected earnings ~$0.000015. Proven relay slots are functional after session 166 service unavailabl …[truncated 9 chars]",
-        "Successfully executed harvest_batch on Base with 5/5 relay slots available. Processed 12 contracts, expected earnings ~$0.000015. Proves relay infrastructure is working after session 166 service unava …[truncated 13 chars]"
+        "Successfully executed harvest_batch on Base with 5/5 relay slots available, processed 12 contracts, expected earnings ~$0.000015. Proven relay slots are functional after session 166 service unavailabl \u2026[truncated 9 chars]",
+        "Successfully executed harvest_batch on Base with 5/5 relay slots available. Processed 12 contracts, expected earnings ~$0.000015. Proves relay infrastructure is working after session 166 service unava \u2026[truncated 13 chars]"
       ],
       "last": {
         "at": "2026-08-01T07:00:20.209Z",
@@ -1401,7 +1401,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Individual harvest attempt failed due to RPC rate limits and Base relay slots exhausted. Gnosis/Unichain have free slots but no paying strategies. Bottleneck is Base relay slot availability, not contr …[truncated 14 chars]"
+        "Individual harvest attempt failed due to RPC rate limits and Base relay slots exhausted. Gnosis/Unichain have free slots but no paying strategies. Bottleneck is Base relay slot availability, not contr \u2026[truncated 14 chars]"
       ],
       "last": {
         "at": "2026-08-02T09:40:14.087Z",
@@ -1414,7 +1414,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed Base relay slot capacity is the bottleneck. 646 candidates available with 310 callable, but Base slots exhausted (0/5) while Gnosis/Unichain have free slots (5/5) but no paying strategies. N …[truncated 86 chars]"
+        "Confirmed Base relay slot capacity is the bottleneck. 646 candidates available with 310 callable, but Base slots exhausted (0/5) while Gnosis/Unichain have free slots (5/5) but no paying strategies. N \u2026[truncated 86 chars]"
       ],
       "last": {
         "at": "2026-08-02T09:46:15.481Z",
@@ -1507,7 +1507,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed Base relay slot capacity is the only bottleneck preventing $0.0634 daily earnings. Gnosis/Unichain have free slots but no paying strategies. Optimism/Arbitrum have paying contracts but exhau …[truncated 125 chars]"
+        "Confirmed Base relay slot capacity is the only bottleneck preventing $0.0634 daily earnings. Gnosis/Unichain have free slots but no paying strategies. Optimism/Arbitrum have paying contracts but exhau \u2026[truncated 125 chars]"
       ],
       "last": {
         "at": "2026-08-02T15:08:06.603Z",
@@ -1585,7 +1585,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified 3 actual paying contracts despite database showing outdated classifications. 0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA pays zero despite 47 payouts_seen, while 0x6aEa497106845bCE2CCe35E770a1 …[truncated 73 chars]"
+        "Verified 3 actual paying contracts despite database showing outdated classifications. 0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA pays zero despite 47 payouts_seen, while 0x6aEa497106845bCE2CCe35E770a1 \u2026[truncated 73 chars]"
       ],
       "last": {
         "at": "2026-08-02T21:12:55.889Z",
@@ -1598,7 +1598,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed Base relay slot capacity remains the only bottleneck preventing $0.0634 daily earnings. Gnosis/Unichain have free slots but no paying strategies. 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a c …[truncated 71 chars]"
+        "Confirmed Base relay slot capacity remains the only bottleneck preventing $0.0634 daily earnings. Gnosis/Unichain have free slots but no paying strategies. 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a c \u2026[truncated 71 chars]"
       ],
       "last": {
         "at": "2026-08-02T21:51:00.117Z",
@@ -1611,7 +1611,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified 3 high-paying Base contracts via payout_oracle: 0x18ff03A7456325b752Ff428dd65c10020C7971Fe (0.00000119 WETH), 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a (0.000000206 WETH), 0x6aEa497106845bCE …[truncated 43 chars]"
+        "Verified 3 high-paying Base contracts via payout_oracle: 0x18ff03A7456325b752Ff428dd65c10020C7971Fe (0.00000119 WETH), 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a (0.000000206 WETH), 0x6aEa497106845bCE \u2026[truncated 43 chars]"
       ],
       "last": {
         "at": "2026-08-02T23:06:59.226Z",
@@ -1677,7 +1677,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5). Cannot harvest 3 high-paying contracts (0x6aEa497106845bCE2CCe35E770a12a63288c5B65, 0x18ff03A7456325b752Ff428dd65c10020C7971Fe, 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f …[truncated 39 chars]"
+        "Base relay slots exhausted (0/5). Cannot harvest 3 high-paying contracts (0x6aEa497106845bCE2CCe35E770a12a63288c5B65, 0x18ff03A7456325b752Ff428dd65c10020C7971Fe, 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f \u2026[truncated 39 chars]"
       ],
       "last": {
         "at": "2026-08-03T03:08:59.509Z",
@@ -1716,7 +1716,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5), cannot harvest 287 proven paying contracts despite automation being ready. Bottleneck confirmed as relay slot capacity, not contract availability or payment mechanism …[truncated 2 chars]"
+        "Base relay slots exhausted (0/5), cannot harvest 287 proven paying contracts despite automation being ready. Bottleneck confirmed as relay slot capacity, not contract availability or payment mechanism \u2026[truncated 2 chars]"
       ],
       "last": {
         "at": "2026-08-03T05:53:41.217Z",
@@ -1729,7 +1729,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 287 proven paying contracts despite having identified high-value targets via payout_history. Bottleneck confirmed as relay slot capacity, not con …[truncated 40 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 287 proven paying contracts despite having identified high-value targets via payout_history. Bottleneck confirmed as relay slot capacity, not con \u2026[truncated 40 chars]"
       ],
       "last": {
         "at": "2026-08-03T06:35:00.135Z",
@@ -1742,7 +1742,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 287 proven paying contracts despite having identified high-value targets via payout_history. Bottleneck confirmed as relay slot capacity, not con …[truncated 131 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 287 proven paying contracts despite having identified high-value targets via payout_history. Bottleneck confirmed as relay slot capacity, not con \u2026[truncated 131 chars]"
       ],
       "last": {
         "at": "2026-08-03T07:13:17.175Z",
@@ -1755,7 +1755,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 287 proven paying contracts despite having identified high-value targets via payout_history. Bottleneck confirmed as relay slot capacity, not con …[truncated 40 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 287 proven paying contracts despite having identified high-value targets via payout_history. Bottleneck confirmed as relay slot capacity, not con \u2026[truncated 40 chars]"
       ],
       "last": {
         "at": "2026-08-03T07:55:00.622Z",
@@ -1807,7 +1807,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (5/5) but harvest_batch failed with \"nothing is paying\" errors despite prospect_intel showing 291 proven paying contracts. Root cause: database severely outdated - all previ …[truncated 61 chars]"
+        "Base relay slots available (5/5) but harvest_batch failed with \"nothing is paying\" errors despite prospect_intel showing 291 proven paying contracts. Root cause: database severely outdated - all previ \u2026[truncated 61 chars]"
       ],
       "last": {
         "at": "2026-08-03T10:35:08.661Z",
@@ -1820,7 +1820,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (4/5) but harvest_batch failed with service unavailable and \"nothing is paying\" errors despite verifying 5 contracts still pay real WETH to callers. Infrastructure issue pre …[truncated 26 chars]"
+        "Base relay slots available (4/5) but harvest_batch failed with service unavailable and \"nothing is paying\" errors despite verifying 5 contracts still pay real WETH to callers. Infrastructure issue pre \u2026[truncated 26 chars]"
       ],
       "last": {
         "at": "2026-08-03T11:23:06.230Z",
@@ -1831,7 +1831,7 @@
       "attempts": 1,
       "successes": 1,
       "blocked": 0,
-      "earned_usd": 0.000013,
+      "earned_usd": 1.3e-05,
       "notes": [
         "Harvested 12 contracts successfully. Expected ~$0.000013 WETH earnings. Relay slots exhausted (0/5) after batch execution."
       ],
@@ -1859,7 +1859,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Attempted to harvest verified paying Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but harvest_batch returned \"nothing is paying\" despite payout_history and payout_oracle confirming it pa …[truncated 59 chars]"
+        "Attempted to harvest verified paying Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but harvest_batch returned \"nothing is paying\" despite payout_history and payout_oracle confirming it pa \u2026[truncated 59 chars]"
       ],
       "last": {
         "at": "2026-08-03T13:57:08.557Z",
@@ -1872,7 +1872,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab actually pays callers with real settled XDAI payouts, falsifying \"dead chain\" hypothesis and revealing harvest_batch tool limitation …[truncated 19 chars]"
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab actually pays callers with real settled XDAI payouts, falsifying \"dead chain\" hypothesis and revealing harvest_batch tool limitation \u2026[truncated 19 chars]"
       ],
       "last": {
         "at": "2026-08-03T14:34:54.787Z",
@@ -1885,7 +1885,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Attempted manual harvest on Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but RPC gas estimation failed. Contract verified paying via payout_oracle (0.000000079 XDAI), but execution block …[truncated 28 chars]",
+        "Attempted manual harvest on Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but RPC gas estimation failed. Contract verified paying via payout_oracle (0.000000079 XDAI), but execution block \u2026[truncated 28 chars]",
         "RPC rate limits prevented manual harvest of verified paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab on Gnosis despite 5/5 relay slots available",
         "Verified paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab on Gnosis but manual harvest failed - insufficient funds error despite having 5/5 relay slots",
         "RPC rate limits prevented manual harvest of verified paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab",
@@ -1968,7 +1968,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab shows PAYS_CALLERS in history but current payout_oracle shows all functions revert for arbitrary caller. Payment mechanism appears broken or  …[truncated 60 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab shows PAYS_CALLERS in history but current payout_oracle shows all functions revert for arbitrary caller. Payment mechanism appears broken or  \u2026[truncated 60 chars]"
       ],
       "last": {
         "at": "2026-08-03T20:30:53.965Z",
@@ -1981,7 +1981,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Identified root cause: harvest_batch automation has severely outdated database, cannot see paying contracts that exist. Gnosis not dead chain - has verified paying contracts with real settled XDAI pay …[truncated 5 chars]"
+        "Identified root cause: harvest_batch automation has severely outdated database, cannot see paying contracts that exist. Gnosis not dead chain - has verified paying contracts with real settled XDAI pay \u2026[truncated 5 chars]"
       ],
       "last": {
         "at": "2026-08-03T21:06:53.183Z",
@@ -1994,7 +1994,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Identified root cause: harvest_batch automation has severely outdated database, cannot see paying contracts that exist. Gnosis/Unichain not dead chains - have verified paying contracts with real settl …[truncated 17 chars]"
+        "Identified root cause: harvest_batch automation has severely outdated database, cannot see paying contracts that exist. Gnosis/Unichain not dead chains - have verified paying contracts with real settl \u2026[truncated 17 chars]"
       ],
       "last": {
         "at": "2026-08-03T21:44:53.947Z",
@@ -2025,8 +2025,8 @@
       "notes": [
         "Historical payments exist but current functionality reverts - temporal verification gap discovered",
         "Confirmed temporal verification gap - Gnosis contracts pay historically but current functionality reverts. Automation tools broken.",
-        "Confirmed temporal verification gap exists on Gnosis - contracts pay historically but current functionality may differ. 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab still pays XDAI, 0x0B98057eA310F4d31F …[truncated 119 chars]",
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality. Automation tools return false negatives despite proven paying contracts."
+        "Confirmed temporal verification gap exists on Gnosis - contracts pay historically but current functionality may differ. 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab still pays XDAI, 0x0B98057eA310F4d31F \u2026[truncated 119 chars]",
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality. Automation tools return false negatives despite proven paying contracts."
       ],
       "last": {
         "at": "2026-08-10T13:55:10.960Z",
@@ -2039,7 +2039,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Proven temporal verification gap - historical payments ≠ current functionality on Gnosis contracts"
+        "Proven temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts"
       ],
       "last": {
         "at": "2026-08-04T00:54:55.713Z",
@@ -2052,7 +2052,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on cross-chain contracts. Base remains only viable harvesting chain."
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on cross-chain contracts. Base remains only viable harvesting chain."
       ],
       "last": {
         "at": "2026-08-04T01:34:53.433Z",
@@ -2065,8 +2065,8 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays both historically (payout_history) and currently (payout_oracle). Temporal verification gap bridged - some contracts DO pay on …[truncated 65 chars]",
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays both historically and currently. Temporal verification gap bridged - cross-chain harvesting is viable but RPC infrastructure pr …[truncated 17 chars]",
+        "Confirmed Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays both historically (payout_history) and currently (payout_oracle). Temporal verification gap bridged - some contracts DO pay on \u2026[truncated 65 chars]",
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays both historically and currently. Temporal verification gap bridged - cross-chain harvesting is viable but RPC infrastructure pr \u2026[truncated 17 chars]",
         "Manual harvest verification failed due to RPC infrastructure failure on Gnosis - all eth_call attempts reverted despite proven paying contract"
       ],
       "last": {
@@ -2145,7 +2145,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on Gnosis contracts. Automation tools broken across all chains."
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts. Automation tools broken across all chains."
       ],
       "last": {
         "at": "2026-08-04T06:38:19.168Z",
@@ -2158,7 +2158,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified 4 Base contracts, found 1 major USDC payer (0x8a311D7048c35985aa31C131B9A13e03a5f7422d) and 2 WETH payers. Confirmed automation failure - harvest_batch returns false negatives despite verifie …[truncated 28 chars]"
+        "Verified 4 Base contracts, found 1 major USDC payer (0x8a311D7048c35985aa31C131B9A13e03a5f7422d) and 2 WETH payers. Confirmed automation failure - harvest_batch returns false negatives despite verifie \u2026[truncated 28 chars]"
       ],
       "last": {
         "at": "2026-08-04T07:20:20.784Z",
@@ -2249,7 +2249,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest attempt of high-paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe reverted despite having 56 gas capacity available. RPC infrastructure bottleneck preventing execution of  …[truncated 24 chars]"
+        "Self-funded harvest attempt of high-paying contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe reverted despite having 56 gas capacity available. RPC infrastructure bottleneck preventing execution of  \u2026[truncated 24 chars]"
       ],
       "last": {
         "at": "2026-08-04T13:32:20.569Z",
@@ -2273,9 +2273,9 @@
       "attempts": 1,
       "successes": 1,
       "blocked": 0,
-      "earned_usd": 0.000001,
+      "earned_usd": 1e-06,
       "notes": [
-        "Self-funded harvest executed successfully despite Base relay slots exhausted. Used function 0x0e5c011e on contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe, paid 0.000000801533601983 WETH to smart a …[truncated 65 chars]"
+        "Self-funded harvest executed successfully despite Base relay slots exhausted. Used function 0x0e5c011e on contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe, paid 0.000000801533601983 WETH to smart a \u2026[truncated 65 chars]"
       ],
       "last": {
         "at": "2026-08-04T14:48:19.727Z",
@@ -2288,7 +2288,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Target contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe shows positive payout oracle readings but all transaction attempts reverted. Contract may be broken or function signature incorrect despite b …[truncated 23 chars]"
+        "Target contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe shows positive payout oracle readings but all transaction attempts reverted. Contract may be broken or function signature incorrect despite b \u2026[truncated 23 chars]"
       ],
       "last": {
         "at": "2026-08-04T15:28:19.473Z",
@@ -2312,7 +2312,7 @@
       "attempts": 1,
       "successes": 1,
       "blocked": 0,
-      "earned_usd": 0.000045,
+      "earned_usd": 4.5e-05,
       "notes": [
         "Successfully harvested 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 using self-funded gas, earned $0.00004476. Function 0x0e5c011e requires address parameter - must pass smart account address."
       ],
@@ -2327,7 +2327,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "All 3 self-funded harvest attempts reverted despite correct function signatures and smart account address. Oracle readings positive but transactions failed. Strategy from session 290 no longer working …[truncated 1 chars]"
+        "All 3 self-funded harvest attempts reverted despite correct function signatures and smart account address. Oracle readings positive but transactions failed. Strategy from session 290 no longer working \u2026[truncated 1 chars]"
       ],
       "last": {
         "at": "2026-08-04T17:30:18.142Z",
@@ -2392,7 +2392,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing access to 337+ callable contracts. Gnosis/Unichain have free slots but no paying strategies. Bottleneck confirmed as relay slot capacity, not contract avail …[truncated 8 chars]"
+        "Base relay slots exhausted (0/5) preventing access to 337+ callable contracts. Gnosis/Unichain have free slots but no paying strategies. Bottleneck confirmed as relay slot capacity, not contract avail \u2026[truncated 8 chars]"
       ],
       "last": {
         "at": "2026-08-04T21:20:05.622Z",
@@ -2405,7 +2405,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5). harvest_batch returned \"nothing is paying\" despite 313 proven paying contracts existing. Bottleneck confirmed as relay slot capacity, not contract availability or pay …[truncated 15 chars]"
+        "Base relay slots exhausted (0/5). harvest_batch returned \"nothing is paying\" despite 313 proven paying contracts existing. Bottleneck confirmed as relay slot capacity, not contract availability or pay \u2026[truncated 15 chars]"
       ],
       "last": {
         "at": "2026-08-04T21:58:09.336Z",
@@ -2459,7 +2459,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Base contract 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a pays 0.000000196087021044 WETH to arbitrary caller via harvest(address). Base relay slots exhausted (0/5), self-funded gas available ( …[truncated 92 chars]"
+        "Verified Base contract 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a pays 0.000000196087021044 WETH to arbitrary caller via harvest(address). Base relay slots exhausted (0/5), self-funded gas available ( \u2026[truncated 92 chars]"
       ],
       "last": {
         "at": "2026-08-05T00:34:17.673Z",
@@ -2472,7 +2472,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest attempts on verified paying contract 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a reverted despite correct function signature and available gas. Contract may have state changes or re …[truncated 27 chars]"
+        "Self-funded harvest attempts on verified paying contract 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a reverted despite correct function signature and available gas. Contract may have state changes or re \u2026[truncated 27 chars]"
       ],
       "last": {
         "at": "2026-08-05T01:14:21.581Z",
@@ -2485,7 +2485,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest attempt on 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a succeeded but REVERTED despite correct function signature and available gas. Contract may have state changes or function signa …[truncated 26 chars]"
+        "Self-funded harvest attempt on 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a succeeded but REVERTED despite correct function signature and available gas. Contract may have state changes or function signa \u2026[truncated 26 chars]"
       ],
       "last": {
         "at": "2026-08-05T01:54:05.674Z",
@@ -2524,7 +2524,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest attempts reverted despite correct function signatures and available gas capacity. Contract execution timing issues preventing successful harvests despite contracts being verified p …[truncated 6 chars]"
+        "Self-funded harvest attempts reverted despite correct function signatures and available gas capacity. Contract execution timing issues preventing successful harvests despite contracts being verified p \u2026[truncated 6 chars]"
       ],
       "last": {
         "at": "2026-08-05T03:54:44.957Z",
@@ -2535,9 +2535,9 @@
       "attempts": 1,
       "successes": 1,
       "blocked": 0,
-      "earned_usd": 0.000014,
+      "earned_usd": 1.4e-05,
       "notes": [
-        "Successfully executed self-funded harvest on 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 using harvest(address) function. Transaction 0x032af75414936dbfeb5293c16a259d2d08e1cdf99d93f60946e2591ca31510be  …[truncated 87 chars]"
+        "Successfully executed self-funded harvest on 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 using harvest(address) function. Transaction 0x032af75414936dbfeb5293c16a259d2d08e1cdf99d93f60946e2591ca31510be  \u2026[truncated 87 chars]"
       ],
       "last": {
         "at": "2026-08-05T04:36:07.107Z",
@@ -2550,7 +2550,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest attempt on verified paying contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 reverted despite correct function signature and available gas. Contract execution timing fragile desp …[truncated 19 chars]"
+        "Self-funded harvest attempt on verified paying contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 reverted despite correct function signature and available gas. Contract execution timing fragile desp \u2026[truncated 19 chars]"
       ],
       "last": {
         "at": "2026-08-05T06:04:05.641Z",
@@ -2576,7 +2576,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest attempts on proven paying contracts 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 and 0x18ff03A7456325b752Ff428dd65c10020C7971Fe reverted despite correct function signatures and avail …[truncated 73 chars]"
+        "Self-funded harvest attempts on proven paying contracts 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 and 0x18ff03A7456325b752Ff428dd65c10020C7971Fe reverted despite correct function signatures and avail \u2026[truncated 73 chars]"
       ],
       "last": {
         "at": "2026-08-05T07:32:07.040Z",
@@ -2589,7 +2589,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified 3 high-paying Base contracts via payout_history: 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a pays 0.000000067978245272 WETH, 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays historically, 0x18f …[truncated 55 chars]"
+        "Verified 3 high-paying Base contracts via payout_history: 0x97F0609d2d1fAdeD374FDACDf5fDf912fF0f656a pays 0.000000067978245272 WETH, 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays historically, 0x18f \u2026[truncated 55 chars]"
       ],
       "last": {
         "at": "2026-08-05T08:21:00.950Z",
@@ -2615,7 +2615,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on Gnosis contracts. Base remains only viable harvesting chain."
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts. Base remains only viable harvesting chain."
       ],
       "last": {
         "at": "2026-08-05T10:18:05.905Z",
@@ -2628,7 +2628,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5), 318 proven paying contracts ready but cannot access. Gnosis has 5/5 free slots but harvest_batch automation returns false negative - manual verification shows paying  …[truncated 47 chars]"
+        "Base relay slots exhausted (0/5), 318 proven paying contracts ready but cannot access. Gnosis has 5/5 free slots but harvest_batch automation returns false negative - manual verification shows paying  \u2026[truncated 47 chars]"
       ],
       "last": {
         "at": "2026-08-05T10:56:07.187Z",
@@ -2758,8 +2758,8 @@
       "blocked": 2,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 (pays up to 126 GNO per call), but harvest_batch automation returns false negative \"nothing is pay …[truncated 122 chars]",
-        "Gnosis has 5/5 free relay slots and proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 (pays up to 126 GNO per call), but harvest_batch automation returns false negative \"nothing is pay …[truncated 122 chars]"
+        "Gnosis has 5/5 free relay slots and proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 (pays up to 126 GNO per call), but harvest_batch automation returns false negative \"nothing is pay \u2026[truncated 122 chars]",
+        "Gnosis has 5/5 free relay slots and proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 (pays up to 126 GNO per call), but harvest_batch automation returns false negative \"nothing is pay \u2026[truncated 122 chars]"
       ],
       "last": {
         "at": "2026-08-05T17:02:14.677Z",
@@ -2799,7 +2799,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Discovered temporal verification gap - historical payments ≠ current functionality on Gnosis contracts. Found one contract still pays (0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F9Ab via 0x0e5c011e), anoth …[truncated 56 chars]"
+        "Discovered temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts. Found one contract still pays (0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F9Ab via 0x0e5c011e), anoth \u2026[truncated 56 chars]"
       ],
       "last": {
         "at": "2026-08-05T20:04:07.099Z",
@@ -2838,7 +2838,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvesting on Base is net-negative due to gas costs exceeding payouts. Contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays 0.000000405 WETH but costs 0.00003867 ETH to execute. Relay  …[truncated 38 chars]"
+        "Self-funded harvesting on Base is net-negative due to gas costs exceeding payouts. Contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays 0.000000405 WETH but costs 0.00003867 ETH to execute. Relay  \u2026[truncated 38 chars]"
       ],
       "last": {
         "at": "2026-08-05T22:02:07.392Z",
@@ -2851,7 +2851,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Base contract 0x8a311D7048c35985aa31C131B9A13e03a5f7422d shows no current payouts despite historical payments. Confirmed temporal verification gap - historical ≠ current functionality on cros …[truncated 18 chars]"
+        "Verified Base contract 0x8a311D7048c35985aa31C131B9A13e03a5f7422d shows no current payouts despite historical payments. Confirmed temporal verification gap - historical \u2260 current functionality on cros \u2026[truncated 18 chars]"
       ],
       "last": {
         "at": "2026-08-05T22:44:05.454Z",
@@ -2864,7 +2864,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 300+ proven paying contracts. Gnosis has proven paying contracts but RPC infrastructure failing. Unichain has free slots but no paying strategies …[truncated 46 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 300+ proven paying contracts. Gnosis has proven paying contracts but RPC infrastructure failing. Unichain has free slots but no paying strategies \u2026[truncated 46 chars]"
       ],
       "last": {
         "at": "2026-08-05T23:21:06.078Z",
@@ -2903,7 +2903,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Attempted to harvest Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 but harvest_batch automation returns \"nothing is paying\" despite payout_history proving it pays real GNO to callers. Too …[truncated 69 chars]"
+        "Attempted to harvest Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 but harvest_batch automation returns \"nothing is paying\" despite payout_history proving it pays real GNO to callers. Too \u2026[truncated 69 chars]"
       ],
       "last": {
         "at": "2026-08-06T01:15:11.209Z",
@@ -2916,7 +2916,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 on Gnosis with 5/5 free relay slots, but RPC infrastructure failure prevented gas estimation and harvest execution. Contract verified  …[truncated 65 chars]"
+        "Proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 on Gnosis with 5/5 free relay slots, but RPC infrastructure failure prevented gas estimation and harvest execution. Contract verified  \u2026[truncated 65 chars]"
       ],
       "last": {
         "at": "2026-08-06T01:55:06.748Z",
@@ -2968,7 +2968,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS in history but current functionality reverts. Temporal verification gap confirmed - historical payments ≠ current functionality.  …[truncated 86 chars]"
+        "Contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS in history but current functionality reverts. Temporal verification gap confirmed - historical payments \u2260 current functionality.  \u2026[truncated 86 chars]"
       ],
       "last": {
         "at": "2026-08-06T03:49:06.698Z",
@@ -2982,7 +2982,7 @@
       "earned_usd": 0,
       "notes": [
         "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via claimWithdrawal() functions. Automation tools compromised - manual verification required.",
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers. Automation tools severely compromised - must rely on payout_history only. Base relay slots exhausted block …[truncated 28 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers. Automation tools severely compromised - must rely on payout_history only. Base relay slots exhausted block \u2026[truncated 28 chars]"
       ],
       "last": {
         "at": "2026-08-06T04:29:15.291Z",
@@ -2995,7 +2995,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality. This explains automation tool failures and requires dual verification approach."
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality. This explains automation tool failures and requires dual verification approach."
       ],
       "last": {
         "at": "2026-08-06T05:09:08.630Z",
@@ -3021,7 +3021,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality on Gnosis contracts. Base remains only viable harvesting chain with current payment capability."
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality on Gnosis contracts. Base remains only viable harvesting chain with current payment capability."
       ],
       "last": {
         "at": "2026-08-06T06:31:12.113Z",
@@ -3034,7 +3034,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality on Gnosis contracts. Base remains only viable harvesting chain with current payment capability."
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality on Gnosis contracts. Base remains only viable harvesting chain with current payment capability."
       ],
       "last": {
         "at": "2026-08-06T07:07:09.285Z",
@@ -3060,7 +3060,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contracts 0x0B98057eA310F4d31F2a452B414647007d1645d9 and 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab actually pay callers with real settled GNO/XDAI payouts, falsifying automation tool  …[truncated 59 chars]"
+        "Verified Gnosis contracts 0x0B98057eA310F4d31F2a452B414647007d1645d9 and 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab actually pay callers with real settled GNO/XDAI payouts, falsifying automation tool  \u2026[truncated 59 chars]"
       ],
       "last": {
         "at": "2026-08-06T09:07:39.652Z",
@@ -3101,7 +3101,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - Gnosis contracts show historical payments but current functionality differs. Contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 paid up to 126 GNO historically b …[truncated 231 chars]"
+        "Confirmed temporal verification gap - Gnosis contracts show historical payments but current functionality differs. Contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 paid up to 126 GNO historically b \u2026[truncated 231 chars]"
       ],
       "last": {
         "at": "2026-08-06T10:25:08.345Z",
@@ -3127,7 +3127,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis - historical payments ≠ current functionality. Contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 paid up to 126 GNO historically but current payo …[truncated 123 chars]"
+        "Confirmed temporal verification gap exists on Gnosis - historical payments \u2260 current functionality. Contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 paid up to 126 GNO historically but current payo \u2026[truncated 123 chars]"
       ],
       "last": {
         "at": "2026-08-06T11:41:35.796Z",
@@ -3140,7 +3140,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation broken - harvest_batch returns \"nothing is paying\" despite 328 proven paying contracts confirmed via payout_history. Relay slots exhausted (0/5) but automation failure prevents execution ev …[truncated 24 chars]"
+        "Automation broken - harvest_batch returns \"nothing is paying\" despite 328 proven paying contracts confirmed via payout_history. Relay slots exhausted (0/5) but automation failure prevents execution ev \u2026[truncated 24 chars]"
       ],
       "last": {
         "at": "2026-08-06T12:28:38.447Z",
@@ -3166,7 +3166,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5). Automation infrastructure failing with RPC errors on all upstreams. 4 proven paying contracts ready but cannot execute due to slot constraint and infrastructure failu …[truncated 3 chars]"
+        "Base relay slots exhausted (0/5). Automation infrastructure failing with RPC errors on all upstreams. 4 proven paying contracts ready but cannot execute due to slot constraint and infrastructure failu \u2026[truncated 3 chars]"
       ],
       "last": {
         "at": "2026-08-06T13:49:05.048Z",
@@ -3179,7 +3179,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed Gnosis RPC infrastructure failure despite free relay slots and proven paying contracts. Identified Aerodrome COW vaults as legitimate paying contracts falsified by automation. Bottleneck shi …[truncated 42 chars]"
+        "Confirmed Gnosis RPC infrastructure failure despite free relay slots and proven paying contracts. Identified Aerodrome COW vaults as legitimate paying contracts falsified by automation. Bottleneck shi \u2026[truncated 42 chars]"
       ],
       "last": {
         "at": "2026-08-06T15:11:06.264Z",
@@ -3218,8 +3218,8 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and proven paying contracts (0x0B98057eA310F4d31F2a452B414647007d1645d9 pays GNO), but RPC infrastructure completely failed across all providers (publicnode.com, gnosis …[truncated 69 chars]",
-        "Confirmed Gnosis RPC infrastructure failure across all providers - verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 exists with 5 free relay slots but execution prevented by RPC fai …[truncated 5 chars]"
+        "Gnosis has 5/5 free relay slots and proven paying contracts (0x0B98057eA310F4d31F2a452B414647007d1645d9 pays GNO), but RPC infrastructure completely failed across all providers (publicnode.com, gnosis \u2026[truncated 69 chars]",
+        "Confirmed Gnosis RPC infrastructure failure across all providers - verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 exists with 5 free relay slots but execution prevented by RPC fai \u2026[truncated 5 chars]"
       ],
       "last": {
         "at": "2026-08-07T19:48:20.151Z",
@@ -3245,7 +3245,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "RPC infrastructure failures preventing execution despite available relay slots on Base (4/5) and Gnosis (5/5). Proven paying contracts confirmed but gas estimation failed on all upstream RPC providers …[truncated 1 chars]"
+        "RPC infrastructure failures preventing execution despite available relay slots on Base (4/5) and Gnosis (5/5). Proven paying contracts confirmed but gas estimation failed on all upstream RPC providers \u2026[truncated 1 chars]"
       ],
       "last": {
         "at": "2026-08-06T17:15:17.023Z",
@@ -3284,7 +3284,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tools completely broken - harvest_batch returns false negatives despite proven paying contracts on Base and Gnosis. Infrastructure bottleneck preventing earnings execution despite free rela …[truncated 18 chars]"
+        "Automation tools completely broken - harvest_batch returns false negatives despite proven paying contracts on Base and Gnosis. Infrastructure bottleneck preventing earnings execution despite free rela \u2026[truncated 18 chars]"
       ],
       "last": {
         "at": "2026-08-06T19:20:12.550Z",
@@ -3310,7 +3310,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tools completely broken - harvest_batch returns false negatives despite proven paying contracts and available relay slots. Infrastructure bottleneck preventing earnings execution despite fr …[truncated 56 chars]"
+        "Automation tools completely broken - harvest_batch returns false negatives despite proven paying contracts and available relay slots. Infrastructure bottleneck preventing earnings execution despite fr \u2026[truncated 56 chars]"
       ],
       "last": {
         "at": "2026-08-06T20:48:08.427Z",
@@ -3336,7 +3336,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tools (harvest_batch) completely broken on Base and Gnosis, returning false negatives despite proven paying contracts. RPC infrastructure also failing on Gnosis. Cannot execute harvests des …[truncated 32 chars]"
+        "Automation tools (harvest_batch) completely broken on Base and Gnosis, returning false negatives despite proven paying contracts. RPC infrastructure also failing on Gnosis. Cannot execute harvests des \u2026[truncated 32 chars]"
       ],
       "last": {
         "at": "2026-08-06T22:10:09.607Z",
@@ -3349,7 +3349,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tools (harvest_batch) completely broken on Base and Gnosis, returning false negatives despite proven paying contracts. RPC infrastructure failing on Gnosis. Self-funded harvesting blocked b …[truncated 154 chars]"
+        "Automation tools (harvest_batch) completely broken on Base and Gnosis, returning false negatives despite proven paying contracts. RPC infrastructure failing on Gnosis. Self-funded harvesting blocked b \u2026[truncated 154 chars]"
       ],
       "last": {
         "at": "2026-08-06T22:49:07.747Z",
@@ -3375,7 +3375,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tool returns \"nothing is paying\" despite proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 existing with 5/5 free relay slots. Infrastructure bottleneck preventing execution …[truncated 1 chars]"
+        "Automation tool returns \"nothing is paying\" despite proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 existing with 5/5 free relay slots. Infrastructure bottleneck preventing execution \u2026[truncated 1 chars]"
       ],
       "last": {
         "at": "2026-08-06T23:34:46.932Z",
@@ -3401,7 +3401,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation returned \"nothing is paying\" despite proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 paying up to 126 GNO per call. Infrastructure bottleneck preventing execution despite  …[truncated 31 chars]"
+        "Automation returned \"nothing is paying\" despite proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 paying up to 126 GNO per call. Infrastructure bottleneck preventing execution despite  \u2026[truncated 31 chars]"
       ],
       "last": {
         "at": "2026-08-07T00:12:44.797Z",
@@ -3427,7 +3427,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed automation tools completely broken - harvest_batch returns false negatives on all chains despite proven paying contracts existing. Manual verification via payout_history is now mandatory bef …[truncated 32 chars]"
+        "Confirmed automation tools completely broken - harvest_batch returns false negatives on all chains despite proven paying contracts existing. Manual verification via payout_history is now mandatory bef \u2026[truncated 32 chars]"
       ],
       "last": {
         "at": "2026-08-07T00:14:30.992Z",
@@ -3453,7 +3453,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on Gnosis contracts. Automation tools broken, manual verification shows contracts may have stopped paying despite hist …[truncated 16 chars]"
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts. Automation tools broken, manual verification shows contracts may have stopped paying despite hist \u2026[truncated 16 chars]"
       ],
       "last": {
         "at": "2026-08-07T01:28:46.498Z",
@@ -3466,7 +3466,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Temporal verification gap confirmed - historical payments ≠ current functionality on Gnosis contracts"
+        "Temporal verification gap confirmed - historical payments \u2260 current functionality on Gnosis contracts"
       ],
       "last": {
         "at": "2026-08-07T02:12:35.849Z",
@@ -3492,7 +3492,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots but temporal verification gap prevents payment - historical payments ≠ current functionality"
+        "Gnosis has 5/5 free relay slots but temporal verification gap prevents payment - historical payments \u2260 current functionality"
       ],
       "last": {
         "at": "2026-08-07T03:34:47.472Z",
@@ -3505,7 +3505,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 333+ proven paying contracts. Gnosis/Unichain have 5/5 free slots but temporal verification gap prevents execution. Base remains highest priority …[truncated 1 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 333+ proven paying contracts. Gnosis/Unichain have 5/5 free slots but temporal verification gap prevents execution. Base remains highest priority \u2026[truncated 1 chars]"
       ],
       "last": {
         "at": "2026-08-07T04:56:26.726Z",
@@ -3531,7 +3531,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 333+ proven paying contracts. Gnosis/Unichain have free slots (5/5) but temporal verification gap and RPC infrastructure failures prevent executi …[truncated 48 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 333+ proven paying contracts. Gnosis/Unichain have free slots (5/5) but temporal verification gap and RPC infrastructure failures prevent executi \u2026[truncated 48 chars]"
       ],
       "last": {
         "at": "2026-08-07T06:08:33.035Z",
@@ -3544,7 +3544,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Temporal verification gap confirmed - Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS historically but current functionality blocked. Free relay slots available but canno …[truncated 43 chars]"
+        "Temporal verification gap confirmed - Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS historically but current functionality blocked. Free relay slots available but canno \u2026[truncated 43 chars]"
       ],
       "last": {
         "at": "2026-08-07T06:46:38.320Z",
@@ -3570,9 +3570,9 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality. Cross-chain strategies blocked despite free relay slots.",
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality. Cross-chain strategies blocked despite free relay slots.",
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality, falsifying cross-chain harvesting hypothesis"
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality. Cross-chain strategies blocked despite free relay slots.",
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality. Cross-chain strategies blocked despite free relay slots.",
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality, falsifying cross-chain harvesting hypothesis"
       ],
       "last": {
         "at": "2026-08-10T09:54:43.703Z",
@@ -3611,7 +3611,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Ready to harvest 12 contracts including verified payer 0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA, but Base relay slots exhausted (0/5). Expected earnings ~$0.0000036 from harvest(address) function. T …[truncated 84 chars]"
+        "Ready to harvest 12 contracts including verified payer 0xA2f9E116b377A9052B06e005c326f11AD7C6F2fA, but Base relay slots exhausted (0/5). Expected earnings ~$0.0000036 from harvest(address) function. T \u2026[truncated 84 chars]"
       ],
       "last": {
         "at": "2026-08-07T09:58:34.136Z",
@@ -3650,7 +3650,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contracts 0x0B98057eA310F4d31F2a452B414647007d1645d9 and 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab both pay callers with real settled payouts. Gnosis has 5/5 free relay slots availabl …[truncated 2 chars]"
+        "Verified Gnosis contracts 0x0B98057eA310F4d31F2a452B414647007d1645d9 and 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab both pay callers with real settled payouts. Gnosis has 5/5 free relay slots availabl \u2026[truncated 2 chars]"
       ],
       "last": {
         "at": "2026-08-07T11:54:47.336Z",
@@ -3676,8 +3676,8 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contracts 0x0B98057eA310F4d31F2a452B414647007d1645d9 and 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab actually pay callers with real settled GNO/XDAI payouts, falsifying automation tool  …[truncated 57 chars]",
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical payments up to 23.97 GNO. Falsified dead chain hypothesis and proved cross-chain harvesting …[truncated 11 chars]"
+        "Verified Gnosis contracts 0x0B98057eA310F4d31F2a452B414647007d1645d9 and 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab actually pay callers with real settled GNO/XDAI payouts, falsifying automation tool  \u2026[truncated 57 chars]",
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical payments up to 23.97 GNO. Falsified dead chain hypothesis and proved cross-chain harvesting \u2026[truncated 11 chars]"
       ],
       "last": {
         "at": "2026-08-08T13:12:53.440Z",
@@ -3690,7 +3690,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap on Gnosis contracts. Historical payments ≠ current functionality. Automation tools severely broken."
+        "Confirmed temporal verification gap on Gnosis contracts. Historical payments \u2260 current functionality. Automation tools severely broken."
       ],
       "last": {
         "at": "2026-08-07T14:00:29.984Z",
@@ -3703,7 +3703,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and proven paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab, but self-funded harvest failed due to insufficient ETH balance (need ~0.00000238 ETH, have 0.0).  …[truncated 123 chars]"
+        "Gnosis has 5/5 free relay slots and proven paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab, but self-funded harvest failed due to insufficient ETH balance (need ~0.00000238 ETH, have 0.0).  \u2026[truncated 123 chars]"
       ],
       "last": {
         "at": "2026-08-07T14:38:27.989Z",
@@ -3716,7 +3716,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 334+ proven paying contracts. Gnosis/Unichain have free slots but temporal verification gaps and automation failures prevent execution. Bottlenec …[truncated 83 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 334+ proven paying contracts. Gnosis/Unichain have free slots but temporal verification gaps and automation failures prevent execution. Bottlenec \u2026[truncated 83 chars]"
       ],
       "last": {
         "at": "2026-08-07T15:16:31.341Z",
@@ -3729,7 +3729,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays 0.00000000115801422 XDAI to arbitrary caller but manual harvest failed due to insufficient ETH balance (need 0.0000000032223 ETH, have 0 …[truncated 129 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays 0.00000000115801422 XDAI to arbitrary caller but manual harvest failed due to insufficient ETH balance (need 0.0000000032223 ETH, have 0 \u2026[truncated 129 chars]"
       ],
       "last": {
         "at": "2026-08-07T15:54:38.898Z",
@@ -3755,7 +3755,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (4/5) but insufficient native ETH for execution (need ~0.000039 ETH, have 0.00000158 ETH). Gnosis contracts verified paying but require relay execution. Automation broken, m …[truncated 62 chars]"
+        "Base relay slots available (4/5) but insufficient native ETH for execution (need ~0.000039 ETH, have 0.00000158 ETH). Gnosis contracts verified paying but require relay execution. Automation broken, m \u2026[truncated 62 chars]"
       ],
       "last": {
         "at": "2026-08-07T17:12:33.719Z",
@@ -3781,7 +3781,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slot available but manual harvest failed due to insufficient native ETH (0.00000158 ETH available, need ~0.000039 ETH). Automation tools broken - harvest_batch returns false negatives despi …[truncated 38 chars]"
+        "Base relay slot available but manual harvest failed due to insufficient native ETH (0.00000158 ETH available, need ~0.000039 ETH). Automation tools broken - harvest_batch returns false negatives despi \u2026[truncated 38 chars]"
       ],
       "last": {
         "at": "2026-08-07T18:28:30.474Z",
@@ -3794,8 +3794,8 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Manual harvest attempt failed due to insufficient native ETH (0.00000158 ETH available, need ~0.0000033 ETH for gas). Safe relay requires native ETH for execution despite being \"free\" - critical const …[truncated 49 chars]",
-        "Attempted self-funded harvest of 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 but insufficient native ETH (0.00000158 ETH available, need ~0.0000033 ETH for gas). Proven payer but execution blocked by g …[truncated 8 chars]"
+        "Manual harvest attempt failed due to insufficient native ETH (0.00000158 ETH available, need ~0.0000033 ETH for gas). Safe relay requires native ETH for execution despite being \"free\" - critical const \u2026[truncated 49 chars]",
+        "Attempted self-funded harvest of 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 but insufficient native ETH (0.00000158 ETH available, need ~0.0000033 ETH for gas). Proven payer but execution blocked by g \u2026[truncated 8 chars]"
       ],
       "last": {
         "at": "2026-08-08T07:16:54.095Z",
@@ -3847,7 +3847,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9, but automation infrastructure (harvest_batch) returns false negative \"nothing is paying\" and di …[truncated 137 chars]"
+        "Gnosis has 5/5 free relay slots and verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9, but automation infrastructure (harvest_batch) returns false negative \"nothing is paying\" and di \u2026[truncated 137 chars]"
       ],
       "last": {
         "at": "2026-08-07T22:21:00.626Z",
@@ -3899,7 +3899,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure broken - harvest_batch returned \"nothing is paying\" despite 336 proven paying contracts existing and manual verification confirming 3 high-paying contracts pay real WETH to c …[truncated 6 chars]"
+        "Automation infrastructure broken - harvest_batch returned \"nothing is paying\" despite 336 proven paying contracts existing and manual verification confirming 3 high-paying contracts pay real WETH to c \u2026[truncated 6 chars]"
       ],
       "last": {
         "at": "2026-08-08T01:35:03.844Z",
@@ -3964,7 +3964,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 297+ proven paying contracts. Gnosis/Unichain have free slots but RPC infrastructure failing on Gnosis. Bottleneck confirmed as relay slot capaci …[truncated 3 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 297+ proven paying contracts. Gnosis/Unichain have free slots but RPC infrastructure failing on Gnosis. Bottleneck confirmed as relay slot capaci \u2026[truncated 3 chars]"
       ],
       "last": {
         "at": "2026-08-08T04:04:58.583Z",
@@ -3977,7 +3977,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9, but harvest_batch automation returns false negative \"nothing is paying\" and RPC infrastructure  …[truncated 25 chars]"
+        "Gnosis has 5/5 free relay slots and verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9, but harvest_batch automation returns false negative \"nothing is paying\" and RPC infrastructure  \u2026[truncated 25 chars]"
       ],
       "last": {
         "at": "2026-08-08T04:44:57.142Z",
@@ -4029,7 +4029,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays callers with real GNO payouts via payout_history. Contract exists but RPC infrastructure prevents execution despite 5/5 free re …[truncated 20 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays callers with real GNO payouts via payout_history. Contract exists but RPC infrastructure prevents execution despite 5/5 free re \u2026[truncated 20 chars]"
       ],
       "last": {
         "at": "2026-08-08T07:56:54.011Z",
@@ -4081,7 +4081,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 still pays 0.000006181079477893 WETH to arbitrary caller via payout_oracle, but eth_call returns empty results indicating temporal ver …[truncated 13 chars]"
+        "Verified Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 still pays 0.000006181079477893 WETH to arbitrary caller via payout_oracle, but eth_call returns empty results indicating temporal ver \u2026[truncated 13 chars]"
       ],
       "last": {
         "at": "2026-08-08T09:56:58.881Z",
@@ -4094,7 +4094,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Discovered and verified new Base contract 0x8a11D7048c35985aa31C131B9A13e03a5f7422d pays USDC to callers via claimRebate() function. Contract shows PAYS_CALLERS with real settled payouts up to 64.23 U …[truncated 123 chars]"
+        "Discovered and verified new Base contract 0x8a11D7048c35985aa31C131B9A13e03a5f7422d pays USDC to callers via claimRebate() function. Contract shows PAYS_CALLERS with real settled payouts up to 64.23 U \u2026[truncated 123 chars]"
       ],
       "last": {
         "at": "2026-08-08T10:34:54.099Z",
@@ -4107,7 +4107,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis contracts. Historical payments ≠ current functionality despite 5/5 free relay slots available. Cross-chain strategies blocked."
+        "Confirmed temporal verification gap exists on Gnosis contracts. Historical payments \u2260 current functionality despite 5/5 free relay slots available. Cross-chain strategies blocked."
       ],
       "last": {
         "at": "2026-08-08T11:12:54.154Z",
@@ -4133,7 +4133,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical payments up to 23.97 GNO. Falsified dead chain hypothesis and proved cross-chain harvesting …[truncated 39 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical payments up to 23.97 GNO. Falsified dead chain hypothesis and proved cross-chain harvesting \u2026[truncated 39 chars]"
       ],
       "last": {
         "at": "2026-08-08T12:28:53.448Z",
@@ -4146,7 +4146,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and proven paying contract, but RPC infrastructure failing on all upstream providers preventing harvest execution. Automation tools (harvest_batch) return false negativ …[truncated 37 chars]"
+        "Gnosis has 5/5 free relay slots and proven paying contract, but RPC infrastructure failing on all upstream providers preventing harvest execution. Automation tools (harvest_batch) return false negativ \u2026[truncated 37 chars]"
       ],
       "last": {
         "at": "2026-08-08T12:28:59.200Z",
@@ -4172,7 +4172,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 336 proven paying contracts. Gnosis has 5/5 free slots and proven paying contract but automation tools broken. Temporal verification gap confirme …[truncated 2 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 336 proven paying contracts. Gnosis has 5/5 free slots and proven paying contract but automation tools broken. Temporal verification gap confirme \u2026[truncated 2 chars]"
       ],
       "last": {
         "at": "2026-08-08T13:50:59.012Z",
@@ -4185,7 +4185,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 3,455 candidates. Gnosis has 5/5 free slots and proven paying contracts but temporal verification gap prevents execution. Bottleneck confirmed as …[truncated 21 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 3,455 candidates. Gnosis has 5/5 free slots and proven paying contracts but temporal verification gap prevents execution. Bottleneck confirmed as \u2026[truncated 21 chars]"
       ],
       "last": {
         "at": "2026-08-08T14:31:17.802Z",
@@ -4198,7 +4198,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis harvest_batch returned \"nothing is paying\" despite 5/5 free relay slots available and proven paying contracts existing. Temporal verification gap confirmed - historical payments ≠ current funct …[truncated 9 chars]"
+        "Gnosis harvest_batch returned \"nothing is paying\" despite 5/5 free relay slots available and proven paying contracts existing. Temporal verification gap confirmed - historical payments \u2260 current funct \u2026[truncated 9 chars]"
       ],
       "last": {
         "at": "2026-08-08T15:12:57.088Z",
@@ -4211,7 +4211,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap is real - historical payments ≠ current functionality on Gnosis contracts. Automation tools show false negatives despite proven payers exist."
+        "Confirmed temporal verification gap is real - historical payments \u2260 current functionality on Gnosis contracts. Automation tools show false negatives despite proven payers exist."
       ],
       "last": {
         "at": "2026-08-08T15:51:14.965Z",
@@ -4237,7 +4237,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap exists - automation tools cannot be trusted for cro …[truncated 19 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap exists - automation tools cannot be trusted for cro \u2026[truncated 19 chars]"
       ],
       "last": {
         "at": "2026-08-08T15:55:01.960Z",
@@ -4250,7 +4250,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed Base relay slots exhausted (0/5) blocking access to 3,467 candidates including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Temporal verification gap confirmed - histori …[truncated 57 chars]"
+        "Confirmed Base relay slots exhausted (0/5) blocking access to 3,467 candidates including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Temporal verification gap confirmed - histori \u2026[truncated 57 chars]"
       ],
       "last": {
         "at": "2026-08-08T16:34:54.242Z",
@@ -4263,8 +4263,8 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis - contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS with real settled GNO payouts (up to 23.97 GNO) in payout_history, but pay …[truncated 145 chars]",
-        "Confirmed temporal verification gap on Gnosis - historical payments ≠ current functionality despite free relay slots available. Falsified cross-chain harvesting hypothesis."
+        "Confirmed temporal verification gap exists on Gnosis - contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS with real settled GNO payouts (up to 23.97 GNO) in payout_history, but pay \u2026[truncated 145 chars]",
+        "Confirmed temporal verification gap on Gnosis - historical payments \u2260 current functionality despite free relay slots available. Falsified cross-chain harvesting hypothesis."
       ],
       "last": {
         "at": "2026-08-10T09:07:16.085Z",
@@ -4277,7 +4277,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis - contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS with real settled GNO payouts (up to 23.97 GNO) in payout_history, but pay …[truncated 156 chars]"
+        "Confirmed temporal verification gap exists on Gnosis - contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS with real settled GNO payouts (up to 23.97 GNO) in payout_history, but pay \u2026[truncated 156 chars]"
       ],
       "last": {
         "at": "2026-08-08T17:14:54.483Z",
@@ -4316,8 +4316,8 @@
       "blocked": 0,
       "earned_usd": 0.030604,
       "notes": [
-        "Successfully executed 2 harvest batches on Base using 8/8 available relay slots. First batch earned $0.01210047 from 4 contracts, second batch earned $0.00320113 from 4 contracts. Total earnings $0.01 …[truncated 178 chars]",
-        "Successfully executed 2 harvest batches on Base using 8/8 available relay slots. First batch earned $0.01210047 from 4 contracts, second batch earned $0.00320113 from 4 contracts. Total earnings $0.01 …[truncated 178 chars]"
+        "Successfully executed 2 harvest batches on Base using 8/8 available relay slots. First batch earned $0.01210047 from 4 contracts, second batch earned $0.00320113 from 4 contracts. Total earnings $0.01 \u2026[truncated 178 chars]",
+        "Successfully executed 2 harvest batches on Base using 8/8 available relay slots. First batch earned $0.01210047 from 4 contracts, second batch earned $0.00320113 from 4 contracts. Total earnings $0.01 \u2026[truncated 178 chars]"
       ],
       "last": {
         "at": "2026-08-08T19:10:54.323Z",
@@ -4330,7 +4330,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (2/5) but harvest_batch service unavailable (503 error) preventing harvest execution. Temporal verification gap confirmed on Gnosis contracts - historical payments ≠ current …[truncated 64 chars]"
+        "Base relay slots available (2/5) but harvest_batch service unavailable (503 error) preventing harvest execution. Temporal verification gap confirmed on Gnosis contracts - historical payments \u2260 current \u2026[truncated 64 chars]"
       ],
       "last": {
         "at": "2026-08-08T19:48:51.604Z",
@@ -4356,7 +4356,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tool returning false negative \"nothing is paying\" despite proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with real GNO payouts up to 23.97 GNO. Temporal verification gap  …[truncated 10 chars]"
+        "Automation tool returning false negative \"nothing is paying\" despite proven paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with real GNO payouts up to 23.97 GNO. Temporal verification gap  \u2026[truncated 10 chars]"
       ],
       "last": {
         "at": "2026-08-08T20:27:05.491Z",
@@ -4603,7 +4603,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on Gnosis contracts"
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts"
       ],
       "last": {
         "at": "2026-08-09T01:56:38.031Z",
@@ -4642,7 +4642,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on Gnosis contracts"
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts"
       ],
       "last": {
         "at": "2026-08-09T02:36:39.889Z",
@@ -4681,7 +4681,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality on Gnosis contracts. Automation tools cannot be trusted."
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality on Gnosis contracts. Automation tools cannot be trusted."
       ],
       "last": {
         "at": "2026-08-09T03:18:36.001Z",
@@ -4759,7 +4759,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality on Gnosis contracts"
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality on Gnosis contracts"
       ],
       "last": {
         "at": "2026-08-09T04:40:46.108Z",
@@ -4798,7 +4798,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - historical payments ≠ current functionality"
+        "Confirmed temporal verification gap - historical payments \u2260 current functionality"
       ],
       "last": {
         "at": "2026-08-09T05:20:45.017Z",
@@ -4850,7 +4850,7 @@
       "blocked": 0,
       "earned_usd": 0.004024,
       "notes": [
-        "Successfully harvested Base contract using 1/1 available relay slot, earned $0.00402378. Confirmed service availability when relay slots are available. Contract verified via payout_history before exec …[truncated 6 chars]"
+        "Successfully harvested Base contract using 1/1 available relay slot, earned $0.00402378. Confirmed service availability when relay slots are available. Contract verified via payout_history before exec \u2026[truncated 6 chars]"
       ],
       "last": {
         "at": "2026-08-09T06:42:38.103Z",
@@ -4889,7 +4889,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tool returned false negative \"nothing is paying\" despite verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with real GNO settlements. Manual verification confirmed PAYS_CA …[truncated 14 chars]"
+        "Automation tool returned false negative \"nothing is paying\" despite verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with real GNO settlements. Manual verification confirmed PAYS_CA \u2026[truncated 14 chars]"
       ],
       "last": {
         "at": "2026-08-09T07:24:43.326Z",
@@ -4915,7 +4915,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with settled payouts up to 23.97 GNO. Confirmed temporal verification gap - historical payments ≠ current f …[truncated 38 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with settled payouts up to 23.97 GNO. Confirmed temporal verification gap - historical payments \u2260 current f \u2026[truncated 38 chars]"
       ],
       "last": {
         "at": "2026-08-09T07:26:37.529Z",
@@ -4941,7 +4941,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 340+ proven paying contracts. Gnosis/Unichain have free slots but automation broken and RPC infrastructure failing. Bottleneck confirmed as relay …[truncated 15 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 340+ proven paying contracts. Gnosis/Unichain have free slots but automation broken and RPC infrastructure failing. Bottleneck confirmed as relay \u2026[truncated 15 chars]"
       ],
       "last": {
         "at": "2026-08-09T08:53:27.524Z",
@@ -4954,7 +4954,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays 0.000007209394580842 WETH via harvest(address). Confirmed as proven payer with real settled transactions. Ready for harvest when  …[truncated 27 chars]"
+        "Verified Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays 0.000007209394580842 WETH via harvest(address). Confirmed as proven payer with real settled transactions. Ready for harvest when  \u2026[truncated 27 chars]"
       ],
       "last": {
         "at": "2026-08-09T09:32:45.421Z",
@@ -4967,7 +4967,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap - historical payments ≠ current functionality. Auto …[truncated 50 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap - historical payments \u2260 current functionality. Auto \u2026[truncated 50 chars]"
       ],
       "last": {
         "at": "2026-08-09T10:12:44.068Z",
@@ -5045,7 +5045,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Discovered prospect_intel database severely outdated - contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 shows as \"PROVEN_PAYING\" but payout_history verdict: PAYS_ZERO. Falsified database reliabilit …[truncated 34 chars]"
+        "Discovered prospect_intel database severely outdated - contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 shows as \"PROVEN_PAYING\" but payout_history verdict: PAYS_ZERO. Falsified database reliabilit \u2026[truncated 34 chars]"
       ],
       "last": {
         "at": "2026-08-09T11:36:38.836Z",
@@ -5071,7 +5071,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap - historical payments ≠ current functionality. Auto …[truncated 50 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap - historical payments \u2260 current functionality. Auto \u2026[truncated 50 chars]"
       ],
       "last": {
         "at": "2026-08-09T12:16:39.519Z",
@@ -5110,7 +5110,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap - historical payments ≠ current functionality. Auto …[truncated 50 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers via payout_history. Confirmed temporal verification gap - historical payments \u2260 current functionality. Auto \u2026[truncated 50 chars]"
       ],
       "last": {
         "at": "2026-08-09T12:55:00.775Z",
@@ -5136,7 +5136,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality on Gnosis contracts. Base relay slots exhausted (0/5) remain primary bottleneck. Automation tools severely comp …[truncated 24 chars]"
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality on Gnosis contracts. Base relay slots exhausted (0/5) remain primary bottleneck. Automation tools severely comp \u2026[truncated 24 chars]"
       ],
       "last": {
         "at": "2026-08-09T13:37:07.813Z",
@@ -5149,7 +5149,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap is partial - some Gnosis contracts still pay (0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab shows PAYS_AN_ARBITRARY_CALLER_RIGHT_NOW) while others don't (0x0B98057eA31 …[truncated 110 chars]"
+        "Confirmed temporal verification gap is partial - some Gnosis contracts still pay (0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab shows PAYS_AN_ARBITRARY_CALLER_RIGHT_NOW) while others don't (0x0B98057eA31 \u2026[truncated 110 chars]"
       ],
       "last": {
         "at": "2026-08-09T14:16:56.587Z",
@@ -5162,7 +5162,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Verified paying Gnosis contract exists with 5/5 free relay slots, but execution blocked by insufficient native ETH on Gnosis (need ~0.000000001435 ETH, have 0.0). Automation tools broken but manual ve …[truncated 40 chars]"
+        "Verified paying Gnosis contract exists with 5/5 free relay slots, but execution blocked by insufficient native ETH on Gnosis (need ~0.000000001435 ETH, have 0.0). Automation tools broken but manual ve \u2026[truncated 40 chars]"
       ],
       "last": {
         "at": "2026-08-09T15:02:39.412Z",
@@ -5175,7 +5175,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified as paying via payout_history and payout_oracle, but execution blocked by insufficient native ETH on Gnosis (need ~0.000000001034 ETH …[truncated 78 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified as paying via payout_history and payout_oracle, but execution blocked by insufficient native ETH on Gnosis (need ~0.000000001034 ETH \u2026[truncated 78 chars]"
       ],
       "last": {
         "at": "2026-08-09T15:43:21.960Z",
@@ -5201,7 +5201,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base automation infrastructure (harvest_batch) still broken with service unavailable errors despite 5/5 relay slots available. Manual harvesting blocked by insufficient ETH capital (need 0.0000033 ETH …[truncated 86 chars]"
+        "Base automation infrastructure (harvest_batch) still broken with service unavailable errors despite 5/5 relay slots available. Manual harvesting blocked by insufficient ETH capital (need 0.0000033 ETH \u2026[truncated 86 chars]"
       ],
       "last": {
         "at": "2026-08-09T17:04:44.075Z",
@@ -5227,8 +5227,8 @@
       "blocked": 2,
       "earned_usd": 0,
       "notes": [
-        "Base automation infrastructure completely broken with persistent 503 errors despite 5/5 relay slots available. Gnosis/Unichain automation returning false negatives. Direct manual harvesting required b …[truncated 66 chars]",
-        "Base automation infrastructure completely broken with persistent 503 errors despite 5/5 relay slots available. Gnosis/Unichain automation returning false negatives. Direct manual harvesting required b …[truncated 66 chars]"
+        "Base automation infrastructure completely broken with persistent 503 errors despite 5/5 relay slots available. Gnosis/Unichain automation returning false negatives. Direct manual harvesting required b \u2026[truncated 66 chars]",
+        "Base automation infrastructure completely broken with persistent 503 errors despite 5/5 relay slots available. Gnosis/Unichain automation returning false negatives. Direct manual harvesting required b \u2026[truncated 66 chars]"
       ],
       "last": {
         "at": "2026-08-09T18:24:44.442Z",
@@ -5242,7 +5242,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Attempted self-funded harvest of Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 using harvest(address) function - requires 0.0000033 ETH gas, have 0.00000158 ETH available. Infrastructure fa …[truncated 82 chars]"
+        "Attempted self-funded harvest of Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 using harvest(address) function - requires 0.0000033 ETH gas, have 0.00000158 ETH available. Infrastructure fa \u2026[truncated 82 chars]"
       ],
       "last": {
         "at": "2026-08-09T19:48:43.004Z",
@@ -5255,7 +5255,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base automation completely broken with service unavailable errors despite 2/5 relay slots available. Manual verification confirms paying contracts exist but cannot be harvested due to infrastructure f …[truncated 7 chars]"
+        "Base automation completely broken with service unavailable errors despite 2/5 relay slots available. Manual verification confirms paying contracts exist but cannot be harvested due to infrastructure f \u2026[truncated 7 chars]"
       ],
       "last": {
         "at": "2026-08-09T20:28:59.902Z",
@@ -5268,7 +5268,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Self-funded harvest failed due to insufficient native ETH (0.000001584606062725 available, need ~0.000033 ETH). Highest-paying Base contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays $0.00235 bu …[truncated 49 chars]"
+        "Self-funded harvest failed due to insufficient native ETH (0.000001584606062725 available, need ~0.000033 ETH). Highest-paying Base contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays $0.00235 bu \u2026[truncated 49 chars]"
       ],
       "last": {
         "at": "2026-08-09T21:08:39.349Z",
@@ -5281,7 +5281,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Identified verified paying Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with historical GNO payments up to 3.47 GNO. Automation infrastructure broken but manual path viable. Need to conv …[truncated 50 chars]"
+        "Identified verified paying Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with historical GNO payments up to 3.47 GNO. Automation infrastructure broken but manual path viable. Need to conv \u2026[truncated 50 chars]"
       ],
       "last": {
         "at": "2026-08-09T21:46:36.709Z",
@@ -5294,7 +5294,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Attempted manual harvest of verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but RPC infrastructure failure prevented gas estimation. Contract verified via payout_history but execut …[truncated 154 chars]"
+        "Attempted manual harvest of verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but RPC infrastructure failure prevented gas estimation. Contract verified via payout_history but execut \u2026[truncated 154 chars]"
       ],
       "last": {
         "at": "2026-08-09T22:24:39.610Z",
@@ -5346,7 +5346,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality despite 5/5 free relay slots available"
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality despite 5/5 free relay slots available"
       ],
       "last": {
         "at": "2026-08-10T01:18:58.676Z",
@@ -5359,7 +5359,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality despite 5/5 free relay slots available. Automation tools cannot be trusted - manual verific …[truncated 38 chars]"
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality despite 5/5 free relay slots available. Automation tools cannot be trusted - manual verific \u2026[truncated 38 chars]"
       ],
       "last": {
         "at": "2026-08-10T02:02:07.532Z",
@@ -5372,7 +5372,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality despite free relay slots available"
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality despite free relay slots available"
       ],
       "last": {
         "at": "2026-08-10T02:46:35.838Z",
@@ -5411,7 +5411,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots and proven paying contracts via payout_history, but temporal verification gap confirmed - historical payments ≠ current functionality. Cross-chain harvesting blocked de …[truncated 28 chars]"
+        "Gnosis has 5/5 free relay slots and proven paying contracts via payout_history, but temporal verification gap confirmed - historical payments \u2260 current functionality. Cross-chain harvesting blocked de \u2026[truncated 28 chars]"
       ],
       "last": {
         "at": "2026-08-10T03:26:59.495Z",
@@ -5424,7 +5424,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments ≠ current functionality despite 5/5 free relay slots available. Automation tools completely unreliable."
+        "Confirmed temporal verification gap exists on Gnosis contracts - historical payments \u2260 current functionality despite 5/5 free relay slots available. Automation tools completely unreliable."
       ],
       "last": {
         "at": "2026-08-10T04:06:48.926Z",
@@ -5437,7 +5437,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F9Ab verified as paying via payout_history but execution blocked by RPC infrastructure failure on all providers. 5/5 free relay slots available bu …[truncated 27 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F9Ab verified as paying via payout_history but execution blocked by RPC infrastructure failure on all providers. 5/5 free relay slots available bu \u2026[truncated 27 chars]"
       ],
       "last": {
         "at": "2026-08-10T04:48:54.235Z",
@@ -5450,8 +5450,8 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays real WETH to callers via harvest(address) function. Payout oracle shows 0.000000688834071786 WETH (~$0.00132) payable right now. Histo …[truncated 107 chars]",
-        "Verified contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays real WETH to callers via harvest(address) function. Payout oracle shows 0.000000688834071786 WETH (~$0.00132) payable right now. Histo …[truncated 107 chars]",
+        "Verified contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays real WETH to callers via harvest(address) function. Payout oracle shows 0.000000688834071786 WETH (~$0.00132) payable right now. Histo \u2026[truncated 107 chars]",
+        "Verified contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays real WETH to callers via harvest(address) function. Payout oracle shows 0.000000688834071786 WETH (~$0.00132) payable right now. Histo \u2026[truncated 107 chars]",
         "Verified Base contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe pays real WETH to callers via harvest(address) - confirmed as real payer via payout_history"
       ],
       "last": {
@@ -5465,8 +5465,8 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Attempted to convert Base Safe WETH to native ETH via Uniswap V2 router but blocked by RPC rate limits on all providers (publicnode.com, base.drpc.org, 1rpc.io/base). Infrastructure bottlenecks preven …[truncated 58 chars]",
-        "Initiated WETH→ETH conversion on Base via Uniswap V2 router. Transaction sent (tx 0xe1824e9b2adaaf4127382dba4400b1cbe1137402b5cda02cab80e648da832aee). Waiting for confirmation to enable manual harvest …[truncated 70 chars]"
+        "Attempted to convert Base Safe WETH to native ETH via Uniswap V2 router but blocked by RPC rate limits on all providers (publicnode.com, base.drpc.org, 1rpc.io/base). Infrastructure bottlenecks preven \u2026[truncated 58 chars]",
+        "Initiated WETH\u2192ETH conversion on Base via Uniswap V2 router. Transaction sent (tx 0xe1824e9b2adaaf4127382dba4400b1cbe1137402b5cda02cab80e648da832aee). Waiting for confirmation to enable manual harvest \u2026[truncated 70 chars]"
       ],
       "last": {
         "at": "2026-08-10T06:54:52.314Z",
@@ -5479,7 +5479,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed pervasive infrastructure bottlenecks: RPC rate limits prevent capital conversion (WETH to ETH) on all Base providers. Base relay slots exhausted (0/5) while Gnosis/Unichain have 5/5 free slo …[truncated 228 chars]"
+        "Confirmed pervasive infrastructure bottlenecks: RPC rate limits prevent capital conversion (WETH to ETH) on all Base providers. Base relay slots exhausted (0/5) while Gnosis/Unichain have 5/5 free slo \u2026[truncated 228 chars]"
       ],
       "last": {
         "at": "2026-08-10T05:32:40.560Z",
@@ -5492,7 +5492,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis/Unichain have 5/5 free slots but temporal verification gap prevents execution. RPC rate limits prevent capital  …[truncated 71 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis/Unichain have 5/5 free slots but temporal verification gap prevents execution. RPC rate limits prevent capital  \u2026[truncated 71 chars]"
       ],
       "last": {
         "at": "2026-08-10T06:13:00.254Z",
@@ -5505,7 +5505,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. RPC infrastructure rate limits blocking manual harvesting. Cross-chain alternatives blocked by temporal verification g …[truncated 3 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. RPC infrastructure rate limits blocking manual harvesting. Cross-chain alternatives blocked by temporal verification g \u2026[truncated 3 chars]"
       ],
       "last": {
         "at": "2026-08-10T07:38:39.695Z",
@@ -5518,7 +5518,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Base contract 0x8a311D7048c35985aa31C131B9A13e03a5f7422d pays real USDC to callers via claimRebate() and claimBuybackFees() functions. Contract shows PAYS_CALLERS with real settled payouts up …[truncated 64 chars]"
+        "Verified Base contract 0x8a311D7048c35985aa31C131B9A13e03a5f7422d pays real USDC to callers via claimRebate() and claimBuybackFees() functions. Contract shows PAYS_CALLERS with real settled payouts up \u2026[truncated 64 chars]"
       ],
       "last": {
         "at": "2026-08-10T08:20:48.320Z",
@@ -5544,7 +5544,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots but temporal verification gap confirmed - historical payments ≠ current functionality. Automation returns false negatives."
+        "Gnosis has 5/5 free relay slots but temporal verification gap confirmed - historical payments \u2260 current functionality. Automation returns false negatives."
       ],
       "last": {
         "at": "2026-08-10T10:38:42.710Z",
@@ -5570,7 +5570,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis harvest_batch returned \"nothing is paying\" despite 5/5 free relay slots available and proven paying contracts with historical settlements. Temporal verification gap confirmed - automation tools …[truncated 19 chars]"
+        "Gnosis harvest_batch returned \"nothing is paying\" despite 5/5 free relay slots available and proven paying contracts with historical settlements. Temporal verification gap confirmed - automation tools \u2026[truncated 19 chars]"
       ],
       "last": {
         "at": "2026-08-10T11:21:10.780Z",
@@ -5583,7 +5583,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis has 5/5 free relay slots but temporal verification gap confirmed - contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays historically but current functionality reverts. Automation tools retu …[truncated 46 chars]"
+        "Gnosis has 5/5 free relay slots but temporal verification gap confirmed - contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays historically but current functionality reverts. Automation tools retu \u2026[truncated 46 chars]"
       ],
       "last": {
         "at": "2026-08-10T11:58:39.499Z",
@@ -5648,7 +5648,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays 0.000000017630235676 XDAI via harvest(address) - automation tools return false negatives but manual verification confirms curre …[truncated 16 chars]"
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays 0.000000017630235676 XDAI via harvest(address) - automation tools return false negatives but manual verification confirms curre \u2026[truncated 16 chars]"
       ],
       "last": {
         "at": "2026-08-10T14:34:48.527Z",
@@ -5661,7 +5661,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of 342 proven paying contracts. Gnosis has 5/5 free slots but temporal verification gap and RPC infrastructure failure prevent execution. Bottleneck …[truncated 34 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of 342 proven paying contracts. Gnosis has 5/5 free slots but temporal verification gap and RPC infrastructure failure prevent execution. Bottleneck \u2026[truncated 34 chars]"
       ],
       "last": {
         "at": "2026-08-10T15:12:41.814Z",
@@ -5687,7 +5687,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis has 5/5 free slots and proven paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab, but capital conversio …[truncated 55 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis has 5/5 free slots and proven paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab, but capital conversio \u2026[truncated 55 chars]"
       ],
       "last": {
         "at": "2026-08-10T16:39:24.216Z",
@@ -5700,7 +5700,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation tools broken - harvest_batch returns false negative \"nothing is paying on gnosis\" despite proven paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab with 5/5 free relay slots availab …[truncated 28 chars]"
+        "Automation tools broken - harvest_batch returns false negative \"nothing is paying on gnosis\" despite proven paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab with 5/5 free relay slots availab \u2026[truncated 28 chars]"
       ],
       "last": {
         "at": "2026-08-10T17:22:44.086Z",
@@ -5713,7 +5713,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract verified paying but execution blocked by insufficient native ETH on Gnosis (need ~0.0000000118 ETH, have 0.0). Infrastructure bottleneck preventing cross-chain harvesting despite 5/5 f …[truncated 26 chars]"
+        "Gnosis contract verified paying but execution blocked by insufficient native ETH on Gnosis (need ~0.0000000118 ETH, have 0.0). Infrastructure bottleneck preventing cross-chain harvesting despite 5/5 f \u2026[truncated 26 chars]"
       ],
       "last": {
         "at": "2026-08-10T18:06:42.419Z",
@@ -5726,7 +5726,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified paying but execution prevented by RPC infrastructure failure on all providers. 5/5 free relay slots available but manual harvest fai …[truncated 33 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified paying but execution prevented by RPC infrastructure failure on all providers. 5/5 free relay slots available but manual harvest fai \u2026[truncated 33 chars]"
       ],
       "last": {
         "at": "2026-08-10T18:44:42.217Z",
@@ -5739,7 +5739,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified paying but execution blocked by insufficient native ETH (need 0.00000001156 ETH, have 0.0). 5/5 free relay slots available but canno …[truncated 41 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified paying but execution blocked by insufficient native ETH (need 0.00000001156 ETH, have 0.0). 5/5 free relay slots available but canno \u2026[truncated 41 chars]"
       ],
       "last": {
         "at": "2026-08-10T19:20:43.251Z",
@@ -5752,7 +5752,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified paying via payout_history but execution blocked by insufficient native ETH on Gnosis (need 0.00000001156 ETH, have 0.0). 5/5 relay s …[truncated 61 chars]"
+        "Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab verified paying via payout_history but execution blocked by insufficient native ETH on Gnosis (need 0.00000001156 ETH, have 0.0). 5/5 relay s \u2026[truncated 61 chars]"
       ],
       "last": {
         "at": "2026-08-10T19:58:44.054Z",
@@ -5765,7 +5765,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Attempted manual harvest of Base contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe but insufficient native ETH (need 0.0000033 ETH, have 0.00000128 ETH). Automation tools broken - harvest_batch retu …[truncated 52 chars]"
+        "Attempted manual harvest of Base contract 0x18ff03A7456325b752Ff428dd65c10020C7971Fe but insufficient native ETH (need 0.0000033 ETH, have 0.00000128 ETH). Automation tools broken - harvest_batch retu \u2026[truncated 52 chars]"
       ],
       "last": {
         "at": "2026-08-10T20:36:47.276Z",
@@ -5778,7 +5778,7 @@
       "blocked": 0,
       "earned_usd": 0.005916,
       "notes": [
-        "Successfully harvested 4 Base contracts using 4/5 available relay slots, earned $0.00591607. Automation infrastructure recovered and working correctly. Contract 0x18ff03A7456325b752Ff428dd65c10020C797 …[truncated 56 chars]"
+        "Successfully harvested 4 Base contracts using 4/5 available relay slots, earned $0.00591607. Automation infrastructure recovered and working correctly. Contract 0x18ff03A7456325b752Ff428dd65c10020C797 \u2026[truncated 56 chars]"
       ],
       "last": {
         "at": "2026-08-10T21:18:51.795Z",
@@ -5817,7 +5817,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken - harvest_batch returns \"Service unavailable\" on Base despite 2/5 available relay slots. Verified paying contracts exist but cannot be executed. Manual harv …[truncated 92 chars]"
+        "Automation infrastructure completely broken - harvest_batch returns \"Service unavailable\" on Base despite 2/5 available relay slots. Verified paying contracts exist but cannot be executed. Manual harv \u2026[truncated 92 chars]"
       ],
       "last": {
         "at": "2026-08-10T22:42:21.461Z",
@@ -5830,7 +5830,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Manual harvest of verified paying contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 failed due to insufficient native ETH balance (need ~0.000036 ETH, have 0.000001285 ETH). Automation infrastructur …[truncated 50 chars]"
+        "Manual harvest of verified paying contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 failed due to insufficient native ETH balance (need ~0.000036 ETH, have 0.000001285 ETH). Automation infrastructur \u2026[truncated 50 chars]"
       ],
       "last": {
         "at": "2026-08-10T23:20:23.294Z",
@@ -5856,7 +5856,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken - harvest_batch returns service unavailable on Base despite 1/5 slots available and false negatives on Gnosis despite 5/5 slots available. Manual harvesting …[truncated 87 chars]"
+        "Automation infrastructure completely broken - harvest_batch returns service unavailable on Base despite 1/5 slots available and false negatives on Gnosis despite 5/5 slots available. Manual harvesting \u2026[truncated 87 chars]"
       ],
       "last": {
         "at": "2026-08-11T00:38:20.707Z",
@@ -5960,7 +5960,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Manual harvest of Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 failed due to insufficient native ETH (need ~0.0000033 ETH, have 0.000001285 ETH). Automation infrastructure completely broke …[truncated 32 chars]"
+        "Manual harvest of Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 failed due to insufficient native ETH (need ~0.0000033 ETH, have 0.000001285 ETH). Automation infrastructure completely broke \u2026[truncated 32 chars]"
       ],
       "last": {
         "at": "2026-08-11T03:38:50.251Z",
@@ -5973,7 +5973,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified two paying contracts via payout_history: Base 0x6aEa497106845bCE2CCe35E70a12a63288c5B65 (pays up to 0.00657887 WETH) and Gnosis 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab (pays up to 0.004774 …[truncated 8 chars]"
+        "Verified two paying contracts via payout_history: Base 0x6aEa497106845bCE2CCe35E70a12a63288c5B65 (pays up to 0.00657887 WETH) and Gnosis 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab (pays up to 0.004774 \u2026[truncated 8 chars]"
       ],
       "last": {
         "at": "2026-08-11T04:20:27.754Z",
@@ -5986,7 +5986,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed automation infrastructure completely broken - harvest_batch returns false negatives on Base (503 error) and Gnosis (\"nothing is paying\") despite available relay slots. Manual verification ma …[truncated 8 chars]"
+        "Confirmed automation infrastructure completely broken - harvest_batch returns false negatives on Base (503 error) and Gnosis (\"nothing is paying\") despite available relay slots. Manual verification ma \u2026[truncated 8 chars]"
       ],
       "last": {
         "at": "2026-08-11T04:22:20.262Z",
@@ -5999,7 +5999,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation completely broken - harvest_batch returns false negatives on Base (503 error) and Gnosis (\"nothing is paying\") despite available relay slots. Manual verification confirms paying contracts e …[truncated 28 chars]"
+        "Automation completely broken - harvest_batch returns false negatives on Base (503 error) and Gnosis (\"nothing is paying\") despite available relay slots. Manual verification confirms paying contracts e \u2026[truncated 28 chars]"
       ],
       "last": {
         "at": "2026-08-11T05:38:49.360Z",
@@ -6025,7 +6025,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays 0.000005699274771572 WETH via harvest(address). Base relay slots available (1/5) but automation infrastructure broken. Manual har …[truncated 33 chars]"
+        "Verified Base contract 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 pays 0.000005699274771572 WETH via harvest(address). Base relay slots available (1/5) but automation infrastructure broken. Manual har \u2026[truncated 33 chars]"
       ],
       "last": {
         "at": "2026-08-11T06:18:34.324Z",
@@ -6038,7 +6038,7 @@
       "blocked": 0,
       "earned_usd": 0.008668,
       "notes": [
-        "Successfully harvested Base contract 0x6aEa497106845bCE2CCe35E70a12a63288c5B65 using 1/5 available relay slot. Automation intermittently functional - worked on first attempt despite previous session f …[truncated 63 chars]"
+        "Successfully harvested Base contract 0x6aEa497106845bCE2CCe35E70a12a63288c5B65 using 1/5 available relay slot. Automation intermittently functional - worked on first attempt despite previous session f \u2026[truncated 63 chars]"
       ],
       "last": {
         "at": "2026-08-11T07:00:47.300Z",
@@ -6116,7 +6116,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap - Gnosis contracts paid historically but current functionality reverts for arbitrary callers. Automation tools return false negatives despite available relay slots  …[truncated 33 chars]"
+        "Confirmed temporal verification gap - Gnosis contracts paid historically but current functionality reverts for arbitrary callers. Automation tools return false negatives despite available relay slots  \u2026[truncated 33 chars]"
       ],
       "last": {
         "at": "2026-08-11T11:04:20.212Z",
@@ -6129,7 +6129,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis/Unichain have 5/5 free slots but automation completely broken with false negatives. Temporal verification gap c …[truncated 55 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis/Unichain have 5/5 free slots but automation completely broken with false negatives. Temporal verification gap c \u2026[truncated 55 chars]"
       ],
       "last": {
         "at": "2026-08-11T11:42:35.982Z",
@@ -6142,7 +6142,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Gnosis/Unichain have 5/5 free slots but aut …[truncated 130 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Gnosis/Unichain have 5/5 free slots but aut \u2026[truncated 130 chars]"
       ],
       "last": {
         "at": "2026-08-11T13:14:21.144Z",
@@ -6155,7 +6155,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - Gnosis contracts show PAYS_CALLERS with real historical settlements but current functionality reverts for arbitrary callers. Automation tools completely un …[truncated 9 chars]"
+        "Confirmed temporal verification gap exists - Gnosis contracts show PAYS_CALLERS with real historical settlements but current functionality reverts for arbitrary callers. Automation tools completely un \u2026[truncated 9 chars]"
       ],
       "last": {
         "at": "2026-08-11T13:54:21.627Z",
@@ -6168,7 +6168,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Identified high-value USDC-paying contract 0x8a311D7048c35985aa31C131B9A13e03a5f7422d that pays up to $495 USDC per claimBuybackFees call. Historical settlements confirmed but current functionality ne …[truncated 17 chars]"
+        "Identified high-value USDC-paying contract 0x8a311D7048c35985aa31C131B9A13e03a5f7422d that pays up to $495 USDC per claimBuybackFees call. Historical settlements confirmed but current functionality ne \u2026[truncated 17 chars]"
       ],
       "last": {
         "at": "2026-08-11T13:54:28.188Z",
@@ -6194,7 +6194,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Gnosis/Unichain have 5/5 free slots but aut …[truncated 130 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Gnosis/Unichain have 5/5 free slots but aut \u2026[truncated 130 chars]"
       ],
       "last": {
         "at": "2026-08-11T14:38:20.830Z",
@@ -6207,7 +6207,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical settlements up to 9.96 GNO. Confirmed temporal verification gap exists - historical payment …[truncated 95 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical settlements up to 9.96 GNO. Confirmed temporal verification gap exists - historical payment \u2026[truncated 95 chars]"
       ],
       "last": {
         "at": "2026-08-11T15:16:22.886Z",
@@ -6220,7 +6220,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed pervasive infrastructure bottlenecks: RPC rate limits prevent capital conversion (WETH to ETH) on all Base providers. Base relay slots exhausted (0/5) while Gnosis/Unichain have 5/5 free slo …[truncated 143 chars]"
+        "Confirmed pervasive infrastructure bottlenecks: RPC rate limits prevent capital conversion (WETH to ETH) on all Base providers. Base relay slots exhausted (0/5) while Gnosis/Unichain have 5/5 free slo \u2026[truncated 143 chars]"
       ],
       "last": {
         "at": "2026-08-11T15:16:28.620Z",
@@ -6233,7 +6233,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Gnosis/Unichain have 5/5 free slots but tem …[truncated 101 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts including high-value USDC payer 0x8a311D7048c35985aa31C131B9A13e03a5f7422d. Gnosis/Unichain have 5/5 free slots but tem \u2026[truncated 101 chars]"
       ],
       "last": {
         "at": "2026-08-11T15:58:39.777Z",
@@ -6246,7 +6246,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers and is currently callable via harvest(address). Automation shows false negative \"nothing is paying\" despit …[truncated 72 chars]"
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers and is currently callable via harvest(address). Automation shows false negative \"nothing is paying\" despit \u2026[truncated 72 chars]"
       ],
       "last": {
         "at": "2026-08-11T16:40:44.281Z",
@@ -6259,7 +6259,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists across multiple chains. Historical payments ≠ current functionality. Automation tools show false negatives despite verified paying contracts existing. Manual …[truncated 51 chars]"
+        "Confirmed temporal verification gap exists across multiple chains. Historical payments \u2260 current functionality. Automation tools show false negatives despite verified paying contracts existing. Manual \u2026[truncated 51 chars]"
       ],
       "last": {
         "at": "2026-08-11T16:42:25.943Z",
@@ -6272,7 +6272,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken - harvest_batch returns false negative \"nothing is paying on this chain right now\" despite verified paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F9 …[truncated 80 chars]"
+        "Automation infrastructure completely broken - harvest_batch returns false negative \"nothing is paying on this chain right now\" despite verified paying contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F9 \u2026[truncated 80 chars]"
       ],
       "last": {
         "at": "2026-08-11T17:25:00.460Z",
@@ -6285,7 +6285,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5), preventing harvest execution despite verified paying contracts existing. Gnosis has 5/ free slots but automation infrastructure completely broken with false negatives …[truncated 1 chars]"
+        "Base relay slots exhausted (0/5), preventing harvest execution despite verified paying contracts existing. Gnosis has 5/ free slots but automation infrastructure completely broken with false negatives \u2026[truncated 1 chars]"
       ],
       "last": {
         "at": "2026-08-11T18:06:35.301Z",
@@ -6298,7 +6298,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken - harvest_batch returns false negatives on Gnosis/Unichain despite 5/5 free relay slots and verified paying contracts existing. Manual verification required …[truncated 1 chars]"
+        "Automation infrastructure completely broken - harvest_batch returns false negatives on Gnosis/Unichain despite 5/5 free relay slots and verified paying contracts existing. Manual verification required \u2026[truncated 1 chars]"
       ],
       "last": {
         "at": "2026-08-11T18:48:26.480Z",
@@ -6311,7 +6311,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers with historical settlements up to 0.00477418 XDAI and currently pays 0.000000003788989261 XDAI via harvest …[truncated 59 chars]"
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers with historical settlements up to 0.00477418 XDAI and currently pays 0.000000003788989261 XDAI via harvest \u2026[truncated 59 chars]"
       ],
       "last": {
         "at": "2026-08-11T18:48:39.363Z",
@@ -6324,7 +6324,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis/Unichain have 5/5 free slots but automation infrastructure completely broken with false negatives. Bottleneck c …[truncated 32 chars]"
+        "Base relay slots exhausted (0/5) preventing harvest of verified paying contracts. Gnosis/Unichain have 5/5 free slots but automation infrastructure completely broken with false negatives. Bottleneck c \u2026[truncated 32 chars]"
       ],
       "last": {
         "at": "2026-08-11T18:50:25.487Z",
@@ -6337,7 +6337,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed automation infrastructure completely broken - harvest_batch returns false negatives on Gnosis despite 5/5 free slots and verified paying contracts with real historical payments. Manual verif …[truncated 58 chars]"
+        "Confirmed automation infrastructure completely broken - harvest_batch returns false negatives on Gnosis despite 5/5 free slots and verified paying contracts with real historical payments. Manual verif \u2026[truncated 58 chars]"
       ],
       "last": {
         "at": "2026-08-11T19:26:19.066Z",
@@ -6350,7 +6350,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers via payout_history and payout_oracle. Contract currently callable via harvest(address) function paying 0.0 …[truncated 97 chars]"
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers via payout_history and payout_oracle. Contract currently callable via harvest(address) function paying 0.0 \u2026[truncated 97 chars]"
       ],
       "last": {
         "at": "2026-08-11T20:02:21.016Z",
@@ -6363,7 +6363,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed automation infrastructure completely broken - harvest_batch returns false negatives on Gnosis despite 5/5 free relay slots and verified paying contracts existing. Manual verification via pay …[truncated 40 chars]"
+        "Confirmed automation infrastructure completely broken - harvest_batch returns false negatives on Gnosis despite 5/5 free relay slots and verified paying contracts existing. Manual verification via pay \u2026[truncated 40 chars]"
       ],
       "last": {
         "at": "2026-08-11T20:02:26.421Z",
@@ -6376,7 +6376,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (5/5) but automation infrastructure completely broken with service unavailable errors. Manual harvesting blocked by insufficient native ETH (need 0.0000033 ETH, have 0.00000 …[truncated 58 chars]"
+        "Base relay slots available (5/5) but automation infrastructure completely broken with service unavailable errors. Manual harvesting blocked by insufficient native ETH (need 0.0000033 ETH, have 0.00000 \u2026[truncated 58 chars]"
       ],
       "last": {
         "at": "2026-08-11T20:42:21.186Z",
@@ -6415,7 +6415,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified temporal verification gap - 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 now PAYS_ZERO (previously paid), 0x18ff03A7456325b752Ff428dd65c10020C7971Fe still PAYS_CALLERS. Manual verification mand …[truncated 6 chars]"
+        "Verified temporal verification gap - 0x6aEa497106845bCE2CCe35E770a12a63288c5B65 now PAYS_ZERO (previously paid), 0x18ff03A7456325b752Ff428dd65c10020C7971Fe still PAYS_CALLERS. Manual verification mand \u2026[truncated 6 chars]"
       ],
       "last": {
         "at": "2026-08-11T21:22:21.630Z",
@@ -6428,7 +6428,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (5/5) but automation infrastructure completely broken with service unavailable errors. Manual verification confirmed paying contracts exist but cannot be harvested due to in …[truncated 21 chars]"
+        "Base relay slots available (5/5) but automation infrastructure completely broken with service unavailable errors. Manual verification confirmed paying contracts exist but cannot be harvested due to in \u2026[truncated 21 chars]"
       ],
       "last": {
         "at": "2026-08-11T22:02:20.199Z",
@@ -6441,7 +6441,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (5/5) but harvest_batch automation completely broken with service unavailable errors. Manual verification confirmed paying contracts exist but cannot be executed via automat …[truncated 4 chars]"
+        "Base relay slots available (5/5) but harvest_batch automation completely broken with service unavailable errors. Manual verification confirmed paying contracts exist but cannot be executed via automat \u2026[truncated 4 chars]"
       ],
       "last": {
         "at": "2026-08-11T22:40:19.942Z",
@@ -6454,7 +6454,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken across all chains - harvest_batch returns service unavailable on Base despite 5/5 slots available, false negatives on Gnosis despite verified paying contrac …[truncated 33 chars]"
+        "Automation infrastructure completely broken across all chains - harvest_batch returns service unavailable on Base despite 5/5 slots available, false negatives on Gnosis despite verified paying contrac \u2026[truncated 33 chars]"
       ],
       "last": {
         "at": "2026-08-11T23:20:19.691Z",
@@ -6558,7 +6558,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers via harvest(address) - confirmed as real payer via payout_history with historical settlements up to 0.0047 …[truncated 9 chars]"
+        "Verified Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab pays real XDAI to callers via harvest(address) - confirmed as real payer via payout_history with historical settlements up to 0.0047 \u2026[truncated 9 chars]"
       ],
       "last": {
         "at": "2026-08-12T04:14:22.100Z",
@@ -6571,7 +6571,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base relay slots available (5/5) but automation infrastructure completely broken with \"Service unavailable\" error. Manual verification confirmed paying contracts exist but automation cannot execute ha …[truncated 7 chars]"
+        "Base relay slots available (5/5) but automation infrastructure completely broken with \"Service unavailable\" error. Manual verification confirmed paying contracts exist but automation cannot execute ha \u2026[truncated 7 chars]"
       ],
       "last": {
         "at": "2026-08-12T04:54:21.090Z",
@@ -6636,7 +6636,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Base automation infrastructure completely broken - harvest_batch returns \"Service unavailable\" (503 error) despite 5/5 relay slots available. Manual harvesting path requires capital conversion from Op …[truncated 34 chars]"
+        "Base automation infrastructure completely broken - harvest_batch returns \"Service unavailable\" (503 error) despite 5/5 relay slots available. Manual harvesting path requires capital conversion from Op \u2026[truncated 34 chars]"
       ],
       "last": {
         "at": "2026-08-12T07:36:19.633Z",
@@ -6649,7 +6649,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Attempted manual harvest of Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but transaction sent from Base EOA to Gnosis contract instead of executing harvest function. Contract pays real X …[truncated 69 chars]"
+        "Attempted manual harvest of Gnosis contract 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab but transaction sent from Base EOA to Gnosis contract instead of executing harvest function. Contract pays real X \u2026[truncated 69 chars]"
       ],
       "last": {
         "at": "2026-08-12T08:20:05.141Z",
@@ -6675,7 +6675,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed automation infrastructure completely broken across all chains despite available relay slots. Manual verification via payout_history shows real payments exist but automation tools cannot acce …[truncated 8 chars]"
+        "Confirmed automation infrastructure completely broken across all chains despite available relay slots. Manual verification via payout_history shows real payments exist but automation tools cannot acce \u2026[truncated 8 chars]"
       ],
       "last": {
         "at": "2026-08-12T09:46:30.843Z",
@@ -6688,7 +6688,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified two paying contracts via payout_history: Base 0x18ff03A7456325b752Ff428dd65c10020C7971Fe and Gnosis 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab both show PAYS_CALLERS with real settled payment …[truncated 2 chars]"
+        "Verified two paying contracts via payout_history: Base 0x18ff03A7456325b752Ff428dd65c10020C7971Fe and Gnosis 0x6c5024Ebf06A25329b4e6937E9967ACfC9E0F5Ab both show PAYS_CALLERS with real settled payment \u2026[truncated 2 chars]"
       ],
       "last": {
         "at": "2026-08-12T09:49:19.431Z",
@@ -6714,7 +6714,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure broken - harvest_batch returns \"Service unavailable\" despite 5/5 Base relay slots available. Manual verification shows paying contracts exist but automation cannot execute th …[truncated 3 chars]"
+        "Automation infrastructure broken - harvest_batch returns \"Service unavailable\" despite 5/5 Base relay slots available. Manual verification shows paying contracts exist but automation cannot execute th \u2026[truncated 3 chars]"
       ],
       "last": {
         "at": "2026-08-12T11:52:18.189Z",
@@ -6727,7 +6727,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure broken - harvest_batch returns \"nothing is paying on this chain right now\" despite verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with real GNO settlemen …[truncated 40 chars]"
+        "Automation infrastructure broken - harvest_batch returns \"nothing is paying on this chain right now\" despite verified paying contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 with real GNO settlemen \u2026[truncated 40 chars]"
       ],
       "last": {
         "at": "2026-08-12T11:52:27.461Z",
@@ -6753,7 +6753,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken across all chains - Base returns 503 service unavailable despite 5/5 slots, Gnosis returns false negatives despite verified paying contracts. Manual harvest …[truncated 52 chars]"
+        "Automation infrastructure completely broken across all chains - Base returns 503 service unavailable despite 5/5 slots, Gnosis returns false negatives despite verified paying contracts. Manual harvest \u2026[truncated 52 chars]"
       ],
       "last": {
         "at": "2026-08-12T12:36:30.718Z",
@@ -6805,7 +6805,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Automation infrastructure completely broken across all chains. Base relay slots available (4/5) but harvest_batch returns service unavailable. Gnosis slots available (5/5) but returns false negatives. …[truncated 188 chars]"
+        "Automation infrastructure completely broken across all chains. Base relay slots available (4/5) but harvest_batch returns service unavailable. Gnosis slots available (5/5) but returns false negatives. \u2026[truncated 188 chars]"
       ],
       "last": {
         "at": "2026-08-12T13:58:38.667Z",
@@ -6818,7 +6818,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists. Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS with real historical settlements but payout_oracle returns \"no money-shaped fu …[truncated 75 chars]"
+        "Confirmed temporal verification gap exists. Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 shows PAYS_CALLERS with real historical settlements but payout_oracle returns \"no money-shaped fu \u2026[truncated 75 chars]"
       ],
       "last": {
         "at": "2026-08-12T14:00:25.838Z",
@@ -6831,7 +6831,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality on Gnosis contracts. Automation tools completely unreliable. Manual verification via payout_history mandatory."
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality on Gnosis contracts. Automation tools completely unreliable. Manual verification via payout_history mandatory."
       ],
       "last": {
         "at": "2026-08-12T14:36:37.720Z",
@@ -6844,7 +6844,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Verified paying contract exists with 5/5 free relay slots but execution blocked by insufficient native ETH on Gnosis (need ~0.0000000007449 ETH, have 0.0). Automation infrastructure completely broken  …[truncated 18 chars]"
+        "Verified paying contract exists with 5/5 free relay slots but execution blocked by insufficient native ETH on Gnosis (need ~0.0000000007449 ETH, have 0.0). Automation infrastructure completely broken  \u2026[truncated 18 chars]"
       ],
       "last": {
         "at": "2026-08-12T15:26:20.764Z",
@@ -6857,7 +6857,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Confirmed temporal verification gap exists - historical payments ≠ current functionality on Gnosis contracts. Automation infrastructure completely broken. Manual verification via payout_history is the …[truncated 22 chars]"
+        "Confirmed temporal verification gap exists - historical payments \u2260 current functionality on Gnosis contracts. Automation infrastructure completely broken. Manual verification via payout_history is the \u2026[truncated 22 chars]"
       ],
       "last": {
         "at": "2026-08-12T16:10:20.159Z",
@@ -6883,7 +6883,7 @@
       "blocked": 0,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical settlements up to 92.05 GNO. Confirmed temporal verification gap exists - historical paymen …[truncated 27 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO to callers with historical settlements up to 92.05 GNO. Confirmed temporal verification gap exists - historical paymen \u2026[truncated 27 chars]"
       ],
       "last": {
         "at": "2026-08-12T16:12:21.250Z",
@@ -6909,7 +6909,7 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Verified paying contract exists with 5/5 free relay slots, but execution blocked by insufficient native ETH on Gnosis (need ~0.0000000001689 ETH, have 0.0). Infrastructure bottleneck preventing cross- …[truncated 60 chars]"
+        "Verified paying contract exists with 5/5 free relay slots, but execution blocked by insufficient native ETH on Gnosis (need ~0.0000000001689 ETH, have 0.0). Infrastructure bottleneck preventing cross- \u2026[truncated 60 chars]"
       ],
       "last": {
         "at": "2026-08-12T17:32:25.282Z",
@@ -6922,10 +6922,65 @@
       "blocked": 1,
       "earned_usd": 0,
       "notes": [
-        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO (up to 21.50 GNO per call) and has 5/5 free relay slots available, but execution blocked by insufficient native ETH on …[truncated 137 chars]"
+        "Verified Gnosis contract 0x0B98057eA310F4d31F2a452B414647007d1645d9 pays real GNO (up to 21.50 GNO per call) and has 5/5 free relay slots available, but execution blocked by insufficient native ETH on \u2026[truncated 137 chars]"
       ],
       "last": {
         "at": "2026-08-12T18:16:36.909Z",
+        "outcome": "blocked"
+      }
+    },
+    "harvest-scan-new-callers": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 2,
+      "earned_usd": 0.0,
+      "notes": [
+        "KILL 2026-08-27 Eli-locked. Discovery hunt dead. Mechanism still pays.",
+        "KILL 2026-08-27 03:57Z recompute. Queue 46 contracts, 43 paying, 43/43 netUsdSelfFunded<0, total_usd=$0.084553 (was $0.122893 on 08-23). 1.2M-log/0-paid claim is frontier.md only (commit 2978c87); no state/scripts artifact. Do not scan for new caller-fee contracts."
+      ],
+      "last": {
+        "at": "2026-08-27T03:57:34.205Z",
+        "outcome": "blocked"
+      }
+    },
+    "beefy-known-payer-0xc664C800": {
+      "attempts": 2,
+      "successes": 2,
+      "blocked": 0,
+      "earned_usd": 0.0,
+      "notes": [
+        "PURSUE phase 0 via worker. Settled 2026-08-26T11:21Z tx 0x33d6c7f1. Keeper does not sign.",
+        "PURSUE phase-0 idle slot only. 45-byte EIP-1167, impl 0x68ecddba8d4cfca13923fc8d66f2678bf17ab4e1. extractSelectors clone=0 impl=89 (SKIP set) includes harvest(address) 0x0e5c011e. eth_call harvest(address) from Safe 0x75d93b\u2026 \u2192 0x (no revert). probeOne recipient=Safe paid 769414697018 wei WETH (~$0.00192), net self-funded \u2212$0.047. Settled 2026-08-26T11:21:25Z tx 0x33d6c7f1 caller EOA got 812822162 wei WETH. Keeper does not sign."
+      ],
+      "last": {
+        "at": "2026-08-27T03:57:34.205Z",
+        "outcome": "success"
+      }
+    },
+    "gnosis-0x0B98057-harvest": {
+      "attempts": 2,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0.0,
+      "notes": [
+        "KILL. harvest() and harvest(address) revert on gnosis publicnode.",
+        "KILL. Not a harvest payer. Address is SBCDepositContractProxy (impl 0x49de1ace\u2026 SBCDepositContract). Live calls are claimWithdrawal(address)/claimWithdrawals \u2014 position-gated validator exits, caller==withdrawer. harvest() and harvest(address) both revert (execution reverted) from Safe on gnosis-rpc.publicnode.com. Historical PAYS_CALLERS was the SBCDeposit trap."
+      ],
+      "last": {
+        "at": "2026-08-27T03:57:34.205Z",
+        "outcome": "fail"
+      }
+    },
+    "bnb-survival-pack-first-tx-sponsor": {
+      "attempts": 1,
+      "successes": 0,
+      "blocked": 1,
+      "earned_usd": 0.0,
+      "notes": [
+        "PARK. Gnosis harvest dead so this was the cheap next falsification. Public docs: BSC first-tx rail is BEP-414 EOA paymaster (NodeReal MegaFuel https://bsc-megafuel.nodereal.io), explicitly NOT ERC-4337. Read-only pm_isSponsorable for ZERO EOA 0xC94929\u2026 dummy self-tx returned {\"sponsorable\":false}. Do not send BSC gas. Do not take inbound Survival Pack / COTI starter grant (Anthony). Admission needs a Survival Pack policy UUID we do not have."
+      ],
+      "last": {
+        "at": "2026-08-27T03:57:34.205Z",
         "outcome": "blocked"
       }
     }
