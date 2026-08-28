@@ -5,7 +5,8 @@ import { ethers } from 'ethers';
 const P = { ETH: 1864.59993907, AERO: 0.41823577, VELO: 0.01728661, POL: 0.071453 };
 const usd = (wei, sym, dec = 18) => Number(ethers.formatUnits(wei, dec)) * P[sym];
 const R = (f) => JSON.parse(fs.readFileSync('knowledge/streams/' + f, 'utf8'));
-const SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+// HISTORICAL: these measurement files were taken as GENESIS I Safe. Re-emit, don't re-pin.
+const SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1'; // GENESIS I — retired; replay only
 const SAFEARG = SAFE.slice(2).toLowerCase().padStart(64, '0');
 const HARV = '0x0e5c011e';
 const out = [];

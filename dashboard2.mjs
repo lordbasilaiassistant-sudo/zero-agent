@@ -16,6 +16,7 @@
  *  4. AUTO-UPDATES every 20s in place, so an open tab is never wrong for long.
  *  5. Theme-aware: light and dark both first-class.
  */
+import { rowUsd } from './harvest.mjs';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const n = (v) => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? null : Number(v);
@@ -122,7 +123,9 @@ export function dashboardHTML(d) {
     hit !== null ? `${hit.toFixed(1)}% of ${int(attempts)} harvest attempts landed` : null,
     `gas sponsored — ${int(RELAY_MAX)} free relay tx/day, $0 cost · ${relayFree === null ? '—' : int(relayFree)} unspent right now, ${relayUsable === null ? '—' : int(relayUsable)} of them usable`,
     `${int(d?.chain_reads?.chains_read_ok)}/${int(d?.chain_reads?.chains_configured)} chains reading OK`,
-    `${int(d?.sessions_completed)} sessions run · last ${ago(d?.last_session)}`,
+    `${int(d?.sessions_completed)} sessions run · ${d?.session_in_progress?.session
+      ? `session ${int(d.session_in_progress.session)} in flight (round ${int(d.session_in_progress.round)}${d.session_in_progress.last_slice ? ', last slice ' + ago(d.session_in_progress.last_slice) : ''})`
+      : `last ${ago(d?.last_session)}`}`,
   ].filter(Boolean);
 
   /* EVERY tx link pointed at basescan.org regardless of chain. The last eight harvests all ran on
@@ -146,7 +149,7 @@ export function dashboardHTML(d) {
   const harvestRows = (d?.recent_harvests || []).slice(0, 7).map(h => `<tr>
       <td class="dim mono">${esc((h.at || '').slice(5, 16).replace('T', ' '))}</td>
       <td>${esc(h.chain || '—')}</td>
-      <td class="mono r">${int(h.batched)}</td>
+      <td class="mono r">${int(h.batched ?? h.batch)}</td>
       <td class="mono r">${n(h.earned_usd) === null ? '—' : '$' + Number(h.earned_usd).toFixed(6)}</td>
       <td class="mono">${txLink(h.chain, h.tx)}</td>
     </tr>`).join('') || '<tr><td colspan="5" class="dim">no harvests on this wallet yet</td></tr>';
@@ -236,7 +239,7 @@ export function dashboardHTML(d) {
 <div class="g g3">
   <div class="p">
     <p class="pt">Spendable right now — no permission needed</p>
-    <div class="row"><div class="kpi" id="k-spend">${spendable === null ? '—' : '$' + spendable.toFixed(6)}</div>
+    <div class="row"><div class="kpi" id="k-spend">${spendable === null ? '—' : (spendable === 0 ? '$0.00' : '$' + spendable.toFixed(6))}</div>
       <span class="delta">${pctTarget === null ? '—' : pctTarget.toFixed(1) + '%'}<span class="dlabel">of $${TARGET.toFixed(2)} phase-0 exit</span></span></div>
     <div class="prog" title="progress toward the $${TARGET.toFixed(2)} phase-0 exit">
       <div class="pf" style="width:${Math.max(0, Math.min(100, pctHeld ?? 0)).toFixed(2)}%"></div>
@@ -293,7 +296,7 @@ export function dashboardHTML(d) {
       }
       /* ⚠️ token_usd is the PRICE OF ONE TOKEN, not our holding. Reading it as a balance made the
          panel announce "$1,885 on optimism" when we held $0.0138 — a 136,000x overstatement on the
-         one screen Anthony reads. Our value is eoa_native_usd + safe_usd + usdc_usd.
+         one screen Anthony reads. Our value is rowUsd(): eoa native + Safe native + wrapped + USDC.
 
          ── AND THE REASON THIS TABLE WAS REBUILT (Anthony, 2026-08-23): "it doesnt add up both
          smart and non smart wallets for balance." ZERO holds value in TWO places — a plain EOA
@@ -306,18 +309,19 @@ export function dashboardHTML(d) {
          So: one column per ACCOUNT, one per asset kind, and a TOTAL row that visibly sums to the
          net-worth figure in the headline. If the columns stop adding up, the page shows it. */
       const cells = rows.map(r => {
-        const eoa = n(r.eoa_native_usd) ?? 0;               // liquid native — the only spendable kind
-        const safeWrapped = n(r.safe_usd) ?? 0;             // wrapped native inside the Safe
-        const eoaWrapped = n(r.eoa_usd) ?? 0;               // wrapped stranded at the EOA (rare)
+        const eoa = n(r.eoa_native_usd) ?? 0;
+        const safeWrapped = n(r.safe_usd) ?? n(r.safe_wrapped_usd) ?? 0;
+        const safeNative = n(r.safe_native_usd) ?? 0;
+        const eoaWrapped = n(r.eoa_usd) ?? n(r.eoa_wrapped_usd) ?? 0;
         const usdc = n(r.usdc_usd) ?? 0;
-        const ours = eoa + safeWrapped + eoaWrapped + usdc;
+        const ours = rowUsd(r);
         if (ours <= 0) return null;
-        return { chain: String(r.chain || '—'), eoa, safe: safeWrapped + eoaWrapped, usdc, ours };
+        return { chain: String(r.chain || '—'), eoa, safe: safeWrapped + safeNative + eoaWrapped, usdc, ours };
       }).filter(Boolean);
 
       if (!cells.length) return '<p class="sm dim">nothing held yet</p>';
       const sum = (k) => cells.reduce((t, c) => t + c[k], 0);
-      const cash = (v) => v === 0 ? '<span class="dim">—</span>' : '$' + v.toFixed(6);
+      const cash = (v) => (!v || Math.abs(v) < 5e-7) ? '<span class="dim">—</span>' : '$' + v.toFixed(6);
       const body = cells.map(c => {
         const home = c.chain.toLowerCase() === 'base';
         return `<tr>
@@ -325,7 +329,7 @@ export function dashboardHTML(d) {
           <td class="mono r acct">${c.eoa === 0 ? '<span class="dim">—</span>' : '<strong>$' + c.eoa.toFixed(6) + '</strong>'}</td>
           <td class="mono r acct dim">${cash(c.safe)}</td>
           <td class="mono r acct dim">${cash(c.usdc)}</td>
-          <td class="mono r acct">$${c.ours.toFixed(6)}</td>
+          <td class="mono r acct">${cash(c.ours)}</td>
         </tr>`;
       }).join('');
       /* RECONCILIATION. The columns are summed here from the per-chain rows, and the headline net
@@ -336,12 +340,10 @@ export function dashboardHTML(d) {
          $2,414.13 while the aggregate used $2,414.25). Anything larger is a defect and says so. */
       const colTotal = sum('ours');
       const gap = heldNow === null ? null : colTotal - heldNow;
-      /* The worker publishes its own verdict in balances.price_coherence — prefer it, because it is
-         computed where the prices are and can see WHY they agree. Fall back to the local comparison
-         when an older payload does not carry it. */
-      const verdict = bal.price_coherence;
-      const material = verdict ? verdict.price_coherent === false
-        : (gap !== null && Math.abs(gap) > Math.max(1e-6, Math.abs(heldNow) * 0.0001));
+      /* Gap is computed from the rows THIS page rendered. A cached price_coherence can be
+         stale after revive fills a missing Base row — trust the local sum. */
+      const localMaterial = gap !== null && Math.abs(gap) > Math.max(1e-6, Math.abs(heldNow) * 0.0001);
+      const material = localMaterial;
       const recon = gap === null
         ? ''
         : material
@@ -354,16 +356,16 @@ export function dashboardHTML(d) {
       return `<table><thead><tr>
           <th>chain</th>
           <th class="r">EOA · native</th>
-          <th class="r">Safe · wrapped</th>
+          <th class="r">Safe</th>
           <th class="r">USDC</th>
           <th class="r">total</th>
         </tr></thead><tbody>${body}
         <tr class="tot">
           <td>all chains</td>
-          <td class="mono r acct">$${sum('eoa').toFixed(6)}</td>
-          <td class="mono r acct">$${sum('safe').toFixed(6)}</td>
-          <td class="mono r acct">$${sum('usdc').toFixed(6)}</td>
-          <td class="mono r acct">$${colTotal.toFixed(6)}</td>
+          <td class="mono r acct">${cash(sum('eoa'))}</td>
+          <td class="mono r acct">${cash(sum('safe'))}</td>
+          <td class="mono r acct">${cash(sum('usdc'))}</td>
+          <td class="mono r acct">${cash(colTotal)}</td>
         </tr></tbody></table>
         <p class="sm dim" style="margin-top:8px">Only the <strong>EOA · native</strong> column is
         spendable — that column's Base cell is the headline number. Everything else is real value

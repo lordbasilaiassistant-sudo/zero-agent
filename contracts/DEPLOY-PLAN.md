@@ -1,5 +1,9 @@
 # DEPLOY PLAN — ZeroHarvester → Base, on a never-funded wallet
 
+**HISTORICAL (GENESIS I, 2026-08-01). Do not send.** `contracts/deploy-payload.mjs --i-have-consent`
+refuses: beneficiary/`SAFE` is the retired Safe `0x5106…`. Re-pin to `shop.mjs` `SMART_ACCOUNT`
+before any live relay.
+
 **Status: built, simulated GREEN, and deliberately not sent.** Nothing was signed, no relay request was
 made, no account was created, no wei moved. All measurements 2026-08-01 ~00:00–00:20 UTC against live Base
 mainnet (block 49,376,507 → 49,376,900, `https://mainnet.base.org`, reth/v2.3.0, chainId 8453).
@@ -19,7 +23,7 @@ mainnet (block 49,376,507 → 49,376,900, `https://mainnet.base.org`, reth/v2.3.
 | keccak256(initcode) | `0xa02040cf38bed29731d5cd0f90b1d48f228b7aa6e64c5c1221e31282493dc1ea` |
 | initcode | 2,515 bytes (2,483 creation + 32 constructor arg) |
 | runtime | 2,306 bytes |
-| constructor arg | `beneficiary_ = 0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` (ZERO's Safe) |
+| constructor arg | `beneficiary_ = 0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` (GENESIS I Safe — **retired**) |
 | pinned at commit | `0e0c06d` (`contracts/` working tree clean) |
 
 **Verified empty on Base right now** — `eth_getCode` → `0x`, `eth_getBalance` → `0x0`,
@@ -118,7 +122,7 @@ created** — a real read off freshly deployed code, on live mainnet state, with
 ```
 call[0] CREATE2 success  : true
 call[0] returned address : 0x922075A88d80bFb3d8a3dbF6436F6853C1FD6fA9   == PREDICTED ✓
-call[1] BENEFICIARY()    : 0x510601f59FDa068D70ad6760c9d9085B0F42cbb1   == ZERO'S SAFE ✓
+call[1] BENEFICIARY()    : 0x510601f59FDa068D70ad6760c9d9085B0F42cbb1   == GENESIS I Safe (retired; historical) ✓
 call[2] MAX_CALLS()      : 256
 call[3] GAS_RESERVE()    : 150000
 ```

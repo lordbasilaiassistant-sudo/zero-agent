@@ -7,16 +7,13 @@
 > - https://safe-client.safe.global/v1/chains/{id}/relay/{safe} (live, probed)
 > - RPCs: base-rpc.publicnode.com · optimism-rpc.publicnode.com · arbitrum-one-rpc.publicnode.com · polygon-bor-rpc.publicnode.com · rpc.gnosischain.com · unichain-rpc.publicnode.com
 >
-> Verified on-chain (free `eth_call` / `eth_getCode` / `eth_getStorageAt`, 2026-08-12):
-> ZERO's Safe is **DEPLOYED** on base/optimism/arbitrum/polygon/gnosis and **NOT DEPLOYED on unichain** ·
-> `VERSION()` = `1.4.1` · `getOwners()` = `[0x50624f...0db9]` · `getThreshold()` = `1` · singleton (slot 0) =
+> Verified on-chain (free `eth_call` / `eth_getCode` / `eth_getStorageAt`):
+> **GENESIS II Safe `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`** is **DEPLOYED** on
+> base/optimism/arbitrum/polygon/gnosis and **NOT DEPLOYED on unichain** ·
+> `VERSION()` = `1.4.1` · `getOwners()` = `[0xC94929d1...d57a]` · `getThreshold()` = `1` · singleton (slot 0) =
 > SafeL2 v1.4.1 `0x29fcB43b...C762` on every deployed chain · fallback handler + enabled module = Safe4337Module
-> `0x75cf1146...c226` · `getTransactionHash()` on-chain == locally computed EIP-712 hash (exact match) ·
-> `domainSeparator()` == `hashDomain({chainId, verifyingContract})` ·
-> **Multicall3 IS `msg.sender` inside `aggregate3` — proven by a differential revert test** ·
-> MultiSendCallOnly/MultiSend/Multicall3 bytecode byte-identical across all 6 chains ·
-> MultiSendCallOnly reverts on `operation=1` and is all-or-nothing · Safe error codes GS020/GS025/GS026 captured live ·
-> relay quota + every relay error shape probed live on a chain that was already exhausted (spent nothing).
+> `0x75cf1146...c226`. Measurements below dated 2026-08-12 that quote `0x5106…cbb1` or owner `0x50624f…`
+> are GENESIS I — that Safe is **retired**. Never use it as caller, payTo, or callFeeRecipient.
 
 ---
 
@@ -24,8 +21,9 @@
 
 | thing | value |
 |---|---|
-| ZERO's Safe | `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` — SAME address on every chain |
-| ZERO's owner EOA | `0x50624F7790732f9767180871D03A304756200dB9`, threshold 1 |
+| ZERO's live Safe | `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f` — GENESIS II, same address on every deployed chain |
+| ZERO's owner EOA | `0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A`, threshold 1 |
+| RETIRED (never caller / payTo / fee recipient) | Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`, EOA `0x50624F7790732f9767180871D03A304756200dB9` |
 | Relay endpoint | `https://safe-client.safe.global/v1/chains/{chainId}/relay` |
 | Relay quota | **5 per limit-address per chain per ROLLING 24h**, `RELAY_THROTTLE_LIMIT=5`, `RELAY_THROTTLE_TTL_SECONDS=86400` |
 | Reset schedule | **NOT a wall clock. A cache-key TTL. See §3.3 — "5 AM UTC" WAS FICTION** |

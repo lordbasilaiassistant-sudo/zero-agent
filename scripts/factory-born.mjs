@@ -14,6 +14,7 @@
 // Read-only. Usage: node scripts/factory-born.mjs [chain] [blocks] [startOffset]
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const CHAINS = {
   gnosis:   { bs: 'https://gnosis.blockscout.com/api/v2',   rpcs: ['https://rpc.gnosischain.com', 'https://gnosis-rpc.publicnode.com'], sym: 'xDAI' },
@@ -24,7 +25,7 @@ const chain = process.argv[2] || 'gnosis';
 const NBLOCKS = Number(process.argv[3] || 400);
 const OFFSET = Number(process.argv[4] || 0);   // blocks back from head — go old to find the forgotten
 const C = CHAINS[chain];
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

@@ -15,7 +15,7 @@
 // verdicts up BY CONTRACT FAMILY. One StrategyMerkl paying tells you little; six of six paying tells
 // you the shape pays, and that generalises to strategies never seen before. That is the pattern
 // recognition — computed from evidence, not guessed by a flash model.
-import { inspect, resolveImpl } from './discover.mjs';
+import { inspect, resolveImpl, loadDiscoverState, putDiscoverState } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 
 // A family is the contract's implementation NAME with trailing specifics stripped — the shape, not the
@@ -54,7 +54,9 @@ function pickNext(candidates) {
 }
 
 export async function prospectTick(env, fetcher) {
-  const state = (await env.KV.get('discover:state', 'json')) || { candidates: {} };
+  const loaded = await loadDiscoverState(env, { candidates: {} });
+  if (loaded.skipped) return { skipped: loaded.reason };
+  const state = loaded.state;
   const { c, why } = pickNext(state.candidates || {});
   if (!c) return { skipped: why, triaged: Object.keys(state.candidates || {}).length };
 
@@ -168,7 +170,7 @@ export async function prospectTick(env, fetcher) {
   }
   fresh.prospected = state.prospected;
   fresh.lastProspect = state.lastProspect;
-  await env.KV.put('discover:state', JSON.stringify(fresh));
+  await putDiscoverState(env, fresh);
 
   const all = Object.values(state.candidates);
   out.progress = {
@@ -196,7 +198,21 @@ function pickFields(c) {
 
 // What the grinding has LEARNED — the map, not the individual squares.
 export async function prospectIntel(env) {
-  const state = (await env.KV.get('discover:state', 'json')) || { candidates: {} };
+  const loaded = await loadDiscoverState(env, { candidates: {} });
+  if (loaded.skipped) {
+    return {
+      skipped: loaded.reason,
+      grind: {
+        total_candidates: 0, triaged: 0, still_queued: 0, callable_now: 0,
+        PROVEN_PAYING: 0, eliminated_forever: 0, prospect_ticks: 0, last: null,
+        blocked: loaded.reason,
+      },
+      streams_ready_to_stack: [],
+      families_by_evidence: [],
+      how_to_read: loaded.reason,
+    };
+  }
+  const state = loaded.state;
   const all = Object.values(state.candidates || {});
   const fams = Object.entries(state.families || {})
     .map(([name, f]) => ({

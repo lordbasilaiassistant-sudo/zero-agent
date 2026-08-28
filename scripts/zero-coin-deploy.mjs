@@ -7,9 +7,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { ethers } from 'ethers';
+import { RETIRED_EOA } from '../shop.mjs';
+
+if (!process.argv.includes('--spend')) {
+  console.error('REFUSED: this signs and broadcasts a live Base deploy. Pass --spend to run.');
+  process.exit(2);
+}
 
 const FACTORY = '0x777777751622c0d3258f214F9DF38E35BF45baF3'; // ZoraFactory (verified, probe 2/3)
-const ZERO_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
 const URI = 'https://zero-agent.broke2built.workers.dev/coin.json';
 const NAME = 'ZERO';
 const SYMBOL = 'ZERO';
@@ -35,7 +40,10 @@ const envText = readFileSync(path.join(os.homedir(), '.claude', 'secrets', 'auto
 const env = {};
 for (const line of envText.split(/\r?\n/)) { const m = line.match(/^([A-Z_]+)=(.*)$/); if (m) env[m[1]] = m[2]; }
 const wallet = new ethers.Wallet(env.AGENT_PRIVATE_KEY);
-if (wallet.address.toLowerCase() !== ZERO_EOA.toLowerCase()) throw new Error(`key mismatch: ${wallet.address} is not ZERO's EOA`);
+if (wallet.address.toLowerCase() === RETIRED_EOA.toLowerCase()) {
+  throw new Error('REFUSED: this key is the retired GENESIS I EOA');
+}
+const ZERO_EOA = wallet.address;
 
 // gate 1: metadata must be live BEFORE the uri is baked into the coin
 const metaRes = await fetch(URI);

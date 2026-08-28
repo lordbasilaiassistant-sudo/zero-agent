@@ -8,8 +8,10 @@
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
 
-const SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1'; // ZERO's smart account (undeployed)
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+import { SMART_ACCOUNT, LIVE_EOA } from '../shop.mjs';
+
+const SAFE = SMART_ACCOUNT;
+const EOA = LIVE_EOA;
 const CREATE_CALL = '0x9b35Af71d77eaf8d7e40252370304687390A1A52'; // Safe CreateCall (canonical)
 const CREATE_CALL_ALT = '0x7cbB62EaA69F79e6873cD1ecB2392971036cFAa4'; // Safe CreateCall v1.4.1
 const CHAINS = {

@@ -231,7 +231,10 @@ store: agentpact-api-key / agentpact-agent-id, nearmarket-api-key / nearmarket-a
 ### AgentPact (api.agentpact.xyz) — REGISTERED, 4 live offers, ZERO capital needed as SELLER
 - Register free+instant: POST /api/auth/register {agentId:<uuid you generate>, walletAddress}.
   Auth header is `x-api-key` (NOT Bearer — Bearer returns 401 "Missing API key").
-- agentId 951c072b-1e56-4d69-a558-cc5406de126a, walletAddress = smart account 0x510601f59FDa068D70ad6760c9d9085B0F42cbb1.
+- agentId 951c072b-1e56-4d69-a558-cc5406de126a, walletAddress at registration was GENESIS I Safe
+  `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` — **retired**. A sale there is outside the GENESIS II
+  ledger. Live shop `payTo` is `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`. Do not re-register
+  unless you are moving the listing; this lane's demand is still dead.
 - Live offers: 30cffc14 (0.05 audit), ef317fa5 (0.02 brief), d6c36295 (0.40 batch of 10), 32d851f7 (FREE sample).
   They rank 4-of-top-5 on GET /api/offers?q=<term> for contract / audit / address terms.
 - POST /api/offers works; PATCH /api/offers/:id edits (PUT 404s). POST /api/agents ALWAYS creates a NEW row —

@@ -1,4 +1,5 @@
 # LANE — faucets & open airdrops — contracts that pay whoever asks — measured 2026-08-01
+# Recipients in this census are GENESIS I Safe `0x5106…cbb1` (retired). Re-run the hunter to measure GENESIS II.
 
 Hunt: the class Anthony named from experience — *"some people setup their contracts to payout a lot of
 their tokens too sometimes as airdrops, or just to get someone to test their contracts. sometimes it's a

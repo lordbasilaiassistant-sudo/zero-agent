@@ -1,9 +1,10 @@
 // zora-probe.mjs — how was the example Zora content coin deployed, and can ZERO repeat it?
 // Read-only: Blockscout v2 + Base RPC. No keys, no sends. Writes findings to scripts/zora-probe-result.json
 import { writeFileSync } from 'node:fs';
+import { LIVE_EOA } from '../shop.mjs';
 
 const TOKEN = '0x2c96b4d1c579f08955adc5c82d93f9ff83b7fae5';
-const ZERO_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const ZERO_EOA = LIVE_EOA;
 const BS = 'https://base.blockscout.com/api/v2';
 const RPCS = ['https://base-rpc.publicnode.com', 'https://mainnet.base.org', 'https://1rpc.io/base'];
 

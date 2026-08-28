@@ -18,9 +18,10 @@
 // Usage: node scripts/prober.mjs selftest | scan [file]
 import { readFileSync, writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const RPC = 'https://base-rpc.publicnode.com';
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const SEED = ethers.parseEther('1');            // known starting balance for the prober
 const SEED_HEX = '0x' + SEED.toString(16);
 

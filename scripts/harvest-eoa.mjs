@@ -6,6 +6,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ethers } from 'ethers';
+import { RETIRED_EOA } from '../shop.mjs';
+
+if (!process.argv.includes('--spend')) {
+  console.error('REFUSED: this signs and broadcasts live Base harvests. Pass --spend to run.');
+  process.exit(2);
+}
 
 const RESERVE_WEI = 40_000_000_000_000n; // 0.00004 ETH stays untouched
 const TARGETS = [ // oracle-priced 2026-08-03, scripts/oracle-sweep-result.json
@@ -34,6 +40,9 @@ for (const line of fs.readFileSync(path.join(os.homedir(), '.claude', 'secrets',
   const m = line.match(/^([A-Z_]+)=(.*)$/); if (m) env[m[1]] = m[2].trim();
 }
 const wallet = new ethers.Wallet(env.AGENT_PRIVATE_KEY);
+if (wallet.address.toLowerCase() === RETIRED_EOA.toLowerCase()) {
+  throw new Error('REFUSED: this key is the retired GENESIS I EOA');
+}
 const EOA = wallet.address;
 const WETH = '0x4200000000000000000000000000000000000006';
 const balOf = async (addr) => BigInt(await rpc('eth_call', [{ to: WETH, data: '0x70a08231' + addr.slice(2).padStart(64, '0') }, 'latest']));

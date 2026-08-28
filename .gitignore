@@ -13,3 +13,31 @@ knowledge/streams/_fa_universe*.json
 knowledge/streams/_fa_behaviour.json
 knowledge/streams/_fa_gated_out.json
 knowledge/streams/*.log
+
+# Nested clone leftover from `gh repo fork --clone false` being parsed as a directory name
+false/
+
+.wrangler/
+node_modules/.cache/
+node_modules/.mf/
+
+# One-shot session probes and experiment dumps — not the Worker.
+# janitor.mjs / test-janitor.mjs are Worker source — never ignore them.
+scratch/
+/_*.mjs
+scripts/*-result.json
+scripts/factory-born-*.json
+scripts/fossil-rich-*.json
+scripts/rollout-0x*.json
+scripts/launchpad-livetest.json
+fixtures/
+state/experiments-*.jsonl
+state/arbitrageur-*
+state/alpha-test1-proof.json
+state/keeper-watch.json
+state/race.json
+scripts/unlock-hunter-result.json
+state/kv/
+state/discover-state.compact.json
+state/cloud-status.json
+.render/

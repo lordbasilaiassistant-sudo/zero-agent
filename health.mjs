@@ -15,6 +15,8 @@
 // Stall is defined against the things that can actually move: money in, capacity used, backlog
 // shrinking, sessions producing something new.
 
+import { spendableFromRows, HOME_CHAIN, rowUsd } from './harvest.mjs';
+
 export const STALL = {
   // Fallback only, used when no refill has ever been observed. The relay budget refills on a
   // roughly daily cycle and the batcher spends the slots within the first hour, so earnings arrive
@@ -24,10 +26,155 @@ export const STALL = {
   earningStaleFallbackHours: 26,
   barrenSessionsAlarm: 3,    // sessions in a row that added nothing new
   idleSlotAlarm: 3,          // free relay slots sitting unspent
+  sessionQuietHours: 2,      // no slice AND no completed session
 };
 
-export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
-  const now = Date.now();
+/** Most recent evidence the GLM path ran: an in-flight slice beats a completed session.
+ *  Sparse GLM takes ~2h to finish 12 rounds, so "last completed" going quiet is the
+ *  expected shape while a session is still slicing — not DEGRADED. */
+export function sessionActivityAt(meta, current) {
+  const times = [];
+  if (meta?.lastSession) {
+    const t = Date.parse(meta.lastSession);
+    if (Number.isFinite(t)) times.push(t);
+  }
+  const slice = Number(current?.lastSliceAt || current?.startedAt);
+  if (Number.isFinite(slice) && slice > 0) times.push(slice);
+  return times.length ? Math.max(...times) : null;
+}
+
+export function sessionHoursSinceActivity(meta, current, now = Date.now()) {
+  const at = sessionActivityAt(meta, current);
+  return at == null ? null : (now - at) / 3600000;
+}
+
+/** Slots that can actually be spent on a harvest. A missing census, or a chain absent
+ *  from chainWork, is not harvestable. Unknown is not usable — the 2026-08-27 live
+ *  overstatement counted gnosis/unichain 5/5 as 10 usable because the work map had
+ *  no row, and a later cache served that lie for the whole cron-lease window. */
+export function chainUsable(work, remaining, name) {
+  const rem = Number(remaining) || 0;
+  if (!work) return 0;
+  const n = work[name];
+  if (n == null || n === 0) return 0;
+  return rem;
+}
+
+/** Cached `/` published spendable $0 when reconcile missed Base but chainstate had the wei.
+ *  Revive from the Base row if present; if reconcile omitted Base, copy chainstate's row so
+ *  the holdings table is not a $0.00 EOA column under a $0.64 headline. Unread stays null. */
+export function reviveSpendableBalances(balances) {
+  if (!balances || typeof balances !== 'object') return balances;
+  const priced = Array.isArray(balances.all_chains_priced) ? [...balances.all_chains_priced] : [];
+  const cs = Array.isArray(balances.per_chain_read) ? balances.per_chain_read : [];
+  const hasHome = priced.some(r => String(r?.chain || '').toLowerCase() === HOME_CHAIN);
+  if (!hasHome) {
+    const src = cs.find(r => String(r?.chain || '').toLowerCase() === HOME_CHAIN && r.eoa_native_usd != null);
+    if (src) {
+      priced.push({
+        chain: HOME_CHAIN,
+        token_usd: src.token_usd ?? null,
+        price_known: src.token_usd != null,
+        eoa_native_usd: src.eoa_native_usd,
+        safe_native_usd: src.safe_native_usd ?? 0,
+        eoa_usd: src.eoa_wrapped_usd ?? 0,
+        safe_usd: src.safe_wrapped_usd ?? 0,
+        usdc_usd: src.usdc_usd,
+        revived_from: 'per_chain_read',
+      });
+      balances.all_chains_priced = priced;
+    }
+  }
+  const v = spendableFromRows(priced) ?? spendableFromRows(cs);
+  if (v == null) {
+    if (balances.spendable_liquid_native_eth_on_base_usd === 0) {
+      balances.spendable_liquid_native_eth_on_base_usd = null;
+      balances.phase0_pct = null;
+      if (balances.holdings_breakdown) balances.holdings_breakdown.spendable_native_eth_on_base_usd = null;
+    }
+    return balances;
+  }
+  balances.spendable_liquid_native_eth_on_base_usd = v;
+  balances.phase0_pct = +((v / (Number(balances.phase0_target_usd) || 1)) * 100).toFixed(4);
+  if (balances.holdings_breakdown) balances.holdings_breakdown.spendable_native_eth_on_base_usd = v;
+  if (typeof balances.holdings_usd === 'number') {
+    const colTotal = priced.reduce((t, r) => t + rowUsd(r), 0);
+    const gap = +(colTotal - balances.holdings_usd).toFixed(9);
+    balances.price_coherence = {
+      per_chain_total_usd: +colTotal.toFixed(8),
+      holdings_usd: balances.holdings_usd,
+      gap_usd: gap,
+      price_coherent: Math.abs(gap) <= 1e-6,
+      means: Math.abs(gap) <= 1e-6
+        ? 'The per-chain table and the headline net worth are marked at the same price table and agree.'
+        : 'DEFECT: two views of the same balances disagree after revive.',
+    };
+  }
+  return balances;
+}
+
+/** Re-diagnose a cached status payload from what it already carries (no RPC).
+ *  Measured 2026-08-28 00:00Z: `/` served a snapshot whose hours_since_session_activity
+ *  was 0.05 and usable was 10, while ?fresh=1 (25s later) showed 0.67h and usable 0.
+ *  Cron does not warm this cache (OOM), and SWR is skipped while the cron lease is held,
+ *  so a visitor was reading frozen clocks and a pre-fix capacity census. */
+export function reviveStatusPayload(payload, { now = Date.now(), harvest, current, meta } = {}) {
+  if (!payload || typeof payload !== 'object') return payload;
+  const chains = payload.health?.capacity?.chains || [];
+  const workFromSnap = {};
+  for (const c of chains) {
+    if (c?.name && c.work != null) workFromSnap[c.name] = c.work;
+  }
+  const harvestState = harvest
+    ? { ...harvest, chainWork: harvest.chainWork || (Object.keys(workFromSnap).length ? workFromSnap : harvest.chainWork) }
+    : {
+      log: payload.harvest_events || payload.recent_harvests || [],
+      chainWork: Object.keys(workFromSnap).length ? workFromSnap : null,
+    };
+  const sip = payload.session_in_progress;
+  const cur = current || (sip ? {
+    session: sip.session,
+    round: sip.round,
+    startedAt: Date.parse(sip.started),
+    lastSliceAt: sip.last_slice ? Date.parse(sip.last_slice) : Date.parse(sip.started),
+  } : null);
+  const metaObj = meta || {
+    lastSession: payload.last_session,
+    sessions: payload.sessions_completed,
+    barrenStreak: payload.health?.barren_streak || 0,
+  };
+  const refill = payload.refill && Number.isFinite(Number(payload.refill.medianGapHours))
+    ? payload.refill
+    : (Number.isFinite(Number(payload.refill_eta?.median_gap_hours))
+      ? { medianGapHours: payload.refill_eta.median_gap_hours, nextEtaHours: payload.refill_eta.hours }
+      : null);
+  const health = diagnose({
+    earnings: payload.balances || {},
+    relay: { chains: chains.map(c => ({ name: c.name, remaining: c.remaining, limit: c.limit })) },
+    prospect: payload.prospect,
+    meta: metaObj,
+    harvest: harvestState,
+    refill,
+    current: cur,
+    now,
+  });
+  const startedAt = Number(cur?.startedAt);
+  const slicedAt = Number(cur?.lastSliceAt);
+  const balances = payload.balances ? reviveSpendableBalances({ ...payload.balances }) : payload.balances;
+  return {
+    ...payload,
+    balances,
+    health,
+    session_in_progress: cur ? {
+      session: cur.session,
+      round: cur.round,
+      started: Number.isFinite(startedAt) ? new Date(startedAt).toISOString() : sip?.started || null,
+      last_slice: Number.isFinite(slicedAt) && slicedAt > 0 ? new Date(slicedAt).toISOString() : sip?.last_slice || null,
+    } : payload.session_in_progress,
+  };
+}
+
+export function diagnose({ earnings, relay, prospect, meta, harvest, refill, current, now = Date.now() }) {
   const signals = [];
 
   // ── capacity: free slots that nobody is spending is the cheapest possible waste ──
@@ -39,13 +186,13 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
   const chains = (relay?.chains || []).map(c => ({
     ...c,
     work: work ? (work[c.name] ?? null) : null,
-    usable: work && work[c.name] === 0 ? 0 : (c.remaining || 0),
+    usable: chainUsable(work, c.remaining, c.name),
   }));
   const freeSlots = chains.reduce((n, c) => n + (c.remaining || 0), 0);
   const usableSlots = chains.reduce((n, c) => n + (c.usable || 0), 0);
   const totalSlots = chains.reduce((n, c) => n + (c.limit || 0), 0);
   const idleChains = chains.filter(c => (c.usable || 0) > 0);
-  const deadChains = chains.filter(c => (c.remaining || 0) > 0 && c.work === 0);
+  const deadChains = chains.filter(c => (c.remaining || 0) > 0 && (c.usable || 0) === 0);
 
   // ── money: when did value last actually arrive? ──
   const lastWin = (harvest?.log || []).find(l => l.wei_earned && BigInt(l.wei_earned || '0') > 0n);
@@ -59,6 +206,7 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
   // ── sessions: are they producing anything new? ──
   const barren = Number(meta?.barrenStreak || 0);
   const lastSession = meta?.lastSession ? (now - Date.parse(meta.lastSession)) / 3600000 : null;
+  const lastActivity = sessionHoursSinceActivity(meta, current, now);
 
   let state = 'EARNING';
   let headline = 'Working. Money is arriving and capacity is being spent.';
@@ -83,9 +231,12 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
     action = 'Slots expire worthless. Spend them on a proven payer, or on the WETH→ETH conversion if the Safe is above threshold.';
     signals.push('idle-capacity');
   }
-  const measuredCycle = refill?.medianGapHours || null;
+  const measuredCycle = Number.isFinite(Number(refill?.medianGapHours)) ? Number(refill.medianGapHours) : null;
   const staleAfter = measuredCycle ? measuredCycle * 1.25 + 2 : STALL.earningStaleFallbackHours;
-  const etaTxt = refill?.nextEtaHours != null ? ` Next refill expected in ~${refill.nextEtaHours.toFixed(1)}h (measured cycle ${measuredCycle}h).` : '';
+  const etaHours = Number.isFinite(Number(refill?.nextEtaHours)) ? Number(refill.nextEtaHours) : null;
+  const etaTxt = (etaHours != null && measuredCycle != null)
+    ? ` Next refill expected in ~${etaHours.toFixed(1)}h (measured cycle ${measuredCycle}h).`
+    : '';
 
   if (usableSlots === 0 && totalSlots > 0) {
     // Mid-cycle with everything spent and earnings younger than the measured cycle is the machine
@@ -131,11 +282,11 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
       action = 'The automatic triage loop is the thing that finds new streams. Check the cron.';
     }
   }
-  if (lastSession !== null && lastSession > 2) {
+  if (lastActivity !== null && lastActivity > STALL.sessionQuietHours) {
     signals.push('sessions-stopped');
     if (state === 'EARNING') {
       state = 'DEGRADED';
-      headline = `No agent session has completed in ${lastSession.toFixed(1)} hours.`;
+      headline = `No agent session has run in ${lastActivity.toFixed(1)} hours.`;
       action = 'Check the Worker cron and the GLM key.';
     }
   }
@@ -164,6 +315,7 @@ export function diagnose({ earnings, relay, prospect, meta, harvest, refill }) {
     hours_since_earning: hoursSinceEarning === null ? null : +hoursSinceEarning.toFixed(2),
     barren_streak: barren,
     hours_since_session: lastSession === null ? null : +lastSession.toFixed(2),
+    hours_since_session_activity: lastActivity === null ? null : +lastActivity.toFixed(2),
     queue_remaining: queued,
     proven_payers: proven,
   };

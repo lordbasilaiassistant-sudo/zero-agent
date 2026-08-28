@@ -17,9 +17,10 @@
 // Read-only. Usage: node scripts/prober-token.mjs selftest | scan
 import { readFileSync, writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const RPC = 'https://base-rpc.publicnode.com';
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const WETH = '0x4200000000000000000000000000000000000006';
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const SANDBOX = '0x00000000000000000000000000000000DeaDBeef';

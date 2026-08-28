@@ -1,4 +1,5 @@
-// dashboard.mjs — ZERO's public face. Served to browsers; agents and APIs get the same data as JSON.
+// dashboard.mjs — REFERENCE ONLY. The Worker serves dashboard2.mjs (worker.mjs import).
+// Do not import this file for `/`. render-check and the public page use dashboard2.
 //
 // ART DIRECTION: a life-support monitor for an entity born with nothing. Void black, one signal-green
 // accent, and an ECG whose amplitude IS the mission progress.

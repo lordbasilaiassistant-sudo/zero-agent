@@ -7,10 +7,10 @@ import path from 'node:path';
 
 const chain = process.argv[2] || 'optimism';
 const env = fs.readFileSync(path.join(os.homedir(), '.claude', 'secrets', 'autoglmwallet.env'), 'utf8');
-const key = env.match(/WORKER_ADMIN_KEY=([^\s#]+)/)?.[1];
-if (!key) { console.error('no WORKER_ADMIN_KEY in secrets'); process.exit(1); }
+const key = env.match(/^ADMIN_KEY=(.*)$/m)?.[1]?.trim();
+if (!key) { console.error('no ADMIN_KEY in secrets — that is the Worker secret name; WORKER_ADMIN_KEY does not exist'); process.exit(1); }
 
-const r = await fetch(`https://zero-agent.broke2builtai.com/tool?key=${key}&name=discover_new_sources`, {
+const r = await fetch(`https://zero-agent.broke2built.workers.dev/tool?key=${key}&name=discover_new_sources`, {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chain }),
 });
 const j = await r.json();

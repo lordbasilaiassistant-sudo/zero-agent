@@ -100,9 +100,9 @@ isTrustedForwarder         = false
 No signature can move it and the EOA has 0 ETH for gas. It is destroyed value — **17.7% of ZERO's entire
 $0.08447 lifetime earnings, sitting in a dead end.**
 
-> **ACTION FOR THE FIXES LANE:** every harvest must pass `callFeeRecipient = the SAFE`
-> (`0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`), never the EOA. Anything that lands on the EOA is gone.
-> Worth checking whether the harvest path ever defaults to `msg.sender`/EOA — that is how this got here.
+> **ACTION (GENESIS I measurement, 2026-08-01):** harvests that named the EOA stranded value.
+> Live fee recipient is GENESIS II Safe `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`. The retired
+> Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` is not a caller, payTo, or callFeeRecipient.
 
 ---
 

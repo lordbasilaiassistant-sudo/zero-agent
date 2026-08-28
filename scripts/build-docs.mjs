@@ -63,6 +63,7 @@ const PROBES = [
   ['EIP-1967 implementation slot', /1967|implementation|slot|0x360894/i],
   ['MultiSend byte packing', /multisend|packing|operation|delegatecall/i],
   ['0x9641d764fc13c8B624c04430C7356C1C7C8102e2', /multisend/i],
+  ['x402 payTo smart account', /0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f/i],
 ];
 console.log('\n=== SEARCH SELF-TEST (questions ZERO has really got wrong) ===');
 let pass = 0;

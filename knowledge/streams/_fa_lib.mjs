@@ -9,10 +9,11 @@
 import { ethers } from 'ethers';
 import fs from 'fs';
 import path from 'path';
+import { LIVE_EOA, SMART_ACCOUNT } from '../../shop.mjs';
 
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
-export const ZERO_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
-export const ZERO_SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+export const ZERO_EOA = LIVE_EOA;
+export const ZERO_SAFE = SMART_ACCOUNT;
 
 export const RPCS = {
   // llamarpc removed 2026-08-01: it answers with an HTML error page, which every JSON parse in this

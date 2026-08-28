@@ -5,9 +5,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { ethers } from 'ethers';
+import { RETIRED_EOA } from '../shop.mjs';
+
+if (!process.argv.includes('--spend')) {
+  console.error('REFUSED: this signs and broadcasts a live Base deploy. Pass --spend to run.');
+  process.exit(2);
+}
 
 const RPCS = ['https://base-rpc.publicnode.com', 'https://mainnet.base.org', 'https://1rpc.io/base'];
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
 const FACTORY = '0x777777751622c0d3258f214F9DF38E35BF45baF3';
 const RESERVE = 30_000_000_000_000n; // keep 0.00003 ETH for the shop's delivery leg
 
@@ -30,7 +35,10 @@ for (const line of readFileSync(path.join(os.homedir(), '.claude', 'secrets', 'a
   const m = line.match(/^([A-Z_]+)=(.*)$/); if (m) env[m[1]] = m[2].trim();
 }
 const wallet = new ethers.Wallet(env.AGENT_PRIVATE_KEY);
-if (wallet.address.toLowerCase() !== EOA.toLowerCase()) throw new Error('key is not ZERO');
+if (wallet.address.toLowerCase() === RETIRED_EOA.toLowerCase()) {
+  throw new Error('REFUSED: this key is the retired GENESIS I EOA');
+}
+const EOA = wallet.address;
 
 // gate 1 — the creation must simulate cleanly
 const gasHex = await rpc('eth_estimateGas', [{ from: EOA, data: bin }]);

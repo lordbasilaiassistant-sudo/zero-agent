@@ -29,7 +29,7 @@
 // The faithful sim is a state-override call: put MultiSendCallOnly's runtime code AT the Safe's
 // address, then call the Safe directly — inner calls then genuinely come FROM the Safe.
 import { ethers } from 'ethers';
-import { relayExec, relayStatus, pickChain, wethBalance, MULTISEND, CHAINS, simulateMultiSendAsSafe } from './harvest.mjs';
+import { relayExec, relayStatus, pickChain, wethBalance, MULTISEND, CHAINS, simulateMultiSendAsSafe, markRelayInflight } from './harvest.mjs';
 import { mutateKV } from './kv.mjs';
 
 export const SWEEP_RAIL = {
@@ -224,6 +224,7 @@ export async function sweepCycle(env, rpc, safe, { escapeNeedsBase = null } = {}
               p.mintTaskId = sent.taskId;
               p.mintSentAt = Date.now();
               out.mint_submitted = sent.taskId;
+              if (sent.taskId) await markRelayInflight(env, 'base', sent.taskId);
             } else out.mint_error = sent.error;
           } else out.mint_waiting = 'no base slot';
         } else out.attestation = j?.messages?.[0]?.status || 'not yet indexed';
@@ -320,6 +321,7 @@ export async function sweepCycle(env, rpc, safe, { escapeNeedsBase = null } = {}
 
       const sent = await relayExec(env, rpc, safe, MULTISEND, msData, chain, CHAINS[chain].chainId, 1); // DELEGATECALL
       if (sent.ok) {
+        if (sent.taskId) await markRelayInflight(env, chain, sent.taskId);
         const p = { chain, taskId: sent.taskId, tx: null, usd: +usd.toFixed(6), burn_units: burnAmount.toString(), prior_residue_swept: priorUsdc.toString(), at: new Date().toISOString() };
         // F15 FIX: this used to be six 5-second sleeps — up to 30s blocking the cron ahead of the
         // escape's successors and all six batch calls in the same waitUntil. Two attempts max; the

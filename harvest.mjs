@@ -1,17 +1,24 @@
-﻿// harvest.mjs â€” ZERO's bread and butter: permissionless caller-reward farming, forever, for free.
+// harvest.mjs — ZERO's bread and butter: permissionless caller-reward farming, forever, for free.
 //
 // The mechanism: many DeFi contracts pay a fee to WHOEVER triggers a maintenance call (Beefy's
 // auto-compounding strategies pay a harvest call-fee). That value is intended for an arbitrary caller.
-// Gas is free via Safe's sponsored relay, so every successful call is pure profit at any size â€”
+// Gas is free via Safe's sponsored relay, so every successful call is pure profit at any size —
 // a gas-paying bot must clear its own cost first; ZERO does not. That asymmetry is the whole edge.
 //
 // Hard discipline enforced here:
 //   * eth_call simulation before EVERY relay slot (slots are scarce, simulation is free and unlimited)
 //   * per-strategy cooldown (rewards accrue over time; re-harvesting immediately earns nothing)
-//   * callReward() is a RANKING signal only â€” it overstated a real payout by ~4,300x once
+//   * callReward() is a RANKING signal only — it overstated a real payout by ~4,300x once
 import { ethers } from 'ethers';
 import { mutateKV, addBig } from './kv.mjs';
 import { probeContract, probeMany, probeOne } from './oracle.mjs';
+import { SMART_ACCOUNT } from './shop.mjs';
+
+/** The only Safe this signer can exec. `env.SAFE_ADDRESS` is ignored on purpose: a Worker
+ *  secret still set to the retired 0x5106… would sign against an account this key does not own. */
+export function harvestSafe(_env) {
+  return SMART_ACCOUNT;
+}
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
 // Rotating across them multiplies free throughput with no extra identities and no puppetry.
@@ -31,6 +38,19 @@ export const CHAINS = {
   // Found 2026-07-29 by probing every Safe chain id for a quota: unichain sat at 5/5, unclaimed.
   unichain: { chainId: 130, weth: '0x4200000000000000000000000000000000000006' },
 };
+export const HARVEST_CHAIN_ORDER = ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis'];
+
+/** Per-chain relay quotas are independent. A Base funnel or an Arbitrum CCTP burn must not
+ *  skip Optimism/Polygon harvests — measured 2026-08-27 22:34Z (escape relayed, zero harvests)
+ *  and 22:36Z (sweep burned arb, zero harvests). */
+export function harvestChainQueue({ escapeNeedsBase = false, spent = [] } = {}) {
+  const used = new Set((spent || []).filter(Boolean).map(c => String(c).toLowerCase()));
+  return HARVEST_CHAIN_ORDER.filter(c => {
+    if (used.has(c)) return false;
+    if (c === 'base' && escapeNeedsBase) return false;
+    return true;
+  });
+}
 export const relayUrl = (chainId) => `https://safe-client.safe.global/v1/chains/${chainId}/relay`;
 
 export const HARVEST_CFG = {
@@ -39,7 +59,7 @@ export const HARVEST_CFG = {
   relay: 'https://safe-client.safe.global/v1/chains/8453/relay',
   multicall: '0xcA11bde05977b3631167028862bE2a173976CA11',
   weth: '0x4200000000000000000000000000000000000006',
-  callRewardSel: '0x97fd323d',       // callReward() â€” the CORRECT selector
+  callRewardSel: '0x97fd323d',       // callReward() — the CORRECT selector
   cooldownMs: 6 * 3600 * 1000,       // don't re-harvest the same strategy within 6h
   // Marginal cost is zero, so there is no reason to ration: any payout above zero beats an unused
   // slot, and an unused slot expires worthless. Attempt as often as the cron fires.
@@ -58,7 +78,14 @@ export const RELAY_HEADERS = {
   Referer: 'https://app.safe.global/',
 };
 
-// Strategies known to revert â€” never waste a simulation, let alone a slot, on these.
+/** Body the Client Gateway's Rhinestone path actually accepts. `safeTxHash` is load-bearing. */
+export function relayRequestBody({ version = '1.4.1', to, data, gasLimit = '1000000', safeTxHash }) {
+  const body = { version, to: ethers.getAddress(to), data, gasLimit };
+  if (safeTxHash) body.safeTxHash = safeTxHash;
+  return body;
+}
+
+// Strategies known to revert — never waste a simulation, let alone a slot, on these.
 const BLACKLIST = new Set([
   '0xb120677bdd4e', '0xfd4e687706d7', '0xc6c3e72a086a',
   '0xea1a624ed867', '0x533daf246257', '0x87308630cba7',
@@ -102,7 +129,7 @@ export async function relayBudget(safe, chainId = 8453) {
   } catch (e) { return { remaining: null, limit: null, error: String(e.message || e).slice(0, 80) }; }
 }
 
-// Pick the chain with free slots â€” an unused slot expires worthless, so never idle on one chain
+// Pick the chain with free slots — an unused slot expires worthless, so never idle on one chain
 // while another has budget.
 // ── RELAY BUDGET, MEMOISED ───────────────────────────────────────────────────────────────────────
 // pickChain fans out ONE HTTP request per chain to safe-client.safe.global, and it is called from
@@ -201,7 +228,7 @@ export function relayResetSummary(st) {
   return out;
 }
 
-// â”€â”€ strategy universe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── strategy universe ────────────────────────────────────────────────────────
 export async function loadStrategies(env, rpc, chainName = 'base') {
   const key = `harvest:vaults:${chainName}`;
   const cached = await env.KV.get(key, 'json');
@@ -215,14 +242,14 @@ export async function loadStrategies(env, rpc, chainName = 'base') {
   return list;
 }
 
-// callReward() across many strategies in one Multicall3 aggregate3 â€” ranking only, never a forecast.
+// callReward() across many strategies in one Multicall3 aggregate3 — ranking only, never a forecast.
 //
 // `chainName` used to be the constant HARVEST_CFG.chain ('base'). Any caller passing another chain's
 // strategies would have eth_call'd them ON BASE, where they are not contracts, and got back an empty
-// list that reads as "nothing pays here" â€” a silent wrong answer, not an error. Threaded, default base.
+// list that reads as "nothing pays here" — a silent wrong answer, not an error. Threaded, default base.
 // Multicall3 lives at the same address on every chain we touch, so the address needed no change.
 //
-// `per`: MEASURED 2026-07-31 against all four Base upstreams in worker.mjs CHAINS.base â€” one aggregate3
+// `per`: MEASURED 2026-07-31 against all four Base upstreams in worker.mjs CHAINS.base — one aggregate3
 // of 100 callReward() calls decoded the whole 241-strategy universe on every upstream
 // (publicnode / drpc / 1rpc / base.org) in 3 eth_calls. 100 is also Multicall3's practical ceiling.
 // Lower it for a chain whose nodes cap eth_call gas harder; a batch that overruns is swallowed by the
@@ -246,14 +273,14 @@ export async function rankByCallReward(rpc, strategies, chainName = 'base', per 
         // (morpho-base-steakhouse-prime-eurc, morpho-v2-base-gauntlet-balanced-weth,
         // morpho-v2-base-clearstar-reactor-usdc). Their _chargeFees pays out of the post-swap native
         // balance while the getter reads a reward-pool accrual they do not use. Never filter on a
-        // getter already proven to lie â€” a zero here means "the getter said nothing", not "no payout".
+        // getter already proven to lie — a zero here means "the getter said nothing", not "no payout".
         // They cost nothing to keep: the descending sort puts them last on their own.
         out.push({ ...batch[k], callReward: v.toString() });
       });
     } catch { /* batch failed; skip it rather than abort the cycle */ }
   }
   // Returns 0 on ties. The old comparator returned -1 for equal values, which is an inconsistent
-  // ordering â€” harmless while every value was distinct and non-zero, unsafe now that the kept zeros
+  // ordering — harmless while every value was distinct and non-zero, unsafe now that the kept zeros
   // make ties the common case.
   return out.sort((a, b) => {
     const x = BigInt(a.callReward), y = BigInt(b.callReward);
@@ -261,7 +288,7 @@ export async function rankByCallReward(rpc, strategies, chainName = 'base', per 
   });
 }
 
-// â”€â”€ simulation: free, unlimited, and mandatory before spending a slot â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── simulation: free, unlimited, and mandatory before spending a slot ─────────
 export function harvestCalldata(recipient, withRecipient = true) {
   return withRecipient
     ? new ethers.Interface(['function harvest(address callFeeRecipient)']).encodeFunctionData('harvest', [recipient])
@@ -282,7 +309,7 @@ export async function simulate(rpc, strategy, safe, recipient, chain = 'base') {
   return { ok: false };
 }
 
-// â”€â”€ execution through the free relay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── execution through the free relay ─────────────────────────────────────────
 // `operation` matters: 0 = CALL, 1 = DELEGATECALL. MultiSend MUST be delegatecalled, otherwise the
 // batched inner calls execute from MultiSend's own address instead of the Safe's — so a WETH.transfer
 // would try to move MultiSend's balance (zero) and the batch fails.
@@ -296,12 +323,24 @@ export async function relayExec(env, rpc, safe, target, innerData, chain = 'base
     nonce: BigInt(nonceHex),
   };
   const signature = await wallet.signTypedData({ chainId, verifyingContract: safe }, SAFE_TX_TYPES, tx);
+  const safeTxHash = ethers.TypedDataEncoder.hash({ chainId, verifyingContract: safe }, SAFE_TX_TYPES, tx);
   const exec = new ethers.Interface(['function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures) returns (bool)'])
     .encodeFunctionData('execTransaction', [tx.to, tx.value, tx.data, tx.operation, tx.safeTxGas, tx.baseGas, tx.gasPrice, tx.gasToken, tx.refundReceiver, signature]);
 
+  // Measured 2026-08-27: Rhinestone (replaced Gelato on the Client Gateway) returns
+  // HTTP 400 {"code":400,"message":"An error occurred"} unless `safeTxHash` is present.
+  // Probe: same signed execTransaction, 8 body variants — gasLimit 2.5M/1M/500k/omit and
+  // acceptUnverifiedSimulation all 400; `gasLimit:'1000000' + safeTxHash` → 201.
+  // Live 2026-08-27 22:50Z: Base POSTs with gasLimit 1500000 + hash still 400; 1M is the
+  // only measured-accepted limit.
   const res = await fetch(relayUrl(chainId), {
     method: 'POST', headers: RELAY_HEADERS,
-    body: JSON.stringify({ version: '1.4.1', to: safe, data: exec }),
+    body: JSON.stringify(relayRequestBody({
+      to: safe,
+      data: exec,
+      gasLimit: '1000000',
+      safeTxHash,
+    })),
   });
   const text = await res.text();
   if (res.status !== 201) return { ok: false, status: res.status, error: text.slice(0, 200) };
@@ -316,6 +355,87 @@ export async function relayStatus(taskId, chainId = 8453) {
     const t = j.task || j;
     return { status: t.status ?? null, tx: t.receipt?.transactionHash || t.transactionHash || null };
   } catch { return { status: null, tx: null }; }
+}
+
+// Measured 2026-08-27: Base harvest 201 at 22:38Z, poll never saw a tx, Rhinestone still
+// status 100 two minutes later. The next tick POSTed the same Safe nonce → HTTP 409, then
+// harvested Optimism. A pending task is not a free nonce. 10 minutes is longer than any
+// honest relay we have measured and shorter than a wasted day of 409s.
+export const RELAY_INFLIGHT_MAX_MS = 10 * 60 * 1000;
+const RELAY_DEAD = /revert|cancel|fail|expired|blacklisted|not.?found/i;
+
+export function harvestInflightRecord(state, chainName) {
+  const inf = state?.inflight?.[chainName];
+  if (inf && (inf.taskId || inf.reason === '409')) {
+    const at = typeof inf.at === 'number' ? inf.at : Date.parse(inf.at) || 0;
+    return { taskId: inf.taskId || null, at, reason: inf.reason || null };
+  }
+  const last = (state?.log || []).find(e => e.chain === chainName && e.taskId && !e.tx && e.relayed);
+  if (!last) return null;
+  return { taskId: last.taskId, at: Date.parse(last.at) || 0 };
+}
+
+export function relayTaskOpen(st, submittedAt, now = Date.now(), maxAgeMs = RELAY_INFLIGHT_MAX_MS) {
+  if (st?.tx) return false;
+  const s = st?.status;
+  if (s != null && RELAY_DEAD.test(String(s))) return false;
+  // Measured 2026-08-27: status 409 returned true with no TTL, so `409:optimism` skipped
+  // harvests for 18+ minutes after the nonce was free. A pending code is not a permanent lock.
+  if (submittedAt && (now - submittedAt) >= maxAgeMs) return false;
+  if (s === 100 || s === '100' || s === 409 || s === '409') return true;
+  if (s != null && /pending|waiting|check|queued/i.test(String(s))) return true;
+  if (submittedAt && (now - submittedAt) >= 0) return true;
+  return false;
+}
+
+function harvestStateFallback() {
+  return { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [], inflight: {} };
+}
+
+export async function markRelayInflight(env, chainName, taskId, extra = {}) {
+  if (!taskId) return;
+  await mutateKV(env, 'harvest:state', (s) => {
+    s.inflight = s.inflight || {};
+    s.inflight[chainName] = { taskId, at: Date.now(), ...extra };
+    return s;
+  }, { fallback: harvestStateFallback() });
+}
+
+function isSynthetic409Task(taskId) {
+  return !taskId || String(taskId).startsWith('409:');
+}
+
+export async function skipIfRelayInFlight(env, chainName, chainId) {
+  const state = (await env.KV.get('harvest:state', 'json')) || {};
+  const rec = harvestInflightRecord(state, chainName);
+  if (!rec) return null;
+  let st = { status: rec.reason === '409' ? 409 : null, tx: null };
+  if (!isSynthetic409Task(rec.taskId)) {
+    st = await relayStatus(rec.taskId, chainId);
+  }
+  if (!relayTaskOpen(st, rec.at)) {
+    if (state.inflight?.[chainName]) {
+      await mutateKV(env, 'harvest:state', (s) => {
+        if (s.inflight) delete s.inflight[chainName];
+        return s;
+      }, { fallback: harvestStateFallback() });
+    }
+    return null;
+  }
+  if (!state.inflight?.[chainName]) {
+    await mutateKV(env, 'harvest:state', (s) => {
+      s.inflight = s.inflight || {};
+      s.inflight[chainName] = rec;
+      return s;
+    }, { fallback: harvestStateFallback() });
+  }
+  return {
+    skipped: 'prior relay still in flight on this chain',
+    chain: chainName,
+    taskId: rec.taskId,
+    status: st.status ?? rec.reason ?? null,
+    relayed: false,
+  };
 }
 
 /* FIXED 2026-08-13 — this crashed every non-Base chain with "Cannot convert 0x to a BigInt",
@@ -429,6 +549,17 @@ export const USDC_BY_CHAIN = {
 // chosen on measurement (USDC depth 26x, ERC-4337 activity 134x vs optimism).
 export const HOME_CHAIN = 'base';
 
+/** Capability is native ETH at the Base EOA. A missing Base row is unread, not $0.
+ *  Measured 2026-08-28: reconcile's Base eth_call rate-limited, usdSpendable stayed 0,
+ *  and `/` published spendable $0.00 while chainstate had eoa_native_usd $0.613. */
+export function spendableFromRows(per, home = HOME_CHAIN) {
+  const row = (per || []).find(r => String(r?.chain || '').toLowerCase() === home);
+  if (!row) return null;
+  if (row.eoa_native_usd === null || row.eoa_native_usd === undefined) return null;
+  const v = Number(row.eoa_native_usd);
+  return Number.isFinite(v) ? +v.toFixed(8) : null;
+}
+
 // ── THE SCOREBOARD ──────────────────────────────────────────────────────────
 // DOCTRINE §11b: "Phase 0's exit condition is $1.00 of SPENDABLE, LIQUID, NATIVE ETH the agent can
 // spend without anyone's permission. Not total holdings. Not wrapped. Not 'in the Safe pending a
@@ -518,6 +649,7 @@ export async function reconcileEarnings(env, rpc, eoa, safe, priceTable = null) 
         eoa_usd: eoaWrappedUsd === null ? null : +eoaWrappedUsd.toFixed(8),
         safe_usd: safeWrappedUsd === null ? null : +safeWrappedUsd.toFixed(8),
         eoa_native_usd: eoaNativeUsd === null ? null : +eoaNativeUsd.toFixed(8),
+        safe_native_usd: safeNativeUsd === null ? null : +safeNativeUsd.toFixed(8),
         usdc_usd: +usdcUsd.toFixed(6),
       };
       if (price === null) {
@@ -544,22 +676,23 @@ export async function reconcileEarnings(env, rpc, eoa, safe, priceTable = null) 
   }
   const state = (await env.KV.get('harvest:state', 'json')) || {};
   const r2 = (n) => +n.toFixed(8);
+  const spendable = spendableFromRows(per);
   return {
     measured_at: new Date().toISOString(),
     source: 'on-chain native + wrapped-native + USDC balances at both addresses, each priced in ITS OWN token (ground truth, not a tracker)',
 
     // ── THE SCOREBOARD. Read this one and nothing else if you read only one number. ──
-    spendable_liquid_native_eth_on_base_usd: r2(usdSpendable),
-    spendable_usd: r2(usdSpendable),   // same number; kept for existing consumers
+    spendable_liquid_native_eth_on_base_usd: spendable,
+    spendable_usd: spendable,   // same number; kept for existing consumers
     phase0_target_usd: 1.00,
-    phase0_pct: +((usdSpendable / 1.00) * 100).toFixed(4),
+    phase0_pct: spendable == null ? null : +((spendable / 1.00) * 100).toFixed(4),
     spendable_means: 'NATIVE ETH AT THE EOA ON BASE, and nothing else. No quota, no sponsor, nobody can revoke it. Wrapped native in the Safe is NOT this — it needs a relay slot, which is somebody else\'s permission. DOCTRINE §11b.',
 
     // ── Everything it owns. Real value, mostly unable to act yet. NOT the scoreboard. ──
     total_holdings_usd: r2(usdTotal),
     lifetime_earned_usd: r2(usdTotal),  // same number; kept for existing consumers
     holdings_breakdown: {
-      spendable_native_eth_on_base_usd: r2(usdSpendable),
+      spendable_native_eth_on_base_usd: spendable,
       native_eth_at_eoa_other_chains_usd: r2(usdEoaNativeAway),
       wrapped_native_in_safe_usd: r2(usdSafeWrapped),
       wrapped_native_stranded_at_eoa_usd: r2(usdStranded),
@@ -582,7 +715,18 @@ export async function reconcileEarnings(env, rpc, eoa, safe, priceTable = null) 
   };
 }
 
-// â”€â”€ the loop body: one attempt per invocation, forever â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/** Sum the USD components of one per-chain row without double-counting aliases.
+ *  Safe native ETH used to be added into usdTotal and then omitted from the row, so the
+ *  dashboard table summed to less than holdings_usd by exactly the Safe's native balances
+ *  (live 2026-08-27: −$0.018741). One function, used by the writer, the coherence check, and the page. */
+export function rowUsd(r) {
+  if (!r || typeof r !== 'object') return 0;
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const eoaWrapped = num(r.eoa_usd) || num(r.eoa_wrapped_usd);
+  const safeWrapped = num(r.safe_usd) || num(r.safe_wrapped_usd);
+  return num(r.eoa_native_usd) + num(r.safe_native_usd) + eoaWrapped + safeWrapped + num(r.usdc_usd);
+}
+
 // ── THE ESCAPE: convert the relay quota into permanent, uncapped gas ────────
 //
 // Measured 2026-07-28 by classifying every live paymaster on Base (1806 user operations):
@@ -643,6 +787,25 @@ export const ESCAPE = {
   // buys ~40 simple Base calls against the paymaster's ONE. Set this above 0 to hold some back.
   usdcPaymasterReserveUnits: 0n,
 };
+
+/** Same USD floor escapeCycle uses before spending a Base slot on conversion. */
+export function escapeConvertFloorUsd(eoaNativeUsd) {
+  if (eoaNativeUsd == null || !Number.isFinite(Number(eoaNativeUsd))) return ESCAPE.aboveReserveFloorUsd;
+  return Number(eoaNativeUsd) < ESCAPE.reserveTargetUsd
+    ? ESCAPE.belowReserveFloorUsd
+    : ESCAPE.aboveReserveFloorUsd;
+}
+
+/** True when the funnel should ARM, not accumulate. The 2026-08-27 false positive used a $0.0038
+ *  wei floor while the funnel correctly waited for $0.02 with a healthy EOA reserve. */
+export function funnelShouldArm({ safeWethUsd, usdcUnits = 0n, eoaNativeUsd, safeWethWei = 0n, priceKnown = true } = {}) {
+  const usdc = BigInt(usdcUnits || 0);
+  if (usdc >= ESCAPE.minUsdcUnits) return true;
+  if (!priceKnown || safeWethUsd == null || !Number.isFinite(Number(safeWethUsd))) {
+    return BigInt(safeWethWei || 0) >= 1_000_000_000_000n;
+  }
+  return Number(safeWethUsd) >= escapeConvertFloorUsd(eoaNativeUsd);
+}
 
 // A faithful whole-batch simulation. `eth_call {to: MULTISEND, from: safe}` is WRONG for any leg
 // where msg.sender matters (transfer/approve/swap), because a plain CALL into MultiSend makes
@@ -790,9 +953,7 @@ export async function escapeCycle(env, rpc, safe, eoa) {
   // is nothing left anywhere that needs converting, right now.
   let clearsFloor, floorDesc;
   if (PRICE_KNOWN) {
-    const floorUsd = reserve.eoa_native_eth_usd < ESCAPE.reserveTargetUsd
-      ? ESCAPE.belowReserveFloorUsd    // under the reserve target, capability is the binding constraint
-      : ESCAPE.aboveReserveFloorUsd;   // reserve healthy — let it pool into something worth a slot
+    const floorUsd = escapeConvertFloorUsd(reserve.eoa_native_eth_usd);
     clearsFloor = reserve.safe_weth_usd >= floorUsd;
     floorDesc = `$${floorUsd}`;
   } else {
@@ -873,14 +1034,30 @@ export async function escapeCycle(env, rpc, safe, eoa) {
       skipped: unknown ? 'Base relay quota UNREADABLE this tick (' + (slot?.error || 'no reading') + ') — not spending on an unknown budget' : 'no Base relay slot right now' };
   }
 
+  const blocked = await skipIfRelayInFlight(env, 'base', 8453);
+  if (blocked) {
+    return {
+      step: 'funnel', reserve, simulated: true, ready: true, inflight: true,
+      converting: doing, skipped: blocked.skipped, taskId: blocked.taskId, status: blocked.status,
+      note: 'Base nonce still in flight — not POSTing the funnel again.',
+    };
+  }
+
   const before = eoaEth;
   const sent = await relayExec(env, rpc, safe, MULTISEND, msData, 'base', 8453, 1);  // DELEGATECALL
   await mutateKV(env, 'harvest:state', (s2) => {
     s2.escapeLog = [{ at: new Date().toISOString(), leg: 'funnel_atomic', relayed: sent.ok, taskId: sent.taskId, converting: doing, error: sent.error }, ...(s2.escapeLog || [])].slice(0, 10);
     if (sent.ok) s2.escaped = true;
     s2.lastFunnelAt = Date.now();
+    if (sent.ok && sent.taskId) {
+      s2.inflight = s2.inflight || {};
+      s2.inflight.base = { taskId: sent.taskId, at: Date.now() };
+    } else if (sent.status === 409) {
+      s2.inflight = s2.inflight || {};
+      s2.inflight.base = { taskId: '409:base', at: Date.now(), reason: '409' };
+    }
     return s2;
-  });
+  }, { fallback: harvestStateFallback() });
   return {
     step: 'funnel', reserve, simulated: true, relayed: sent.ok, taskId: sent.taskId, error: sent.error,
     converting: doing, legs: legs.length, converts_usd: reserve.safe_weth_usd, eoa_native_before_wei: before.toString(),
@@ -932,6 +1109,8 @@ const packCall = (to, data) =>
 export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6 } = {}) {
   const chain = CHAINS[chainName];
   if (!chain) throw new Error(`unknown chain ${chainName}`);
+  const blocked = await skipIfRelayInFlight(env, chainName, chain.chainId);
+  if (blocked) return blocked;
   const state = (await env.KV.get('harvest:state', 'json')) || { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] };
 
   const strategies = await loadStrategies(env, rpc, chainName);
@@ -947,7 +1126,13 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
   // BANDIT FALLBACK can select a strategy that probeMany never priced at all; this function has no
   // such path — nothing reaches the batch without a measured delta.
   const paying = await probeMany(rpc, chainName, strategies.map(s => s.strategy), chain.weth);
-  if (!paying.length) return { skipped: 'nothing is paying on this chain right now', chain: chainName };
+  if (!paying.length) {
+    await mutateKV(env, 'harvest:state', (s) => {
+      s.chainWork = { ...(s.chainWork || {}), [chainName]: 0 };
+      return s;
+    }, { fallback: harvestStateFallback() });
+    return { skipped: 'nothing is paying on this chain right now', chain: chainName };
+  }
 
   // Validate each candidate ALONE — one revert would take the whole batch down with it.
   const iface = new ethers.Interface(['function harvest(address)']);
@@ -960,7 +1145,13 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
       good.push(p);
     } catch { /* excluded rather than allowed to poison the batch */ }
   }
-  if (!good.length) return { skipped: 'none of the paying strategies simulate clean', chain: chainName, considered: paying.length };
+  if (!good.length) {
+    await mutateKV(env, 'harvest:state', (s) => {
+      s.chainWork = { ...(s.chainWork || {}), [chainName]: 0 };
+      return s;
+    }, { fallback: harvestStateFallback() });
+    return { skipped: 'none of the paying strategies simulate clean', chain: chainName, considered: paying.length };
+  }
 
   let batch = '0x';
   let expected = 0n;
@@ -988,9 +1179,24 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
 
   const before = await wethBalance(rpc, safe, chainName, chain.weth);
   const sent = await relayExec(env, rpc, safe, MULTISEND, msData, chainName, chain.chainId, 1); // DELEGATECALL
+  if (sent.status === 409) {
+    await mutateKV(env, 'harvest:state', (s) => {
+      s.inflight = s.inflight || {};
+      const rec = harvestInflightRecord(s, chainName);
+      s.inflight[chainName] = rec || { taskId: `409:${chainName}`, at: Date.now(), reason: '409' };
+      s.log = [{ at: new Date().toISOString(), chain: chainName, batched: good.length, relayed: false, skipped: '409 — nonce still in flight', error: sent.error }, ...(s.log || [])].slice(0, 50);
+      return s;
+    }, { fallback: harvestStateFallback() });
+    return { chain: chainName, batched: good.length, relayed: false, skipped: '409 — nonce still in flight', error: sent.error };
+  }
   const result = { chain: chainName, batched: good.length, expected_wei: expected.toString(), relayed: sent.ok, taskId: sent.taskId, error: sent.error };
 
   if (sent.ok && sent.taskId) {
+    await mutateKV(env, 'harvest:state', (s) => {
+      s.inflight = s.inflight || {};
+      s.inflight[chainName] = { taskId: sent.taskId, at: Date.now() };
+      return s;
+    }, { fallback: harvestStateFallback() });
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 5000));
       const st = await relayStatus(sent.taskId, chain.chainId);
@@ -1028,14 +1234,84 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
       for (const g of good) s.cooldowns[g.contract] = Date.now();
       s.attempts = (s.attempts || 0) + 1;
       s.log = [{ at: new Date().toISOString(), batch: good.length, ...result }, ...(s.log || [])].slice(0, 50);
+      s.inflight = s.inflight || {};
+      if (result.tx) delete s.inflight[chainName];
+      else s.inflight[chainName] = { taskId: sent.taskId, at: Date.now() };
+      s.chainWork = { ...(s.chainWork || {}), [chainName]: good.length };
       return s;
-    }, { opId, fallback: { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] } });
+    }, { opId, fallback: harvestStateFallback() });
   }
   return result;
 }
 
+/** Rank Beefy strategies by MEASURED payout (delta oracle), then by callReward only if the oracle is down.
+ *  Shared by the Worker harvest_scan tool and the local tools.mjs harness so they cannot drift. */
+export async function harvestScan(env, rpc, { limit = 10 } = {}) {
+  const safe = SMART_ACCOUNT;
+  const recipient = SMART_ACCOUNT;
+  const strategies = await loadStrategies(env, rpc);
+  const BASE_WETH = CHAINS.base.weth;
+  const top = [];
+  let priced = [];
+  try {
+    priced = await probeMany(rpc, 'base', strategies.map(s => s.strategy), BASE_WETH);
+  } catch { /* fall through to the getter rather than return nothing */ }
+  const byAddr = new Map(strategies.map(s => [s.strategy.toLowerCase(), s]));
+  if (priced.length) {
+    for (const p of priced.slice(0, Math.min(Number(limit) || 10, 15))) {
+      const cand = byAddr.get(p.contract.toLowerCase());
+      top.push({ id: cand?.id, strategy: p.contract, pays_wei: p.wei, callable: true, evidence: 'positive balance delta in aggregate3' });
+    }
+  } else {
+    const ranked = await rankByCallReward(rpc, strategies, 'base');
+    for (const c of ranked.slice(0, Math.min(Number(limit) || 10, 15))) {
+      const sim = await simulate(rpc, c.strategy, safe, recipient);
+      top.push({ id: c.id, strategy: c.strategy, callReward_wei: c.callReward, callable: sim.ok, ranking: 'FALLBACK: callReward, blind to revert-on-getter payers' });
+    }
+  }
+  return {
+    note: 'RANKED BY MEASURED PAYOUT (2026-08-13). pays_wei is a real balance delta: the wrapped-native this harvest would actually move to us, simulated in one eth_call. Spend slots top-down on callable:true. If you instead see callReward_wei and ranking:"FALLBACK", the oracle was unreachable and the order is UNTRUSTWORTHY — callReward reverts on our eight best Aerodrome/CoW strategies and they disappear from that ordering entirely, it is denominated in the reward token (measured 4,478x overstatement on AERO, 1,284x on Cake), and a 0 there does not mean no payout (three Morpho strategies read 0 and pay). Never quote callReward as money.',
+    budget: await relayBudget(safe), candidates: top,
+    coverage: {
+      universe: strategies.length,
+      priced: priced.length,
+      batches_ok: priced.batchesOk || 0,
+      batches_failed: priced.batchesFailed || 0,
+      strategies_unpriced: priced.unpriced || 0,
+      last_error: priced.lastError || null,
+      verdict: (priced.unpriced || 0) > 0
+        ? `INCOMPLETE — ${priced.unpriced} strategies never priced. Ranking is over a fraction of the pool; the real best may be missing.`
+        : 'complete — every strategy priced',
+    },
+  };
+}
+
+/** Fire one harvest batch, walking chains. Same reservation rule as the cron: skip Base only when
+ *  escape:needsBase is a FRESH true (≤15 min). Shared by Worker harvest_run and the local harness. */
+export async function harvestRun(env, rpc, { escapeNeedsBase } = {}) {
+  if (escapeNeedsBase === undefined) {
+    const escv = (await env.KV.get('escape:needsBase', 'json')) || null;
+    escapeNeedsBase = !!(escv && escv.v === true && Date.now() - (escv.at || 0) < 15 * 60 * 1000);
+  }
+  const chains = ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis'];
+  for (const chain of chains) {
+    if (chain === 'base' && escapeNeedsBase) continue;
+    const r = await batchHarvest(env, rpc, SMART_ACCOUNT, chain);
+    if (r && (r.relayed || r.ready)) {
+      return { ...r, note: r.relayed ? 'Batch fired. This also runs automatically every 2 minutes — your rounds are better spent finding NEW payers.' : 'Batch is built and waiting on a relay slot; the automation will fire it the moment one refills. Nothing for you to do here.' };
+    }
+  }
+  return {
+    skipped: 'no chain has both payable work and a batch that simulates clean right now',
+    ...(escapeNeedsBase ? { base_reserved: 'Base was skipped this pass — the escape is mid-flight and its slots buy permanent gas, worth more than any batch.' } : {}),
+    note: 'The automation retries every 2 minutes forever. Spend your rounds on discovery instead.',
+  };
+}
+
 export async function harvestCycle(env, rpc) {
-  const safe = env.SAFE_ADDRESS || '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+  // GENESIS II Safe is the only account the live signer can exec. The retired 0x5106… fallback
+  // would send signed txs at a Safe the current key does not own (measured: getOwners = retired EOA).
+  const safe = harvestSafe(env);
   // Fees MUST land in the Safe, not the EOA. The Safe can spend (free relay); the EOA cannot move a
   // token without ETH it will never have. Earnings sent to the EOA are real but stranded.
   const recipient = safe;
@@ -1058,6 +1334,8 @@ export async function harvestCycle(env, rpc) {
   // always keep walking down the list until a chain actually has something fresh to call.
   let chain = null, fresh = [], tried = [];
   for (const cand of budgets.filter(b => typeof b.remaining === 'number' && b.remaining > 0)) {
+    const blocked = await skipIfRelayInFlight(env, cand.name, cand.chainId);
+    if (blocked) { tried.push({ chain: cand.name, slots: cand.remaining, skipped: blocked.skipped, taskId: blocked.taskId }); continue; }
     const strategies = await loadStrategies(env, rpc, cand.name);
     const usable = strategies.filter(s => {
       if (BLACKLIST.has(s.strategy.slice(0, 14).toLowerCase())) return false;
@@ -1072,8 +1350,8 @@ export async function harvestCycle(env, rpc) {
   const budget = { remaining: chain.remaining, limit: chain.limit };
 
   // Selection is EMPIRICAL, not predicted. callReward() proved worthless as a caller-fee signal
-  // (read $615, paid $0.0001 â€” it measures something else entirely). What actually predicts a good
-  // payout is what a strategy has ACTUALLY paid us before. So: optimistic-init bandit â€” untried
+  // (read $615, paid $0.0001 — it measures something else entirely). What actually predicts a good
+  // payout is what a strategy has ACTUALLY paid us before. So: optimistic-init bandit — untried
   // strategies rank above known-poor ones, and real results reorder the list forever.
   // Our marginal cost is zero, so ANY payout above zero is worth a slot. Take everything.
   state.payouts ||= {};
@@ -1165,8 +1443,8 @@ export async function harvestCycle(env, rpc) {
     relayed: sent.ok, taskId: sent.taskId, error: sent.error,
   };
   if (sent.ok && sent.taskId) {
-    // Wait for inclusion AND for the node to reflect it â€” measuring too early reported 0 on a
-    // harvest that actually paid (verified: tx 0x76a2db9bâ€¦ credited after the check had returned).
+    // Wait for inclusion AND for the node to reflect it — measuring too early reported 0 on a
+    // harvest that actually paid (verified: tx 0x76a2db9b… credited after the check had returned).
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 5000));
       const st = await relayStatus(sent.taskId, chain.chainId);
@@ -1185,7 +1463,7 @@ export async function harvestCycle(env, rpc) {
     rec.n += 1;
     rec.totalWei += Number(delta);
     rec.lastWei = delta.toString();
-    // A strategy that paid us literally nothing gets a long cooldown â€” not banned (it may accrue
+    // A strategy that paid us literally nothing gets a long cooldown — not banned (it may accrue
     // again), just deprioritised so slots go to teats that actually flow.
     if (delta === 0n) state.cooldowns[chosen.strategy] = Date.now() + HARVEST_CFG.cooldownMs;
   }

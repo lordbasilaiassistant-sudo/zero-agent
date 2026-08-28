@@ -11,6 +11,7 @@
  *
  *   node deploy-safe.mjs            # dry run — prints the predicted address, sends nothing
  *   node deploy-safe.mjs --apply    # actually relays the deployment
+ *   node deploy-safe.mjs --spend    # same as --apply
  */
 
 import { ethers } from 'ethers';
@@ -18,7 +19,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const APPLY = process.argv.includes('--apply');
+const APPLY = process.argv.includes('--apply') || process.argv.includes('--spend');
 const CHAIN = Number((process.argv.find(a => a.startsWith('--chain=')) || '--chain=8453').split('=')[1]);
 
 const RPCS = { 8453: 'https://mainnet.base.org', 100: 'https://rpc.gnosischain.com', 10: 'https://mainnet.optimism.io', 42161: 'https://arb1.arbitrum.io/rpc', 137: 'https://polygon-rpc.com', 130: 'https://mainnet.unichain.org' };
@@ -90,7 +91,7 @@ const budget = await (await fetch(`https://safe-client.safe.global/v1/chains/${C
 console.log('owner relay budget:', JSON.stringify(budget));
 if (!budget || budget.remaining === 0) { console.log('NO RELAY BUDGET — abort'); process.exit(1); }
 
-if (!APPLY) { console.log('\ndry run — pass --apply to relay the deployment'); process.exit(0); }
+if (!APPLY) { console.log('\ndry run — pass --spend (or --apply) to relay the deployment'); process.exit(0); }
 
 const res = await fetch(`https://safe-client.safe.global/v1/chains/${CHAIN}/relay`, {
   method: 'POST', headers: RELAY_HEADERS,

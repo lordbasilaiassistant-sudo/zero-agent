@@ -1,53 +1,43 @@
 # DEPLOY STATE — read before `wrangler deploy`
 
-**Last updated 2026-08-23.**
+**Last updated 2026-08-28.**
 
-## ⛔ `main` IS NOT DEPLOYABLE RIGHT NOW
+## What is live
 
-Deploying `main@ef5e841` puts every cron into **`exceededMemory`** and stops the agent
-dead. It did exactly that on 2026-08-23 from 04:20 to 05:00 UTC — session 933 never
-started, ~40 minutes of the agent's life lost.
+Version **`3a62aedd-6528-44f9-82a5-8e27304a4e14`**: `value-priced-at-zero` no longer
+fires when Blockscout's Base price read fails (usdContribution stays `null`, not `0`).
+Published per-chain rows are stored so the audit can check what `/` served.
 
-An over-memory invocation is **killed, not thrown**, so it produces *no exception* in the
-logs. It looks like silence, not like failure. Check `wrangler tail --status error` and
-look at `outcome`, not at `exceptions`.
+Prior **`b4eb562c-2bbb-4c76-8197-b70e5ec65787`**: cached `/` revives spendable
+from chainstate when reconcile missed Base (measured lie: spendable `$0` while
+`?fresh=1` showed `~$0.61`). Also revives health clocks and usable capacity (no
+RPC). Cron patches `cache:status` from KV when the lease drops. A 0-round GLM
+slice does not stamp `lastSliceAt`. ETA text is omitted unless a measured cycle
+exists.
 
-## What is actually live
+Prior **`ac904086`**: clock/capacity revive; spendable `$0` from an unread Base
+row still shipped.
+Prior **`8a643811`**: first revive deploy; headline still said `cycle nullh`.
+Prior **`0c8f4a10`**: leased sparse GLM tick is replayed on the next non-hygiene tick.
+Prior **`ffc741b2`**: missing `chainWork` is not usable capacity.
+Prior **`bce62ac5`**: dashboard names in-flight GLM session.
+Prior **`0a84944e`**: session stale from `lastSliceAt` (90 min).
 
-Branch **`deployed/ledger-fix`** (`f9aa306`) = last-known-good tree (`bab0c51`) + one
-import line. Version `353e5d95-ff7e-4a31-8236-abf1c877cfd1`.
+Rollback: `wrangler rollback 8521415e-0608-434d-a3ee-6f5913654fd1`
 
-Known-good rollback target if anything goes wrong:
-`wrangler rollback 8521415e-0608-434d-a3ee-6f5913654fd1`
+Measured 2026-08-28 after `3a62aedd`:
+- Cached `/`: health **CYCLING**, usable **0**, spendable **~$0.615**
+- `/invariants` **clean** (all 10 hold) after the priced-at-zero false-positive fix
+- `regress` 95/0, `shoptest` 14/14, tree ok
 
-## Why main breaks
+## Required for a clean-clone deploy
 
-`main` carries ~8 days of previously-undeployed drift (swept into `ef5e841`). Root cause,
-MEASURED with `wrangler kv key get`:
+- `janitor.mjs` — imported by `worker.mjs`
+- `test-janitor.mjs`, `scripts/check-tree.mjs`, `scripts/compact-discover.mjs`,
+  `scripts/probe-relay.mjs`, `scripts/run-janitor-once.mjs`, `scripts/deploy-fleet.mjs`
 
-- **`discover:state` is 4.0 MB** (6,639 candidates).
-- `prospectTick` and `discoveryPass` parse it in **concurrent `waitUntil` blocks** on a
-  **128 MB** isolate. A 4 MB JSON becomes a much larger object graph, and each holder keeps
-  its own copy plus the string it stringifies back.
-- The drift added a **third** concurrent copy (prospect.mjs's D6 re-read-and-merge fix).
+Live-spend scripts refuse unless passed `--spend`. `npm test` runs regress + janitor
++ compact-discover + tree. `npm run render` hits the live Worker through dashboard2.
 
-Serializing prospect + discovery **was tried and was NOT enough** (2 `exceededMemory` in
-7 min). Rolled back. So the drift contains more than one contributor, or the blob alone is
-already too close to the ceiling.
-
-## Two open items
-
-1. **Bisect the drift**, then re-land the dashboard honesty work (it is written and
-   committed on `main`, verified against live payloads, but rides on the broken drift).
-   Bisect by deploying candidate subsets from a worktree and watching
-   `wrangler tail --status error` for ~8 min each; roll back between tests.
-2. **`discover:state` needs pruning or splitting.** 4.0 MB parsed every 2 minutes is not
-   stable at *any* concurrency — serializing only buys headroom, it does not remove the
-   ceiling. It grows without bound; it will break again on its own.
-
-## The bug this branch fixes
-
-`route_log` threw `ReferenceError: mutateKV is not defined` on every call — `worker.mjs`
-used `mutateKV` and never imported it. The route ledger recorded **nothing** from
-2026-08-12T18:16Z until 2026-08-23T05:52Z. ~200 sessions each called `route_log` 2–3× and
-lost every conclusion. Verified fixed: session 934 `routes_logged:true`, ledger 527 → 528.
+Gitignored: `scripts/*-result.json`, `state/cloud-status.json`, stream caches,
+root `_*.mjs`, `scratch/`, `.render/`.

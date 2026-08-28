@@ -1,8 +1,8 @@
 // authtest.mjs — proves the X-PAYMENT (EIP-3009) path with a real signed authorization.
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
 import { ethers } from 'ethers';
-import { verifyAuthorization } from './shop.mjs';
-const PAY_TO='0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+import { verifyAuthorization, SMART_ACCOUNT } from './shop.mjs';
+const PAY_TO=SMART_ACCOUNT;
 const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const DOMAIN={name:'USD Coin',version:'2',chainId:8453,verifyingContract:USDC};
 const TYPES={TransferWithAuthorization:[{name:'from',type:'address'},{name:'to',type:'address'},

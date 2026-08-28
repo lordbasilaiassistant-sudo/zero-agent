@@ -42,7 +42,7 @@
 //   * code bugs     -> made LOUD and ATTRIBUTABLE in one tick instead of twelve days
 // The second is most of the value. Nobody was ever going to read a healthy-looking log.
 import { ethers } from 'ethers';
-import { CHAINS, HARVEST_CFG, ESCAPE, USDC_BY_CHAIN, HOME_CHAIN, wethBalance, nativeUsd } from './harvest.mjs';
+import { CHAINS, HARVEST_CFG, ESCAPE, USDC_BY_CHAIN, HOME_CHAIN, wethBalance, nativeUsd, funnelShouldArm, escapeConvertFloorUsd } from './harvest.mjs';
 import { SWEEP_RAIL } from './sweep.mjs';
 import { mutateKV } from './kv.mjs';
 
@@ -50,15 +50,54 @@ export const INVARIANT_CFG = {
   // A violation that survives this many consecutive ticks is no longer a blip. At one tick per
   // 2 minutes, 15 ticks is 30 minutes of the same contradiction holding.
   escalateAfterTicks: 15,
-  // Wrapped native in the Safe above this, with the funnel not armed, is a contradiction.
-  funnelIdleFloorWei: 2000000000000n,          // 1e12*2 ~ $0.0038 at $1900/ETH
+  // OLD wei floor (~$0.0038). Kept so the CONTROL can re-implement the 2026-08-27 false positive.
+  // The live check uses funnelShouldArm — the same $0.002 / $0.02 floors escapeCycle uses.
+  funnelIdleFloorWei: 2000000000000n,
   // USDC residue on a tributary that should have been burned with the last sweep.
   tributaryResidueUnits: 2000n,                 // 0.002 USDC
   // How long holdings may rise with spendable flat before the funnel is not reaching the scoreboard.
   conversionStaleHours: 30,                     // > the measured ~24h relay refill cycle, with margin
+  // Published vs live spendable. Origin was 104× ($0.227 vs $0.002). A mill of ETH-price drift
+  // between two reads is not that bug. One cent matches the comment that shipped with the check.
+  spendableSlackUsd: 0.01,
 };
 
 const b = (x) => (typeof x === 'bigint' ? x : BigInt(x || 0));
+
+/** True when a census row CLAIMS $0 for a chain that holds wei and has no price.
+ *  usdContribution null is unread — not a $0 claim. The 2026-08-28 live hit fired because
+ *  readWorld initialised usdContribution to 0, so a failed Base Blockscout price read looked
+ *  exactly like "priced at nothing". */
+export function chainsPricedAtZero(perChain) {
+  const bad = [];
+  for (const [name, r] of Object.entries(perChain || {})) {
+    const held = b(r.wrapped) + b(r.native);
+    if (held > 0n && r.priceKnown === false && r.usdContribution === 0) {
+      bad.push({ chain: name, wei: held.toString() });
+    }
+  }
+  return bad;
+}
+
+/** Same contradiction, against what `/` actually served. A null usd field is unmeasured. */
+export function publishedChainsPricedAtZero(rows) {
+  const bad = [];
+  for (const r of rows || []) {
+    const wei = [r.eoa_wei, r.safe_wei, r.eoa_native_wei, r.safe_native_wei]
+      .reduce((n, x) => n + b(x || 0), 0n);
+    if (wei <= 0n) continue;
+    if (r.price_known !== false) continue;
+    const usdFields = [r.eoa_usd, r.safe_usd, r.eoa_native_usd, r.usdc_usd];
+    if (usdFields.some(v => v === null || v === undefined)) continue;
+    if (usdFields.every(v => v === 0)) bad.push({ chain: r.chain, wei: wei.toString() });
+  }
+  return bad;
+}
+/** True when published spendable is materially above native ETH at the Base EOA. */
+export function spendableOverstated(claimed, actualUsd, slackUsd = INVARIANT_CFG.spendableSlackUsd) {
+  if (typeof claimed !== 'number' || actualUsd == null || !Number.isFinite(actualUsd)) return false;
+  return claimed > actualUsd + slackUsd;
+}
 
 // ── THE CHECKS ───────────────────────────────────────────────────────────────────────────────────
 // Each one names the bug it descends from, so nobody has to rediscover why it is here.
@@ -72,16 +111,38 @@ const INVARIANTS = [
       const safeWeth = ctx.chain.baseSafeWrapped;
       const usdc = ctx.chain.baseSafeUsdc;
       if (safeWeth === null) return null;                       // unreadable is a different invariant
-      const hasWork = safeWeth >= INVARIANT_CFG.funnelIdleFloorWei || usdc >= ESCAPE.minUsdcUnits;
+      const price = ctx.chain.basePrice;
+      const eoaWei = ctx.chain.baseEoaNative;
+      const eoaUsd = (price != null && eoaWei != null)
+        ? Number(ethers.formatEther(eoaWei)) * price
+        : (ctx.escape?.reserve?.eoa_native_eth_usd ?? null);
+      const safeUsd = (price != null)
+        ? Number(ethers.formatEther(safeWeth)) * price
+        : (ctx.escape?.reserve?.safe_weth_usd ?? null);
+      const hasWork = funnelShouldArm({
+        safeWethUsd: safeUsd,
+        usdcUnits: usdc,
+        eoaNativeUsd: eoaUsd,
+        safeWethWei: safeWeth,
+        priceKnown: price != null || ctx.escape?.reserve?.safe_weth_usd != null,
+      });
       if (!hasWork) return null;
       const step = ctx.escape?.step;
       // 'funnel' (armed, possibly waiting for a slot) is the correct state. Anything else while
-      // there is work is the contradiction.
+      // there is work is the contradiction. 'accumulate' is correct WHEN hasWork is false —
+      // that case already returned above. Firing on accumulate below the $0.02 floor was the
+      // 2026-08-27 false positive (Safe ~$0.014, EOA reserve already healthy).
       if (step === 'funnel') return null;
       if (!step) return null;                                   // no reading this tick, not a claim
       return {
         detail: `Funnel reports "${step}" while the Base Safe holds ${safeWeth} wei wrapped native and ${usdc} USDC units.`,
-        evidence: { escape_step: step, safe_wrapped_wei: safeWeth.toString(), safe_usdc_units: usdc.toString() },
+        evidence: {
+          escape_step: step,
+          safe_wrapped_wei: safeWeth.toString(),
+          safe_usdc_units: usdc.toString(),
+          safe_weth_usd: safeUsd,
+          floor_usd: escapeConvertFloorUsd(eoaUsd),
+        },
         repairable: false,   // this is a CODE belief, not a state wedge — a repair would paper over it
       };
     },
@@ -161,8 +222,9 @@ const INVARIANTS = [
       const price = ctx.chain.basePrice;
       if (actualWei === null || price === null) return null;
       const actual = Number(ethers.formatEther(actualWei)) * price;
-      // A cent of tolerance covers price drift between the two reads.
-      if (claimed <= actual + 0.00001) return null;
+      // A cent of tolerance covers price drift between the two reads. $0.00001 was a mill, not a
+      // cent — live 2026-08-27 23:10Z fired on $0.61478 vs $0.61473 (overstated_x: 1).
+      if (!spendableOverstated(claimed, actual)) return null;
       return {
         detail: `Reported spendable $${claimed} exceeds native ETH at the Base EOA ($${actual.toFixed(8)}). "Spendable" must mean capability and nothing else (DOCTRINE §11b).`,
         evidence: { claimed_usd: claimed, actual_native_usd: +actual.toFixed(8), eoa_native_wei: actualWei.toString(), overstated_x: +(claimed / Math.max(actual, 1e-12)).toFixed(1) },
@@ -175,17 +237,16 @@ const INVARIANTS = [
     asks: 'A chain holds a nonzero balance but contributes $0 to the totals.',
     origin: '`price ? amount * price : 0` turned Polygon\'s intermittent price feed into $0, deleting the whole pile from every total ever printed.',
     async check(ctx) {
-      const bad = [];
-      for (const [name, r] of Object.entries(ctx.chain.perChain)) {
-        const held = b(r.wrapped) + b(r.native);
-        if (held > 0n && r.priceKnown === false && (r.usdContribution ?? 0) === 0) {
-          bad.push({ chain: name, wei: held.toString() });
-        }
-      }
-      if (!bad.length) return null;
+      const bad = [
+        ...chainsPricedAtZero(ctx.chain.perChain),
+        ...publishedChainsPricedAtZero(ctx.reported?.all_chains_priced),
+      ];
+      const seen = new Set();
+      const uniq = bad.filter(x => seen.has(x.chain) ? false : seen.add(x.chain));
+      if (!uniq.length) return null;
       return {
-        detail: `${bad.map(x => x.chain).join(', ')} hold real balances that are priced at nothing. Unpriced is NOT zero — a chain missing from a total must be labelled unmeasured, never silently dropped.`,
-        evidence: { chains: bad },
+        detail: `${uniq.map(x => x.chain).join(', ')} hold real balances that are priced at nothing. Unpriced is NOT zero — a chain missing from a total must be labelled unmeasured, never silently dropped.`,
+        evidence: { chains: uniq },
         repairable: false,   // it is a reporting truth, surfaced deliberately; nothing to rewrite
         severity: 'notice',
       };
@@ -308,7 +369,7 @@ export async function readWorld(rpc, env, eoa, safe) {
   const perChain = {};
   let baseSafeWrapped = null, baseEoaWrapped = null, baseEoaNative = null, baseSafeUsdc = 0n, basePrice = null;
   for (const [name, c] of Object.entries(CHAINS)) {
-    const row = { wrapped: null, native: null, usdc: null, priceKnown: null, usdContribution: 0 };
+    const row = { wrapped: null, native: null, usdc: null, priceKnown: null, usdContribution: null };
     try {
       row.wrapped = (await wethBalance(rpc, safe, name, c.weth)).toString();
       row.native = (await rpc(name, 'eth_getBalance', [safe, 'latest'])).toString();
@@ -334,7 +395,9 @@ export async function readWorld(rpc, env, eoa, safe) {
 
 export async function checkInvariants(env, rpc, { eoa, safe, escape, reported, relay } = {}) {
   const ctx = {
-    env, rpc, escape, reported, relay: relay || {},
+    env, rpc,
+    escape: escape || (await env.KV.get('escape:last', 'json')) || null,
+    reported, relay: relay || {},
     chain: await readWorld(rpc, env, eoa, safe),
     sweep: (await env.KV.get('sweep:state', 'json')) || { pending: [], done: [] },
     needsBase: (await env.KV.get('escape:needsBase', 'json')) || null,

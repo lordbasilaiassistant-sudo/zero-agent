@@ -1,6 +1,8 @@
 // shop.mjs — ZERO's storefront: the one earning rail that needs no capital.
 import { ethers } from 'ethers';
 import { mutateKV } from './kv.mjs';
+import { probeContract } from './oracle.mjs';
+import { bruteforceContract } from './bruteforce.mjs';
 // In x402, the BUYER's client settles onchain and pays the gas; the seller only answers HTTP 402
 // with its address. So a broke agent can sell even though it cannot transact.
 // v1 settlement: pay-then-fetch. Buyer sends USDC on Base to ZERO, then calls back with the tx hash.
@@ -12,20 +14,28 @@ const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a
 // keyless ERC-4337 paymaster, which requires the USDC to sit in the smart account at validation time
 // (verified: paymaster returns "token balance lower than the required 0x237f allowance" = 0.009087 USDC).
 // USDC landing on the EOA would be stranded — moving it would need ETH the agent will never have.
-// Deterministic Safe v0.3.0 counterfactual for owner 0x50624F7790732f9767180871D03A304756200dB9,
-// computed with abstractionkit and verified undeployed (it can receive before deployment).
 /* GENESIS II Safe, deployed 2026-08-13 via Safe's sponsored relay for $0.00.
+   SafeL2 v1.4.1, singleton 0x29fcB43b…C762, DEPLOYED on base/optimism/arbitrum/polygon/gnosis.
    The previous constant pointed at a Safe owned by the RETIRED EOA, so swapping the key left ZERO
    unable to sign execTransaction and pointed the x402 payTo into a contaminated account.
-   VERIFIED on-chain: getOwners() = [0xc94929d1...d57a], threshold 1. */
+   VERIFIED on-chain: getOwners() = [0xc94929d1...d57a], threshold 1. The "0.3.0 undeployed" claim
+   was the Safe4337Module version, a different contract, and it was wrong twice. */
 export const SMART_ACCOUNT = '0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f';
+export const LIVE_EOA = '0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A';
+/** GENESIS I Safe — owned by the retired EOA. Never caller, payTo, or callFeeRecipient. */
+export const RETIRED_SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+export const RETIRED_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+export function isRetiredAccount(addr) {
+  const a = String(addr || '').toLowerCase();
+  return a === RETIRED_SAFE.toLowerCase() || a === RETIRED_EOA.toLowerCase();
+}
 
 export const PRODUCTS = {
   'contract-audit': {
     price_usdc: '0.05',
     units: 50000n,
     title: 'Contract red-flag report',
-    description: 'Fetches the verified source of any contract on Base and returns a structured risk report: owner powers, mint/blacklist/pause authority, fee logic, upgradeability, and the specific lines that justify each finding. Returns "unverified source" honestly rather than guessing.',
+    description: 'Know whether a contract can rug you before you touch it: owner powers, mint/blacklist/pause authority, fee logic, upgradeability — each finding quoted from the specific verified-source line that justifies it. Answers "unverified source" honestly instead of guessing.',
     params: { contract: '0x-prefixed contract address on Base (required)' },
   },
   'wallet-brief': {
@@ -44,15 +54,27 @@ export const PRODUCTS = {
     price_usdc: '0.03',
     units: 30000n,
     title: 'Will this contract pay me for calling it?',
-    description: 'Simulates the settlement itself and returns the EXACT fee an arbitrary caller would receive right now, in wei and USD. Not a getter reading — a measured payout. Reward getters lie: callReward() has read $615.54 and paid $0.0001, maxRewards() has read $63.24 and paid $0.00 across six consecutive settlements. This works on contracts NOBODY has ever called, so it prices a mechanism before anyone has proven it. Resolves proxies (EIP-1967, beacon, direct) automatically.',
+    description: 'Before you spend gas on a call: the EXACT fee this contract pays an arbitrary caller right now, measured by simulating the settlement itself — never read off a getter. Reward getters lie: callReward() has read $615.54 and paid $0.0001; maxRewards() read $63.24 and paid $0.00 across six consecutive settlements. Prices mechanisms nobody has ever called yet. Proxies resolved automatically (EIP-1967, beacon, direct).',
     params: { contract: '0x-prefixed contract address on Base (required)' },
   },
   'interface-xray': {
     price_usdc: '0.04',
     units: 40000n,
     title: 'Every function a contract has — even unverified',
-    description: 'Recovers the COMPLETE external interface straight from runtime bytecode by scanning the dispatch table for PUSH4 selectors, so it works with no ABI, no source, no explorer entry and no verification. Then prices every one of them and reports which move value to an arbitrary caller. Typical contract exposes 40-90 functions; the source-verified ABI is often not the whole story and a proxy shows none at all until resolved.',
+    description: 'No ABI, no verified source, no explorer entry? Recovers the COMPLETE external interface straight from runtime bytecode (PUSH4 dispatch-table scan), then prices every function and reports which ones move value TO an arbitrary caller. A typical contract exposes 40-90 functions — usually more than its published ABI, and a proxy shows none until resolved. You get every selector, probed in isolation.',
     params: { contract: '0x-prefixed contract address on Base (required)' },
+  },
+  // ── the census, sold ───────────────────────────────────────────────────────
+  // The wallet-map instrument's output, productized: every contract we have PROVEN to pay an
+  // arbitrary caller, with per-call economics measured by simulation. No explorer sells this,
+  // because no explorer asks "who pays my caller?" — only a broke agent ever had to.
+  'payer-census': {
+    price_usdc: '0.005',
+    units: 5000n,
+    noParams: true,
+    title: 'Map of contracts that pay ANY caller (live-simulated)',
+    description: 'The verified census of contracts that move value to an arbitrary caller, graded by simulating each payout from a neutral address and pricing what actually lands. Every row carries per-call net USD, distinct caller count, token breakdown with executability flags, block range and a sample tx you can check on-chain. Feed this to a keeper bot, an agent looking for income, or an airdrop farmer hunting gas-rebate programs.',
+    params: { chain: 'optional filter: base | optimism | arbitrum | polygon | gnosis | unichain (default: all chains)' },
   },
   // ── the agent's own coin, sold OTC ──────────────────────────────────────────
   // ZERO deployed its own Zora content coin with its own wallet (2026-08-03) and holds the 10M
@@ -135,6 +157,22 @@ const BAZAAR = {
       verdict: 'PAYS: 0x0e5c011e(address)',
     },
   },
+  'payer-census': {
+    tags: ['keeper', 'mev', 'caller-rewards', 'yield', 'airdrop', 'base', 'optimism', 'arbitrum', 'onchain', 'agents', 'gasless', 'discovery'],
+    paramName: null,
+    paramDesc: null,
+    example: {
+      product: 'payer-census', chains_available: ['base', 'optimism'],
+      rows_returned: 1, total_known_payers: 179,
+      payers: [
+        { chain: 'base', contract: '0xbfc06549532e6119c4bc0eff167290efdca33fa6', selector: '0xae0b51df',
+          net_usd_per_call: 30.049835, distinct_callers: 23, hits: 5,
+          tokens: [{ symbol: 'ALIGN', usd: 240.411822, executable: false }],
+          sample_tx: '0xedfcbdda206e750f980e6196adebf2660a6e7a3c4a68ef59ce511015c0de' },
+      ],
+      freshness: { mapped_at: '2026-08-21T04:55:48.549Z', note: 'snapshot of the live simulation map; re-verify any row with payout-oracle before spending gas' },
+    },
+  },
   'buy-zero': {
     tags: ['memecoin', 'zora', 'content-coin', 'base', 'agents', 'autonomous', 'collectible'],
     paramName: 'address',
@@ -142,7 +180,7 @@ const BAZAAR = {
     example: {
       product: 'buy-zero', coin: '0xa08c4Bb56030E923e16bF0ab22248eC4AC9b661c',
       tranche: '250000', recipient: '0x0000000000000000000000000000000000000001',
-      delivery_tx: '0x…', delivery_status: 'confirmed',
+      delivery_status: 'confirmed',
       disclosure: 'fixed price above pool price; thin pool; funds an autonomous-agent experiment',
     },
   },
@@ -171,8 +209,8 @@ export function x402v2Header(product, slug, payTo, resourceUrl, method = 'GET') 
           tags: b?.tags || [],
           input: {
             type: 'http', method,
-            queryParams: b ? { [b.paramName]: '0x4200000000000000000000000000000000000006' } : {},
-            schema: b ? { properties: { [b.paramName]: { type: 'string', description: b.paramDesc } }, required: [b.paramName] } : { properties: {}, required: [] },
+            queryParams: b?.paramName ? { [b.paramName]: '0x4200000000000000000000000000000000000006' } : {},
+            schema: b?.paramName ? { properties: { [b.paramName]: { type: 'string', description: b.paramDesc } }, required: [b.paramName] } : { properties: {}, required: [] },
           },
           output: { type: 'json', example: b?.example || {} },
         },
@@ -190,8 +228,8 @@ export function x402v2Header(product, slug, payTo, resourceUrl, method = 'GET') 
                 method: { type: 'string', enum: ['GET'] },
                 queryParams: {
                   type: 'object',
-                  properties: b ? { [b.paramName]: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$', description: b.paramDesc } } : {},
-                  required: b ? [b.paramName] : [],
+                  properties: b?.paramName ? { [b.paramName]: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$', description: b.paramDesc } } : {},
+                  required: b?.paramName ? [b.paramName] : [],
                 },
               },
               required: ['type', 'method', 'queryParams'],
@@ -323,6 +361,28 @@ export async function verifyPayment(env, rpc, txHash, minUnits, payTo) {
   return { ok: true, paid_units: paid.toString() };
 }
 
+/** Keyless Sourcify repo lookup. Blockscout's /v2 surface 500s; this is the honest fallback, not a guess. */
+export async function sourcifySource(chainId, address) {
+  const low = String(address).toLowerCase();
+  for (const kind of ['full_match', 'partial_match']) {
+    try {
+      const s = await fetch(`https://repo.sourcify.dev/contracts/${kind}/${chainId}/${low}/metadata.json`, { signal: AbortSignal.timeout(15000) });
+      if (s.status !== 200) continue;
+      const src2 = await s.json();
+      if (!src2?.sources) continue;
+      const target = Object.values((src2.settings || {}).compilationTarget || {})[0] || null;
+      return {
+        name: target,
+        compiler_version: (src2.compiler || {}).version || null,
+        is_fully_verified: kind === 'full_match',
+        via: 'sourcify',
+        source_code: Object.values(src2.sources).map((f) => f.content).join('\n\n'),
+      };
+    } catch { continue; }
+  }
+  return null;
+}
+
 async function glmReport(env, system, user) {
   const res = await fetch((env.GLM_BASE || 'https://api.z.ai/api/paas/v4') + '/chat/completions', {
     method: 'POST',
@@ -338,12 +398,24 @@ async function glmReport(env, system, user) {
 }
 
 export async function buildContractAudit(env, rpc, contract) {
-  const r = await fetch(`https://base.blockscout.com/api/v2/smart-contracts/${contract}`);
-  if (r.status !== 200) {
-    const code = await rpc('base', 'eth_getCode', [contract, 'latest']);
-    return { verified_source: false, is_contract: code && code !== '0x', report: 'Source code is NOT verified on Blockscout for this address. No honest audit is possible from bytecode alone at this price — treat unverified source as a red flag in itself.' };
+  // Blockscout has hard 500'd globally before (2026-08-23, whole /v2 surface). A buyer who pays
+  // during an outage must still get the report they paid for — so fall back to Sourcify's
+  // keyless public repo before declaring the source unverifiable.
+  let meta = null;
+  try {
+    const r = await fetch(`https://base.blockscout.com/api/v2/smart-contracts/${contract}`);
+    if (r.status === 200) meta = await r.json();
+  } catch { /* fall through to Sourcify */ }
+  if (!meta || !meta.source_code) {
+    try {
+      const src2 = await sourcifySource(8453, contract);
+      if (src2?.source_code) meta = src2;
+    } catch { /* stay honest below */ }
   }
-  const meta = await r.json();
+  if (!meta || !meta.source_code) {
+    const code = await rpc('base', 'eth_getCode', [contract, 'latest']);
+    return { verified_source: false, is_contract: code && code !== '0x', report: 'Source code is NOT VERIFIED anywhere reachable right now (explorer lookup failed or unverified). No honest audit is possible from bytecode alone at this price — treat unverified source as a red flag in itself.' };
+  }
   const src = (meta.source_code || '').slice(0, 45000);
   const report = await glmReport(env,
     'You are a precise smart-contract risk analyst. Report ONLY what the provided source supports, quoting the function or modifier name for every finding. Never invent findings. If something cannot be determined from the source, say so explicitly. Output markdown with sections: Summary, Owner powers, Token mechanics, Upgradeability, Notable risks, What could NOT be determined.',
@@ -378,7 +450,7 @@ export async function buildWalletBrief(env, rpc, address) {
 export async function handleShop(req, env, url, rpc, payTo) {
   const path = url.pathname;
 
-  if (path === '/.well-known/x402' || path === '/shop') {
+  if (path === '/.well-known/x402' || path === '/.well-known/x402-discovery' || path === '/shop') {
     return j({
       x402Version: 1,
       // `version` + `resources` are the /.well-known/x402 fan-out shape x402scan reads when an
@@ -402,19 +474,21 @@ export async function handleShop(req, env, url, rpc, payTo) {
   if (!product) return j({ error: 'unknown product', available: Object.keys(PRODUCTS) }, 404);
 
   const target = (url.searchParams.get('contract') || url.searchParams.get('address') || '').trim();
+  const chain = (url.searchParams.get('chain') || '').trim().toLowerCase();
   const resource = url.origin + path + url.search;
   const tx = (url.searchParams.get('tx') || req.headers.get('x-payment-tx') || '').trim();
 
-  if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+  if (!product.noParams && !/^0x[0-9a-fA-F]{40}$/.test(target)) {
     // No usable target. If the caller already paid, tell them plainly (their tx is NOT burned,
     // so they can simply re-call with the parameter). If they have not paid, this route is still
     // a paid resource — answer with the real x402 challenge so crawlers and x402 clients that
     // probe the bare endpoint see a valid, honest payment requirement instead of a 400.
+    const paramName = slug === 'wallet-brief' ? 'address' : 'contract';
     if (tx) {
-      return j({ error: `missing or malformed parameter`, expected: product.params, note: 'your transaction has not been redeemed — re-call this URL with the parameter and the same &tx=', example: `${url.origin}/api/${slug}?${slug === 'wallet-brief' ? 'address' : 'contract'}=0x4200000000000000000000000000000000000006&tx=${tx}` }, 400);
+      return j({ error: `missing or malformed parameter`, expected: product.params, note: 'your transaction has not been redeemed — re-call this URL with the parameter and the same &tx=', example: `${url.origin}/api/${slug}?${paramName}=0x4200000000000000000000000000000000000006&tx=${tx}` }, 400);
     }
     const challenge = await paymentRequired(product, slug, payTo, resource).json();
-    return j({ ...challenge, parameter_required: product.params, example: `${url.origin}/api/${slug}?${slug === 'wallet-brief' ? 'address' : 'contract'}=0x4200000000000000000000000000000000000006` }, 402, { 'Payment-Required': x402v2Header(product, slug, payTo, resource) });
+    return j({ ...challenge, parameter_required: product.params, example: `${url.origin}/api/${slug}?${paramName}=0x4200000000000000000000000000000000000006` }, 402, { 'Payment-Required': x402v2Header(product, slug, payTo, resource) });
   }
 
   // Standard x402 clients sign an EIP-3009 authorization and retry with X-PAYMENT.
@@ -447,6 +521,7 @@ export async function handleShop(req, env, url, rpc, payTo) {
     body = slug === 'contract-audit' ? await buildContractAudit(env, rpc, target)
       : slug === 'payout-oracle' ? await buildPayoutOracle(rpc, target)
       : slug === 'interface-xray' ? await buildInterfaceXray(rpc, target)
+      : slug === 'payer-census' ? await buildPayerCensus(env, chain)
       : slug === 'buy-zero' ? await deliverZeroTranche(env, rpc, target)
       : await buildWalletBrief(env, rpc, target);
   } catch (e) {
@@ -482,13 +557,18 @@ export async function handleShop(req, env, url, rpc, payTo) {
 // Thin wrappers over the instruments ZERO uses on itself. Sold rather than hoarded because an x402
 // payment arrives as USDC at the smart account, and USDC is what the permissionless token paymaster
 // takes — so revenue here converts directly into the gas that funds more searching.
-import { probeContract } from './oracle.mjs';
-import { bruteforceContract } from './bruteforce.mjs';
-
 const WETH_BASE = '0x4200000000000000000000000000000000000006';
 async function ethUsdBase() {
-  try { return parseFloat((await (await fetch('https://base.blockscout.com/api/v2/stats')).json()).coin_price) || 0; }
-  catch { return 0; }
+  const take = (n) => (Number.isFinite(n) && n > 0 ? n : null);
+  try {
+    const n = parseFloat((await (await fetch('https://base.blockscout.com/api/v2/stats')).json()).coin_price);
+    const v = take(n);
+    if (v != null) return v;
+  } catch { /* fall through */ }
+  try {
+    const cg = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd')).json();
+    return take(parseFloat(cg.ethereum?.usd));
+  } catch { return null; }
 }
 
 // ── OTC delivery of the agent's own coin ────────────────────────────────────
@@ -566,5 +646,47 @@ export async function buildInterfaceXray(rpc, contract) {
     verdict: r.verdict,
     method: 'Runtime bytecode is scanned for PUSH4 opcodes to recover the dispatch table, giving the complete external interface with no ABI, no source and no explorer. Proxies are resolved first (EIP-1967 implementation slot, EIP-1967 beacon slot then implementation(), or a direct implementation()) because a proxy has no dispatch table of its own.',
     caveat: 'Screening batches share state within one call, so every hit is re-measured in isolation before being reported here.',
+  };
+}
+
+// ── the census, served ──────────────────────────────────────────────────────
+// Reads KV `shop:census`, which mirrors state/wallet-map.json (pushed by the mapper's operator
+// flow and refreshable by the agent). A snapshot is honest if it is stamped: every row says when
+// it was measured, and the buyer is told to re-verify with payout-oracle before spending gas.
+export async function buildPayerCensus(env, chain) {
+  const raw = await env.KV.get('shop:census');
+  if (!raw) {
+    return { product: 'payer-census', rows_returned: 0, payers: [], note: 'census snapshot not loaded yet — first map run pending; your payment is recorded and this response is still the full current dataset' };
+  }
+  const map = JSON.parse(raw);
+  const shape = (r) => ({
+    chain: r.chain, contract: r.contract, selector: r.selector,
+    net_usd_per_call: r.net_usd_per_call, gross_usd_per_call: r.gross_usd_per_call,
+    gas_usd_per_call: r.gas_usd_per_call,
+    hits: r.hits, distinct_callers: r.distinct_callers,
+    tokens: (r.tokens || []).map((t) => ({ symbol: t.symbol, usd: t.usd, executable: t.executable })),
+    first_block: r.first_block, last_block: r.last_block, sample_tx: r.sample_tx,
+  });
+  const all = Object.values(map.payers || {}).filter((r) => !chain || r.chain === chain)
+    .sort((a, b) => (b.net_usd_per_call || 0) - (a.net_usd_per_call || 0));
+  // Openness beats size: a row many DISTINCT addresses have successfully called is one an
+  // arbitrary caller can plausibly replay; a $640k row with exactly 1 caller is usually a
+  // role-gated fee sweep or claim-once state, and ranking it first would sell a fantasy.
+  const open = all.filter((r) => (r.distinct_callers || 0) >= 3).slice(0, 40).map(shape);
+  const oneShot = all.filter((r) => (r.distinct_callers || 0) < 3).slice(0, 10).map((r) => ({
+    ...shape(r), warning: 'few distinct callers — likely role-gated or one-time state; verify before acting',
+  }));
+  return {
+    product: 'payer-census',
+    chain_filter: chain || null,
+    rows_returned: open.length,
+    total_known_payers: Object.keys(map.payers || {}).length,
+    payers: open,
+    large_single_caller_claims: oneShot,
+    freshness: {
+      mapped_at: map.createdAt || null, updated_at: map.updatedAt || null, runs: Array.isArray(map.runs) ? map.runs.length : null,
+      note: 'snapshot of the live simulation map. Payouts are state-dependent — re-verify any row with payout-oracle before spending gas.',
+    },
+    method: 'Each row was graded by replaying observed calldata at its payout block AND at head, then measuring the value that actually lands at a neutral caller via eth_simulateV1 traceTransfers. executable=false means the quote is spot-priced in a market too thin to realize.',
   };
 }

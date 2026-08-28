@@ -2,9 +2,10 @@
 // Read-only (eth_call/eth_estimateGas only). Saves scripts/zora-probe4-result.json
 import { writeFileSync, readFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { LIVE_EOA } from '../shop.mjs';
 
 const FACTORY = '0x777777751622c0d3258f214F9DF38E35BF45baF3';
-const ZERO_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const ZERO_EOA = LIVE_EOA;
 const RPCS = ['https://base-rpc.publicnode.com', 'https://mainnet.base.org', 'https://1rpc.io/base'];
 const BS = 'https://base.blockscout.com/api/v2';
 

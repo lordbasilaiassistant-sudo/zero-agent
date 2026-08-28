@@ -43,9 +43,10 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { formatUnits } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ZERO = '0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A';
+const ZERO = SMART_ACCOUNT;
 const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
 const CH = {

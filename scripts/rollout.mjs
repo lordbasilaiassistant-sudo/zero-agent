@@ -15,6 +15,7 @@
 // Usage: node scripts/rollout.mjs <0xcontract> [depth] [chain]
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const CHAINS = {
   base: { rpcs: ['https://base-rpc.publicnode.com', 'https://mainnet.base.org', 'https://base.drpc.org'], weth: '0x4200000000000000000000000000000000000006', usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
@@ -23,7 +24,7 @@ const CHAINS = {
 const TARGET = process.argv[2];
 const DEPTH = Number(process.argv[3] || 3);
 const CH = CHAINS[process.argv[4] || 'base'];
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const MULTICALL = '0xcA11bde05977b3631167028862bE2a173976CA11';
 if (!/^0x[0-9a-fA-F]{40}$/.test(TARGET || '')) { console.log('usage: node scripts/rollout.mjs <0xcontract> [depth] [chain]'); process.exit(1); }
 

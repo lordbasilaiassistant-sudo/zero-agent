@@ -13,23 +13,23 @@ import { scanResourceClass } from './resource-scan.mjs';
 import { rankEarners, nextAction, nextSurface, EARNERS, DISCOVERY_SURFACES } from './earners.mjs';
 // Everything strangers send us, recorded. Free is free — and who sends it is intelligence.
 import { scanInbound } from './inbound.mjs';
-import { handleShop, PRODUCTS, SMART_ACCOUNT } from './shop.mjs';
-import { harvestCycle, relayBudget, loadStrategies, rankByCallReward, simulate, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest } from './harvest.mjs';
+import { handleShop, PRODUCTS, SMART_ACCOUNT, sourcifySource } from './shop.mjs';
+import { relayBudget, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest, harvestScan, harvestRun, rowUsd, harvestChainQueue } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
-import { discoveryPass, payersOf, inspect as inspectContract } from './discover.mjs';
-import { probeMany } from './oracle.mjs';
+import { discoveryPass, payersOf, inspect as inspectContract, loadDiscoverState, loadDiscoverList } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
+import { sweepJunk } from './janitor.mjs';
 import { readChainState, splitLifetime } from './chainstate.mjs';
 /* route_log's merge path called mutateKV with no import, so EVERY route_log threw
    "ReferenceError: mutateKV is not defined" and the route ledger recorded nothing from
    2026-08-12T18:16Z onward — 10 days and ~200 sessions in which the agent kept dutifully calling
    route_log 2-3x per session and lost every conclusion. Found 2026-08-23 by reading /last: the
    session reported routes_logged:false while its own transcript showed three route_log calls. */
-import { mutateKV } from './kv.mjs';
+import { mutateKV, cronLeaseHeld, cronSessionDue, cronSessionShouldRun, sessionIsStale, CRON_LEASE_KEY, CRON_LEASE_HOLD_MS, CRON_SESSION_MISS_KEY } from './kv.mjs';
 import { checkInvariants, invariantBrief } from './invariants.mjs';
 import { docSearch, loadCorpus, buildLlmsTxt, reassembleDoc } from './docs.mjs';
-import { diagnose } from './health.mjs';
+import { diagnose, reviveStatusPayload } from './health.mjs';
 import { probeContract } from './oracle.mjs';
 import { bruteforceContract } from './bruteforce.mjs';
 import { experimentTick, experimentReport } from './experiments.mjs';
@@ -40,6 +40,28 @@ import { prospectTick, prospectIntel } from './prospect.mjs';
 // gasless_control cover the interactive use.
 import { scanGasless } from './gasless.mjs';
 import { discoverSponsors, controlTest, fingerprint } from './sponsors.mjs';
+
+const STATUS_CACHE_KEY = 'cache:status';
+const STATUS_STALE_OK_MS = 150000;
+const STATUS_CACHE_TTL_S = 86400;
+
+export function stampSessionSlice(state, sliceRounds, now = Date.now()) {
+  if (!state || !(sliceRounds > 0)) return false;
+  state.lastSliceAt = now;
+  return true;
+}
+
+function sessionProgress(cur) {
+  if (!cur) return null;
+  const started = Number(cur.startedAt);
+  const sliced = Number(cur.lastSliceAt);
+  return {
+    session: cur.session,
+    round: cur.round,
+    started: Number.isFinite(started) ? new Date(started).toISOString() : null,
+    last_slice: Number.isFinite(sliced) && sliced > 0 ? new Date(sliced).toISOString() : null,
+  };
+}
 
 // Multiple upstreams: Base's own public RPC rate-limits Cloudflare's shared egress
 // (verified 2026-07-27 — it returned an error body, not a result, from inside the Worker).
@@ -57,6 +79,7 @@ const CHAINS = {
     chainId: 84532,
     rpcs: ['https://base-sepolia-rpc.publicnode.com', 'https://base-sepolia.drpc.org', 'https://sepolia.base.org'],
     scout: 'https://base-sepolia.blockscout.com', label: 'Base Sepolia (testnet — practice, not money)',
+    testnet: true,
   },
   // Additional chains where Safe sponsors gas — each gives the SAME Safe address its own free relay budget.
   optimism: {
@@ -132,7 +155,6 @@ const SLICE_MS = 20000;
 const SLICE_SUBREQUESTS = 26;
 const MAX_ROUNDS = 12;          // per session
 const SESSION_GAP_MS = 25 * 60000;  // start a new session this long after the last one ended
-const SESSION_STALE_MS = 45 * 60000; // abandon a session stuck this long
 
 const jstr = (o, n = 2) => JSON.stringify(o, (_, v) => (typeof v === 'bigint' ? v.toString() : v), n);
 const clip = (s, n) => (s.length > n ? s.slice(0, n) + ` …[truncated ${s.length - n} chars]` : s);
@@ -262,6 +284,7 @@ function makeTools(ctx) {
       const addr = ctx.wallet().address;
       const out = { wallet: addr, smart_account: SMART_ACCOUNT, chains: {}, runtime: 'cloud (Cloudflare Worker, 30-min heartbeat)' };
       for (const [name, c] of Object.entries(CHAINS)) {
+        if (c.testnet) continue;   // sepolia is reachable via explorer/eth_call; it is not a holdings chain
         try {
           const [bal, nonce] = await Promise.all([
             ctx.rpc(name, 'eth_getBalance', [addr, 'latest']),
@@ -347,7 +370,13 @@ function makeTools(ctx) {
       const c = CHAINS[chain];
       if (!c) throw new Error(`unknown chain "${chain}"`);
       const r = await ctx.f(`${c.scout}/api/v2/${String(api_path).replace(/^\/+/, '')}`);
-      return { status: r.status, data: clip(r.text, 6000) };
+      const out = { status: r.status, data: clip(r.text, 6000) };
+      if (out.status === 200 && out.data && !/"Internal server error"/i.test(out.data)) return out;
+      const m = String(api_path).match(/smart-contracts\/(0x[a-fA-F0-9]{40})/i);
+      if (!m || !c.chainId) return out;
+      const src = await sourcifySource(c.chainId, m[1]);
+      if (!src?.source_code) return out;
+      return { status: 200, via: 'sourcify', data: clip(JSON.stringify(src), 6000) };
     },
 
     async eth_call({ chain, to, signature, args = [], from, value_eth }) {
@@ -607,74 +636,10 @@ function makeTools(ctx) {
     },
 
     // ── bread and butter: permissionless caller-reward farming ──────────────
+    // Ranking logic lives in harvest.mjs (harvestScan / harvestRun) so the local harness cannot drift.
     async harvest_scan({ limit = 10 }) {
       ctx.budget();
-      const safe = SMART_ACCOUNT;
-      // Simulate against the SAME recipient the real run uses. This used to simulate with the EOA and
-      // execute with the Safe, so the scan was not testing the transaction that actually gets sent.
-      const recipient = SMART_ACCOUNT;
-      const strategies = await loadStrategies(ctx.env, (c, m, p) => ctx.rpc(c, m, p));
-      // This used to be `strategies.slice(0, 80)`. The slice ran BEFORE the ranking, so it was never
-      // "the top 80" — it was the first 80 in Beefy API order, which is arbitrary. MEASURED 2026-07-31:
-      // that truncation hid 6 of the 10 highest real payers and 56.2% of the live pool value.
-      // It bought nothing either: rankByCallReward batches 100 per aggregate3, so the whole
-      // 241-strategy universe prices out in 3 subrequests — one more than the truncated scan cost.
-      // MEASURED 2026-08-13, and this used to rank by callReward() alone. That getter REVERTS on the
-      // eight highest-paying Base strategies we have — every one of them Aerodrome/CoW:
-      //   aerodrome-msusd-usdc 6021927790480 wei pending · usdc-aero 3968119143793 · weth-vvv
-      //   3063762203776 · aero-cow-eurc-cbbtc 2101264873157 · usdc-mai 2000841644203 ·
-      //   mellow-aero-weth-usdc 1503610589316 — all with callReward() reverting.
-      // rankByCallReward drops any call where `!r.success`, so a revert did not sort last, it VANISHED.
-      // This is the tool ZERO itself calls to decide where to spend a slot, so the agent's whole view
-      // of its opportunity set had the best targets deleted from it. Best available at measurement was
-      // $0.01135 on one call, ~9x our lifetime average of $0.0013 — that gap WAS this bug.
-      // So: rank by the delta oracle, which measures the balance change a harvest actually produces
-      // and does not care whether a reporting getter exists. callReward stays as an annotation only.
-      const BASE_WETH = '0x4200000000000000000000000000000000000006';
-      const top = [];
-      let priced = [];
-      try {
-        priced = await probeMany((c, m, p) => ctx.rpc(c, m, p), 'base', strategies.map(s => s.strategy), BASE_WETH);
-      } catch { /* fall through to the getter below rather than return nothing */ }
-      const byAddr = new Map(strategies.map(s => [s.strategy.toLowerCase(), s]));
-      if (priced.length) {
-        // No per-candidate simulate() here, deliberately. simulate() is only a REVERT check — it reads
-        // no balance and a harvest that succeeds paying zero passes it. A positive delta from probeMany
-        // is strictly stronger: the call already executed inside the aggregate3 AND moved our balance.
-        // Simulating each one again cost ~1 subrequest apiece on top of what probeMany already spent,
-        // so the loop hit the slice ceiling and returned ONE row — the agent saw a single option and
-        // could not compare. Measured 2026-08-13: 8 requested, 1 returned. Trust the delta, list them all.
-        for (const p of priced.slice(0, Math.min(Number(limit) || 10, 15))) {
-          const cand = byAddr.get(p.contract.toLowerCase());
-          top.push({ id: cand?.id, strategy: p.contract, pays_wei: p.wei, callable: true, evidence: 'positive balance delta in aggregate3' });
-        }
-      } else {
-        // Oracle unreachable. Degrade to the getter, but LABEL it — a caller must never mistake a
-        // fallback ordering for a measured one.
-        const ranked = await rankByCallReward((c, m, p) => ctx.rpc(c, m, p), strategies, 'base');
-        for (const c of ranked.slice(0, Math.min(Number(limit) || 10, 15))) {
-          const sim = await simulate((ch, m, p) => ctx.rpc(ch, m, p), c.strategy, safe, recipient);
-          top.push({ id: c.id, strategy: c.strategy, callReward_wei: c.callReward, callable: sim.ok, ranking: 'FALLBACK: callReward, blind to revert-on-getter payers' });
-          if (ctx.sub > SLICE_SUBREQUESTS - 4) break;
-        }
-      }
-      return {
-        note: 'RANKED BY MEASURED PAYOUT (2026-08-13). pays_wei is a real balance delta: the wrapped-native this harvest would actually move to us, simulated in one eth_call. Spend slots top-down on callable:true. If you instead see callReward_wei and ranking:"FALLBACK", the oracle was unreachable and the order is UNTRUSTWORTHY — callReward reverts on our eight best Aerodrome/CoW strategies and they disappear from that ordering entirely, it is denominated in the reward token (measured 4,478x overstatement on AERO, 1,284x on Cake), and a 0 there does not mean no payout (three Morpho strategies read 0 and pay). Never quote callReward as money.',
-        budget: await relayBudget(safe), candidates: top,
-        // How much of the universe was actually priced. Without this, a short list reads as "few
-        // opportunities" when it may mean "most batches never ran".
-        coverage: {
-          universe: strategies.length,
-          priced: priced.length,
-          batches_ok: priced.batchesOk || 0,
-          batches_failed: priced.batchesFailed || 0,
-          strategies_unpriced: priced.unpriced || 0,
-          last_error: priced.lastError || null,
-          verdict: (priced.unpriced || 0) > 0
-            ? `INCOMPLETE — ${priced.unpriced} strategies never priced. Ranking is over a fraction of the pool; the real best may be missing.`
-            : 'complete — every strategy priced',
-        },
-      };
+      return await harvestScan(ctx.env, (c, m, p) => ctx.rpc(c, m, p), { limit: Number(limit) || 10 });
     },
 
     // ONE relay slot, MANY harvests. A slot is a TRANSACTION, not an action: the Safe execTransaction
@@ -689,36 +654,7 @@ function makeTools(ctx) {
 
     async harvest_run() {
       ctx.budget(); ctx.sub += 12;
-      // A manual SINGLE harvest wasted a slot a batch would fill, so this fires the same batch pass the
-      // automation runs every 2 minutes — up to `max` (default 12) harvests in one MultiSend, not the
-      // "12-26 payouts" this comment used to claim.
-      //
-      // BASE IS FIRST, exactly as in the cron (see scheduled()). It used to be absent from the list and
-      // prepended only `if (hs.escaped)` — but `hs.escaped` means "the escape has FINISHED", the near
-      // opposite of the cron's `escapeNeedsBase` ("the escape is mid-flight, reserve Base for it"). So
-      // this path locked itself out of Base, the chain holding all 241 strategies and the only chain
-      // harvest_scan even reports on, for exactly as long as the escape had NOT finished.
-      //
-      // The cron derives that verdict from a live escapeCycle(), which HAS SIDE EFFECTS (it can relay
-      // and spend a slot), so we must not call it here. The cron persists its verdict to KV every tick
-      // instead. Missing or older than 15 minutes ⇒ do NOT reserve Base: the cron reserves Base itself
-      // when it matters, so failing open costs at most one contended slot, while failing closed costs
-      // the whole pool — which is the bug being fixed.
-      const escv = (await ctx.env.KV.get('escape:needsBase', 'json')) || null;
-      const escapeNeedsBase = !!(escv && escv.v === true && Date.now() - (escv.at || 0) < 15 * 60 * 1000);
-      const chains = ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis'];
-      for (const chain of chains) {
-        if (chain === 'base' && escapeNeedsBase) continue;   // reserved for the escape, same as the cron
-        const r = await batchHarvest(ctx.env, (c, m, p) => ctx.rpc(c, m, p), SMART_ACCOUNT, chain);
-        if (r && (r.relayed || r.ready)) {
-          return { ...r, note: r.relayed ? 'Batch fired. This also runs automatically every 2 minutes — your rounds are better spent finding NEW payers.' : 'Batch is built and waiting on a relay slot; the automation will fire it the moment one refills. Nothing for you to do here.' };
-        }
-      }
-      return {
-        skipped: 'no chain has both payable work and a batch that simulates clean right now',
-        ...(escapeNeedsBase ? { base_reserved: 'Base was skipped this pass — the escape is mid-flight and its slots buy permanent gas, worth more than any batch.' } : {}),
-        note: 'The automation retries every 2 minutes forever. Spend your rounds on discovery instead.',
-      };
+      return await harvestRun(ctx.env, (c, m, p) => ctx.rpc(c, m, p));
     },
 
     // ── finding NEW income families (the only real path past cents/day) ─────
@@ -730,33 +666,12 @@ function makeTools(ctx) {
 
     async discover_list() {
       ctx.sub++;
-      const s = (await ctx.env.KV.get('discover:state', 'json')) || { candidates: {} };
-      const c = Object.values(s.candidates || {});
-      // Ranked by EVIDENCE, not by a source regex. The old gate (`pays_a_caller`) discarded all 214
-      // candidates and reported nothing for eleven sessions — including contracts we had literally
-      // watched pay a keeper four times.
-      // Simulating callable beats a source regex — three Beefy strategies match `onlyOwner` and are
-      // callable by us anyway. Never exclude a contract that an eth_call says we can call.
-      // D7 FIX: honour the prospector's eliminations. A candidate the payout history PROVED pays
-      // zero still scored 1000+ (callable_now is the top signal) and was served as "work down this
-      // list" — the exact path from a measured zero to a wasted relay slot.
-      const scored = c.filter(x => !x.retired && (x.callable_now?.length || !x.access_controlled) && !x.tried)
-        .map(x => ({ ...x, score: (x.callable_now?.length ? 1000 : 0) + (x.payouts_seen || 0) * 10 + (x.pays_a_caller ? 5 : 0) + (x.verified ? 1 : 0) }))
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score);
-      return {
-        total: c.length, passes: s.passes || 0,
-        promising: scored.length,
-        callable_right_now: scored.filter(x => x.callable_now?.length).length,
-        how_to_use: 'Work DOWN this list. inspect_contract to find an entry point, payout_history to prove it has ever paid a caller, and only then a relay slot. Each one that pays becomes a permanent stacked stream — you never retire a paying route, you add to it.',
-        untried_promising: scored.slice(0, 12)
-          .map(x => ({ chain: x.chain, contract: x.contract, name: x.name, payouts_seen: x.payouts_seen, callable_now: x.callable_now || [], functions: (x.functions || []).slice(0, 4).map(f => f.sig) })),
-      };
+      return await loadDiscoverList(ctx.env);
     },
 
     async inspect_contract({ chain, contract }) {
       ctx.budget(); ctx.sub += 2;
-      return await inspectContract(chain, contract);
+      return await inspectContract(chain, contract, SMART_ACCOUNT);
     },
 
     async harvest_stats() {
@@ -878,10 +793,10 @@ const S = (props = {}, required = []) => ({ type: 'object', properties: props, r
 const str = (description) => ({ type: 'string', description });
 const TOOL_DEFS = [
   { name: 'ensure_wallet', description: 'Confirm your wallet. Returns your address.', parameters: S() },
-  { name: 'get_status', description: 'Your situation: address, ETH + USDC balances and tx counts on Base mainnet and Base Sepolia, ETH/USD, and whether you are broke.', parameters: S() },
+  { name: 'get_status', description: 'Your situation: address, ETH + USDC balances and tx counts on every mainnet you harvest (Base, Optimism, Arbitrum, Polygon, Gnosis, Unichain), ETH/USD, and whether you are broke.', parameters: S() },
   { name: 'web_search', description: 'Search the web (DuckDuckGo). Up to 8 results with title, url, snippet.', parameters: S({ query: str('search query') }, ['query']) },
   { name: 'http_fetch', description: 'Fetch a URL (GET/POST/etc). HTML becomes plain text unless raw=true. JS-app pages return little — prefer APIs and docs pages.', parameters: S({ url: str('http(s) URL'), method: str('HTTP method, default GET'), headers: { type: 'object', description: 'request headers' }, body: str('request body'), max_chars: { type: 'number', description: 'max chars, default 5000, cap 12000' }, raw: { type: 'boolean', description: 'true = keep HTML' } }, ['url']) },
-  { name: 'explorer', description: "Blockscout explorer API (free, no key). chain: 'base' | 'base-sepolia'. api_path examples: 'addresses/{addr}', 'smart-contracts/{addr}' (verified source!), 'stats', 'transactions/{hash}'.", parameters: S({ chain: str("'base' | 'base-sepolia'"), api_path: str('path after /api/v2/') }, ['chain', 'api_path']) },
+  { name: 'explorer', description: "Blockscout explorer API (free, no key). chain: any of base, optimism, arbitrum, polygon, gnosis, unichain (and base-sepolia only for practice). api_path examples: 'addresses/{addr}', 'smart-contracts/{addr}' (verified source!), 'stats', 'transactions/{hash}'.", parameters: S({ chain: str('chain name'), api_path: str('path after /api/v2/') }, ['chain', 'api_path']) },
   { name: 'eth_call', description: "Read any contract, simulated AS YOUR WALLET (a call from a different sender proves nothing). Reverts return {reverted:true, reason}. signature is a human ABI fragment e.g. 'balanceOf(address) view returns (uint256)'.", parameters: S({ chain: str('chain name'), to: str('contract address'), signature: str('function signature'), args: { type: 'array', description: 'arguments', items: {} }, from: str('optional msg.sender override'), value_eth: str('optional ETH value for payable calls') }, ['chain', 'to', 'signature']) },
   { name: 'send_tx', description: 'Sign and send a transaction from YOUR wallet. Fails clearly if you lack gas or if simulation says it will not profit. Returns mined + gas_paid_wei: "no-revert" is NOT payment — log earnings only with a measured delta.', parameters: S({ chain: str('chain name'), to: str('recipient/contract'), value_eth: str("ETH amount, default '0'"), data: str('hex calldata, default 0x'), gas_limit: str('optional gas limit') }, ['chain', 'to']) },
   { name: 'sign_message', description: 'Sign a message with your wallet key (free, no gas). Your passport for signature-auth flows.', parameters: S({ message: str('exact message text') }, ['message']) },
@@ -897,6 +812,7 @@ const TOOL_DEFS = [
   { name: 'harvest_run', description: 'Fire a harvest BATCH now (walks every chain, batches all paying strategies into one relay slot). NOTE: this exact pass already runs AUTOMATICALLY every 2 minutes — calling it almost never adds anything. Your rounds are worth more on discovery.', parameters: S() },
   { name: 'harvest_stats', description: 'Your lifetime harvest record. MEASURED_ON_CHAIN is the truth (real WETH at both your addresses, plus how much is spendable vs stranded); the tracker figure is a lower bound. Also returns the live relay budget and everything actually measured about when it refills.', parameters: S() },
   { name: 'gasless_scan', description: "Read a contract's RUNTIME BYTECODE and report which gasless rails it exposes (ERC-2771 meta-tx, native executeMetaTransaction, EIP-3009 transferWithAuthorization, EIP-2612 permit, ERC-4337 paymaster, or a settable persistent fee recipient). Works on UNVERIFIED contracts — every external selector is in the dispatch table. One free call. Use it to find ways onto the chain that do NOT consume a Safe relay slot.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address') }, ['contract']) },
+  { name: 'gasless_control', description: 'THE CONTROL for gasless_scan. The Safe singleton you transact through and the live v0.7 EntryPoint must both expose their rails, or every "no rail" verdict is suspect.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'sponsor_discover', description: 'Enumerate the gas SPONSORS operating on a chain — every entity that pays for other people\'s transactions — found by on-chain behaviour, not by name, so it includes sponsors with no website and no docs. Your Safe relay is ONE of these with a 5/day cap; this finds the rest of the species. Measured: 44% of recent ERC-4337 ops on Base had their gas paid by a third party.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'sponsor_control', description: 'THE CONTROL EXPERIMENT. Feeds the sponsor-detector the two addresses that provably paid for your own first transactions and checks it rediscovers them from behaviour alone. An instrument that cannot reproduce a known result is not measuring anything — run this before you believe any novel sponsor it reports.', parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'") }) },
   { name: 'doc_search', description: 'SEARCH YOUR REFERENCE LIBRARY BEFORE YOU GUESS. Operational docs for every system you touch — Safe relay and MultiSend packing, CCTP domains and depositForBurn, Uniswap SwapRouter02 tuple shapes and the WETH9 2300-gas trap, ERC-4337 EntryPoint structs and paymaster admission, Blockscout paths, JSON-RPC state overrides, EIP-1967 slots. Exact signatures, selectors, per-chain addresses and the documented gotchas. FREE, unlimited, costs no relay slot — there is never a reason not to check. Search a function name, a bare 0x address, or a plain question. ⚠️ A doc is a HYPOTHESIS: confirm anything load-bearing with a free eth_call before you spend a scarce slot on it.', parameters: S({ query: str('function name, contract address, or plain question'), k: { type: 'number', description: 'how many passages, default 4' } }, ['query']) },
@@ -906,7 +822,7 @@ const TOOL_DEFS = [
   { name: 'experiment', description: 'RUN AN EXPERIMENT. Probes a mechanism class we do not yet know pays — currently Uniswap-V2 skim dust (pairs holding priced tokens above their cached reserves, claimable by skim(to) with zero capital) and abandonment (contracts that used to pay callers, went silent, and still hold a balance). Free, spends no relay slot, and every result including the negatives is logged so the search converges instead of wandering. This runs automatically on cron; call it to push it faster.', parameters: S({ chain: str('chain name') }) },
   { name: 'bruteforce', description: 'TEST EVERY FUNCTION A CONTRACT HAS. Recovers the complete external interface straight from the runtime bytecode dispatch table (every PUSH4 selector) — no ABI, no source, no explorer, works on unverified and unnamed contracts — then prices ALL of them through Multicall3 and reports whichever move value to an arbitrary caller. This does not guess at function names; it reads what the contract actually exposes. Free and unlimited. Use it on anything you cannot otherwise understand.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token') }, ['contract']) },
   { name: 'payout_oracle', description: 'MEASURE WHAT A FUNCTION WOULD PAY YOU, BEFORE SPENDING ANYTHING. Simulates the settlement itself through Multicall3 and returns the exact fee an arbitrary caller would receive right now. Free, no relay slot, no capital, works on UNVERIFIED contracts and on contracts nobody has ever called. payout_history reads the past; this prices the present. Measured spread across known payers was 118x, so ALWAYS probe before choosing which one to spend a slot on.', parameters: S({ chain: str('chain name'), contract: str('0x contract address'), token: str('optional fee token, defaults to the chain wrapped native') }, ['contract']) },
-  { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
+  { name: 'payout_history', description: "MANDATORY BEFORE THE FIRST RELAY SLOT ON ANY NEW CONTRACT. Reads a contract's real history and reports whether callers have ACTUALLY been paid: 'PAYS_CALLERS' with the real settled amounts, 'PAYS_ZERO' (callers got nothing — never spend a slot), or 'NO_EVIDENCE'. A failed explorer read is an error, never PAYS_ZERO. Free, costs no slot. A reward getter like callReward()/maxRewards() is a CAP and has twice fooled you ($615 read → $0.0001 paid; $63 read → $0.00 paid). Trust this, not a getter.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum'"), contract: str('0x contract address'), sample: { type: 'number', description: 'how many past calls to decode, default 6' } }, ['contract']) },
   { name: 'discover_new_sources', description: "THE GROWTH TOOL. Harvest crumbs are accrual-capped at cents/day — the only way past that is MORE INDEPENDENT INCOME FAMILIES. This finds them empirically: it walks the inbound payments of known keeper wallets back to the contracts paying them, so every candidate is backed by a payout that really happened. Works on all six chains — gnosis and unichain have IDLE free slots waiting for their first payer, so a payer found there is worth double. Also rotates automatically on the cron; call it to push a specific chain faster.", parameters: S({ chain: str("'base' | 'optimism' | 'arbitrum' | 'gnosis' | 'unichain' | 'polygon'") }) },
   { name: 'discover_list', description: 'Your accumulated candidate list from discovery: contracts seen paying callers, whether their source shows access control, and which functions an arbitrary caller might invoke. Untried + promising first.', parameters: S() },
   { name: 'inspect_contract', description: 'Read a contract\'s verified source and report whether it is access-controlled, whether it pays a caller, and which non-view functions look like paid maintenance work. Free — use it before ever spending a relay slot.', parameters: S({ chain: str('chain name'), contract: str('0x address') }, ['chain', 'contract']) },
@@ -1189,10 +1105,12 @@ async function finalize(ctx, state, reason) {
   try {
     const after = await reconcileEarnings(ctx.env, (c, m, p) => rpcCall(c, m, p), ctx.wallet().address, SMART_ACCOUNT);
     if (state.earnedAtStart !== null && after.lifetime_earned_usd > state.earnedAtStart) novel = true;
-    const ds = (await ctx.env.KV.get('discover:state', 'json')) || {};
-    const proven = Object.values(ds.candidates || {}).filter(x => x.payout_verdict === 'PAYS_CALLERS').length;
-    if (proven > Number(meta.provenPayers || 0)) novel = true;
-    meta.provenPayers = proven;
+    const loaded = await loadDiscoverState(ctx.env);
+    if (!loaded.skipped) {
+      const proven = Object.values(loaded.state.candidates || {}).filter(x => x.payout_verdict === 'PAYS_CALLERS').length;
+      if (proven > Number(meta.provenPayers || 0)) novel = true;
+      meta.provenPayers = proven;
+    }
   } catch { /* if we cannot tell, do not punish the session */ novel = true; }
   const barrenStreak = novel ? 0 : Number(meta.barrenStreak || 0) + 1;
   await ctx.kvPut('state:meta', jstr({
@@ -1213,7 +1131,7 @@ async function tick(env, trigger) {
   const tools = makeTools(ctx);
   let state = JSON.parse((await ctx.kvGet('state:current')) || 'null');
 
-  if (state && Date.now() - state.startedAt > SESSION_STALE_MS) {
+  if (sessionIsStale(state)) {
     await finalize(ctx, state, 'stale — abandoned');
     state = null;
   }
@@ -1333,6 +1251,12 @@ async function tick(env, trigger) {
     return { session: state.session, finished: true, rounds: state.round, subrequests: ctx.sub };
   }
 
+  /* A 0-round slice must not stamp lastSliceAt. Measured 2026-08-28: the public cache then
+     reported "activity 0.05h ago" while round stayed at 2 — a heartbeat wearing a slice's clothes. */
+  if (!stampSessionSlice(state, sliceRounds)) {
+    console.log('session: 0-round slice — not stamping lastSliceAt');
+    return { session: state.session, finished: false, rounds: state.round, slice_rounds: 0, skipped: 'slice window already elapsed', subrequests: ctx.sub, ms: Date.now() - ctx.t0 };
+  }
   state.messages = trimMessages(state.messages);
   await ctx.kvPut('state:current', jstr(state));
   return { session: state.session, finished: false, rounds: state.round, slice_rounds: sliceRounds, subrequests: ctx.sub, ms: Date.now() - ctx.t0 };
@@ -1340,210 +1264,153 @@ async function tick(env, trigger) {
 
 export default {
   async scheduled(event, env, c) {
-    /* WARM THE PUBLIC PAGE (2026-08-13; fixed 2026-08-15, issue #210). The first version fetched
-       'https://zero-agent.broke2builtai.com/?fresh=1' — the worker's OWN custom domain, which
-       Cloudflare blocks (a Worker cannot subrequest a hostname routed to itself), and the catch
-       swallowed the error. So this warm never once landed, the 150s cache went cold between
-       visitors, and every real visit paid the full ~25-36s RPC fan-out (MEASURED: miss 36.2s,
-       hit 0.16s). Now it computes the snapshot directly — same code path the page uses, no
-       network hop, cannot be blocked. */
+    /* Sequential waitUntil + KV lease. Earn first, then janitor/invariants/discovery.
+       Keeper simulateV1 stays off (OOM). GLM session runs on a sparse tick that does
+       not stack with janitor or discovery. Full status compute stays off cron (OOM);
+       finally patches cache:status health from KV (no extra RPC). */
     c.waitUntil((async () => {
+      const jtick = Math.floor((event.scheduledTime || Date.now()) / 120000);
       try {
-        if (!env.KV) return;
-        const payload = await computeStatusPayload(env);
-        await env.KV.put('cache:status', JSON.stringify({ at: Date.now(), payload }), { expirationTtl: 86400 });
-      } catch { /* warming is best-effort; never let it disturb the earning loops below */ }
-    })());
-
-    /* CAPACITY SCAN — deterministic, so it is code, not a thought (COMPUTE LAW). Writes the whole
-       free-execution class to KV where the agent READS it instead of re-deriving it each session,
-       and rotates through frontier chains so a newly-launched sponsor is found by a machine rather
-       than by luck (RESOURCE-CLASS LAW). */
-    c.waitUntil((async () => {
-      try {
-        if (!env.KV || !env.AGENT_PRIVATE_KEY) return;
-        /* SCAN THE SAFE, NOT THE EOA (fixed 2026-08-13, same day I broke it).
-           Safe's relay quota is charged to the address that RELAYS — the smart account. Scanning the
-           fresh EOA returned a cheerful 5/5 on all six chains while the Safe's Base slots were
-           genuinely spent, so /capacity said "30 free" while the harvester correctly refused to fire.
-           Two addresses, two quotas; the one that matters is the one that transacts. */
-        const addr = SMART_ACCOUNT;
-        const prev = await env.KV.get('cache:capacity', 'json').catch(() => null);
-        const report = await scanResourceClass(addr, { frontierSampleAt: Math.floor(Date.now() / 120000) });
-        await env.KV.put('cache:capacity', JSON.stringify(report), { expirationTtl: 3600 });
-        /* A newly-found sponsor is the single most valuable event in this system — it expands the
-           ceiling rather than re-dividing the floor — so it goes in the journal, not just a cache
-           key that might never be read. */
-        if (report.NEWLY_DISCOVERED?.length) {
-          const line = `[${report.at}] NEW FREE-EXECUTION SPONSOR: ${report.NEWLY_DISCOVERED.map(d => `${d.chain} (${d.free}/${d.limit})`).join(', ')} — class enumeration paid off; add to CLASS in resource-scan.mjs.\n`;
-          const j = (await env.KV.get('knowledge:journal')) || '';
-          await env.KV.put('knowledge:journal', line + j);
+        const lease = await env.KV.get(CRON_LEASE_KEY, 'json');
+        if (cronLeaseHeld(lease)) {
+          if (cronSessionDue(jtick)) {
+            try {
+              await env.KV.put(CRON_SESSION_MISS_KEY, JSON.stringify({ at: Date.now(), jtick }), { expirationTtl: 1800 });
+            } catch { /* miss flag is best-effort */ }
+          }
+          console.log('cron: skip — previous tick still leased');
+          return;
         }
-        /* Capacity going UP without us adding a member means the world moved — worth noticing. */
-        if (prev && report.free_execution_ceiling > (prev.free_execution_ceiling || 0)) {
-          const line = `[${report.at}] CEILING ROSE: free-execution ceiling ${prev.free_execution_ceiling} -> ${report.free_execution_ceiling} with no code change. Scarcity is a measurement.\n`;
-          const j = (await env.KV.get('knowledge:journal')) || '';
-          await env.KV.put('knowledge:journal', line + j);
-        }
-      } catch { /* measurement only; never allowed to break the earning loops */ }
-    })());
+        await env.KV.put(CRON_LEASE_KEY, JSON.stringify({ at: Date.now() }), {
+          expirationTtl: Math.ceil(CRON_LEASE_HOLD_MS / 1000) + 60,
+        });
+      } catch (e) { console.log('CRON LEASE ERROR: ' + String(e.message).slice(0, 140)); }
 
-    // Two independent loops: the earner runs on every tick (it self-throttles to the relay budget),
-    // and the agent's own reasoning session advances separately.
-    // SEQUENTIAL, AND THE ESCAPE HAS ABSOLUTE PRIORITY ON BASE.
-    // These used to be three separate waitUntil() calls, which run CONCURRENTLY — so the moment a Base
-    // slot refilled, the escape and the harvesters raced for it and a USD 0.047 harvest could win. That is
-    // a bad trade: a harvest is worth one payout, while the escape permanently converts earnings into
-    // native ETH the EOA owns and ends the quota's hold over us entirely. So: run in order, and hold
-    // Base back from the harvesters until the escape is done with it.
-    c.waitUntil((async () => {
-      let escapeNeedsBase = false;
-      let escapeSpentSlot = false;
-      let lastEscape = null;
       try {
-        const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
-        const esc = await escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, eoaAddr);
-        lastEscape = esc;
-        console.log('escape: ' + jstr(esc, 0));
-        // The funnel is STANDING, not a one-shot (it used to return step:'done' forever while the
-        // Safe held 57x the reserve target — see escapeCycle). So "needs Base" now means exactly
-        // "there is value to convert and it is ready to go", which re-arms whenever value arrives.
-        escapeNeedsBase = !!(esc && (esc.ready || esc.relayed));
-        escapeSpentSlot = !!(esc && esc.relayed);
-      } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
-
-      // ── THE IMMUNE SYSTEM ────────────────────────────────────────────────────────────────────
-      // Contradictions between what the code claims and what the chain says. Runs every 5th tick
-      // (~10 min) rather than every tick: it costs ~30 subrequests, and the failures it exists to
-      // catch persisted for HOURS and DAYS, so a 10-minute resolution is many orders of magnitude
-      // more than enough. State wedges are repaired here automatically; code beliefs are escalated.
-      try {
-        const tick = Math.floor((event.scheduledTime || Date.now()) / 120000);
-        if (tick % 5 === 0) {
+        let escapeNeedsBase = false;
+        let escapeSpentSlot = false;
+        let lastEscape = null;
+        const spent = [];
+        try {
           const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
-          const reported = (await env.KV.get('published:balances', 'json')) || null;
-          let relay = {};
-          try { const { all } = await pickChain(SMART_ACCOUNT); for (const c of all) relay[c.name] = { remaining: c.remaining, limit: c.limit }; } catch { /* invariant degrades, check still runs */ }
-          const inv = await checkInvariants(env, (ch, m, p) => rpcCall(ch, m, p),
-            { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: lastEscape, reported, relay });
-          console.log('invariants: ' + jstr({ clean: inv.clean, headline: inv.headline, open: inv.violations.map(v => v.id), repaired: inv.repaired.map(v => v.id) }, 0));
-          for (const v of inv.violations) if (v.escalate) console.log('INVARIANT ESCALATED [' + v.id + ']: ' + v.detail);
-          for (const r of inv.repaired) console.log('INVARIANT REPAIRED [' + r.id + ']: ' + r.repair?.action);
+          const esc = await escapeCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, eoaAddr);
+          lastEscape = esc;
+          console.log('escape: ' + jstr(esc, 0));
+          escapeNeedsBase = !!(esc && (esc.ready || esc.relayed || esc.inflight));
+          escapeSpentSlot = !!(esc && esc.relayed);
+          if (escapeSpentSlot || (esc && esc.inflight)) spent.push('base');
+        } catch (e) { console.log('ESCAPE ERROR: ' + String(e.message).slice(0, 200)); }
+
+        try {
+          await env.KV.put('escape:needsBase', JSON.stringify({ v: escapeNeedsBase, at: Date.now() }), { expirationTtl: 3600 });
+          if (lastEscape) await env.KV.put('escape:last', JSON.stringify(lastEscape), { expirationTtl: 3600 });
+        } catch (e) { console.log('ESCAPE FLAG ERROR: ' + String(e.message).slice(0, 140)); }
+
+        try {
+          const { all } = await pickChain(SMART_ACCOUNT);
+          await observeRelay(env, all.map(b => ({ name: b.name, remaining: b.remaining, limit: b.limit })));
+        } catch (e) { console.log('OBSERVE ERROR: ' + String(e.message).slice(0, 140)); }
+
+        if (escapeSpentSlot) {
+          console.log('sweep: skipped — the Base funnel already spent a slot this tick');
+        } else try {
+          const sw = await sweepCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, { escapeNeedsBase });
+          console.log('sweep: ' + jstr(sw, 0));
+          if (sw && (sw.burned || sw.minted)) {
+            const spentChain = (sw.burned && sw.burned.chain) || (sw.minted ? 'base' : sw.chain);
+            if (spentChain) spent.push(spentChain);
+          }
+        } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
+
+        for (const chain of harvestChainQueue({ escapeNeedsBase, spent })) {
+          try {
+            const r = await batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, chain);
+            console.log('batch(' + chain + '): ' + jstr(r, 0));
+            if (r && r.relayed) break;
+          } catch (e) { console.log('BATCH ERROR ' + chain + ': ' + String(e.message).slice(0, 140)); }
         }
-      } catch (e) { console.log('INVARIANT ERROR: ' + String(e.message).slice(0, 200)); }
 
-      // Publish the verdict so the MANUAL path (harvest_run) can honour the same reservation without
-      // calling escapeCycle() itself — that call can relay and spend a slot, which a read must never do.
-      // Written on every tick including the error path (verdict false = do not reserve), so a stale key
-      // always means "the cron stopped", never "the escape is still holding Base".
-      try {
-        await env.KV.put('escape:needsBase', JSON.stringify({ v: escapeNeedsBase, at: Date.now() }), { expirationTtl: 3600 });
-      } catch (e) { console.log('ESCAPE FLAG ERROR: ' + String(e.message).slice(0, 140)); }
-
-      // Measure the relay budget every tick — the only way the real refill period ever gets measured.
-      // This used to live inside the single-harvest cycle that ran after the batches; the singles
-      // are gone (a slot spent on one harvest is a slot a 12-26 batch cannot use), the measurement stays.
-      try {
-        const { all } = await pickChain(SMART_ACCOUNT);
-        await observeRelay(env, all.map(b => ({ name: b.name, remaining: b.remaining, limit: b.limit })));
-      } catch (e) { console.log('OBSERVE ERROR: ' + String(e.message).slice(0, 140)); }
-
-      // The consolidation rail, EXECUTED (treasury.mjs only ever PLANNED it — nothing moved for the
-      // project's whole life). Swap tributary WETH → USDC, CCTP-burn it, mint at the Base Safe where
-      // the token paymaster takes it as gas. Spends at most one slot per tick, like everything else.
-      if (escapeSpentSlot) {
-        // The funnel already relayed this tick. The sweep's mint leg also wants a Base slot, and
-        // burning two of the day's five in one 2-minute tick is not a trade we want to make blind.
-        console.log('sweep: skipped — the Base funnel already spent a slot this tick');
-      } else try {
-        // Pass the LIVE verdict. The sweep's mint leg competes for the same Base slot the funnel is
-        // waiting on, and until now it gated on a sticky "an escape relayed once, ever" flag that
-        // could not express the reservation the cron actually enforces for harvests.
-        const sw = await sweepCycle(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, { escapeNeedsBase });
-        console.log('sweep: ' + jstr(sw, 0));
-        if (sw && (sw.burned || sw.minted)) return;   // a slot was spent; batches resume next tick
-      } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
-      if (escapeSpentSlot) return;   // one relayed transaction per tick, same rule as everything else
-
-      // One slot carries up to `max` harvests (default 12) in a single MultiSend DELEGATECALL, so
-      // batching beats singles. NOT "a couple dozen": 26 is a simulation result, never an executed
-      // batch size, and nothing here raises `max` above its default.
-      for (const chain of ['base', 'optimism', 'arbitrum', 'polygon', 'unichain', 'gnosis']) {
-        if (chain === 'base' && escapeNeedsBase) { console.log('batch: base reserved for the escape'); continue; }
+        /* Hygiene AFTER earn. Keeper eth_simulateV1 traces stay off — that %10 path OOMed the
+           22:20 sequential tick. GLM session and cache-warm stay off cron until isolate stays ok
+           with this hygiene on (fetch SWR warms the status cache without a cron fan-out). */
         try {
-          const r = await batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, chain);
-          console.log('batch(' + chain + '): ' + jstr(r, 0));
-          if (r && r.relayed) break;   // a slot was spent; stop for this tick
-        } catch (e) { console.log('BATCH ERROR ' + chain + ': ' + String(e.message).slice(0, 140)); }
+          if (jtick % 5 === 0) {
+            const owned = { base: SMART_ACCOUNT, optimism: SMART_ACCOUNT, arbitrum: SMART_ACCOUNT, polygon: SMART_ACCOUNT };
+            const rep = await sweepJunk(env, (ch, m, p) => rpcCall(ch, m, p), owned);
+            console.log('janitor: ' + jstr({ newly_junked: rep.newly_junked.length, burns: rep.burns_attempted.length }, 0));
+          }
+        } catch (e) { console.log('JANITOR ERROR: ' + String(e.message).slice(0, 140)); }
+
+        try {
+          if (jtick % 5 === 0) {
+            const eoaAddr = new ethers.Wallet(env.AGENT_PRIVATE_KEY).address;
+            const reported = (await env.KV.get('published:balances', 'json')) || null;
+            let relay = {};
+            try { const { all } = await pickChain(SMART_ACCOUNT); for (const c of all) relay[c.name] = { remaining: c.remaining, limit: c.limit }; } catch { /* invariant degrades */ }
+            const inv = await checkInvariants(env, (ch, m, p) => rpcCall(ch, m, p),
+              { eoa: eoaAddr, safe: SMART_ACCOUNT, escape: lastEscape, reported, relay });
+            console.log('invariants: ' + jstr({ clean: inv.clean, headline: inv.headline, open: inv.violations.map(v => v.id), repaired: inv.repaired.map(v => v.id) }, 0));
+            for (const v of inv.violations) if (v.escalate) console.log('INVARIANT ESCALATED [' + v.id + ']: ' + v.detail);
+            for (const r of inv.repaired) console.log('INVARIANT REPAIRED [' + r.id + ']: ' + r.repair?.action);
+          }
+        } catch (e) { console.log('INVARIANT ERROR: ' + String(e.message).slice(0, 200)); }
+
+        if (jtick % 3 === 0) {
+          const DISCOVERY_ROTATION = ['gnosis', 'unichain', 'polygon', 'base', 'optimism', 'arbitrum'];
+          const dChain = DISCOVERY_ROTATION[Math.floor(jtick / 3) % DISCOVERY_ROTATION.length];
+          try {
+            const r = await discoveryPass(env, { chain: dChain, rpcRaw: (m, p) => rpcCall(dChain, m, p) });
+            console.log('discovery(' + dChain + '): ' + jstr(r, 0));
+            try {
+              const log = (await env.KV.get('discover:log', 'json')) || {};
+              log[dChain] = { at: new Date().toISOString(), ok: true, result: r };
+              await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
+            } catch { /* logging must never break discovery */ }
+          } catch (e) {
+            const msg = String(e?.message || e).slice(0, 300);
+            console.log('DISCOVERY ERROR ' + dChain + ': ' + msg);
+            try {
+              const log = (await env.KV.get('discover:log', 'json')) || {};
+              log[dChain] = { at: new Date().toISOString(), ok: false, error: msg };
+              await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
+            } catch { /* ditto */ }
+          }
+        }
+
+        /* Sparse GLM: every ~20 min, never on a janitor or discovery tick. Isolate is 128 MB.
+           If a lease skipped the sparse slot, run on the next non-hygiene tick instead of waiting
+           another 20 min. */
+        try {
+          const missed = await env.KV.get(CRON_SESSION_MISS_KEY);
+          if (cronSessionShouldRun(jtick, missed)) {
+            if (missed) { try { await env.KV.delete(CRON_SESSION_MISS_KEY); } catch { /* */ } }
+            const r = await tick(env, 'cron');
+            console.log('session: ' + jstr(r, 0));
+          }
+        } catch (e) { console.log('SESSION ERROR: ' + String(e.message).slice(0, 200)); }
+      } finally {
+        try { await env.KV.delete(CRON_LEASE_KEY); } catch { /* TTL is the backstop if this delete never runs */ }
+        /* Full computeStatusPayload stays off cron (OOM). Patch the cached health from KV
+           the cron just wrote — no extra RPC. Without this, visitors read frozen clocks for
+           the whole lease window (measured 2026-08-28 00:00Z: usable=10, activity 0.05h). */
+        try {
+          const hit = await env.KV.get(STATUS_CACHE_KEY, 'json');
+          if (hit?.payload) {
+            const [harvestState, curRaw, meta] = await Promise.all([
+              env.KV.get('harvest:state', 'json'),
+              env.KV.get('state:current'),
+              env.KV.get('state:meta', 'json'),
+            ]);
+            const payload = reviveStatusPayload(hit.payload, {
+              harvest: harvestState,
+              current: curRaw ? JSON.parse(curRaw) : null,
+              meta,
+            });
+            await env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: STATUS_CACHE_TTL_S });
+          }
+        } catch (e) { console.log('CACHE PATCH ERROR: ' + String(e.message).slice(0, 140)); }
       }
     })());
-    // The tireless part, with no model in the loop. Triaging candidates (resolve the proxy, simulate
-    // the entry points, check whether it has ever paid a caller) is pure procedure — leaving it to the
-    // agent meant 214 candidates sat untouched for eleven sessions while it spent its rounds
-    // re-deriving its own status. It grinds here instead, every tick, forever.
-    /* ⚠️ MEMORY: PROSPECT AND DISCOVERY MUST NOT RUN AT THE SAME TIME (2026-08-23).
-       Both read-modify-write the SAME KV value, `discover:state`, and that value has grown to
-       4.0 MB (6,639 candidates, MEASURED with `wrangler kv key get`). A 4 MB JSON parses into an
-       object graph many times its wire size, and each holder keeps its own copy plus the string it
-       stringifies back — so two concurrent waitUntil blocks over that key, on a 128 MB isolate, is
-       a coin flip. It landed tails: every cron from 04:20 to 05:00 died `exceededMemory`, the agent
-       stopped dead for ~40 minutes (session 933 never started), and because an over-memory
-       invocation is KILLED rather than thrown, nothing appeared in the logs as an exception and the
-       ledger simply looked "quiet" again.
-       Discovery only runs every 3rd tick, so chaining it AFTER prospect costs no throughput and
-       lets the first 4 MB graph be collected before the second is built. The concurrency here was
-       never buying anything: they contend on one key anyway (see prospect.mjs's D6 merge note).
-       ⚠️ The underlying hazard is that `discover:state` grows without bound. Serializing buys
-       headroom, it does not remove the ceiling — this key needs pruning or splitting before it
-       doubles again. Tracked in the journal, not just this comment. */
-    c.waitUntil((async () => {
-      try {
-        const r = await prospectTick(env, async (u) => { const rr = await fetch(u, { headers: { 'User-Agent': 'zero-agent/0.4' } }); return { status: rr.status, text: await rr.text() }; });
-        console.log('prospect: ' + jstr(r, 0));
-      } catch (e) { console.log('PROSPECT ERROR: ' + String(e.message).slice(0, 200)); }
-
-      const tickNo = Math.floor((event.scheduledTime || Date.now()) / 120000);
-      if (tickNo % 3 !== 0) return;
-      const DISCOVERY_ROTATION = ['gnosis', 'unichain', 'polygon', 'base', 'optimism', 'arbitrum'];
-      const dChain = DISCOVERY_ROTATION[Math.floor(tickNo / 3) % DISCOVERY_ROTATION.length];
-      /* RECORD THE OUTCOME WHERE SOMEONE WILL SEE IT (2026-08-13).
-         Every failure path in discoveryPass ends at console.log — inside a Worker, which nobody
-         reads. One of its own comments says "never again silent" and then logs into the void. So
-         discovery could have been erroring on gnosis/unichain for weeks and it would look exactly
-         like "those chains are barren" — which is the story we have been telling ourselves while
-         10 relay slots sat idle there. Now every pass writes its result to KV, readable at
-         /discovery, so "found nothing" and "failed to look" can never again be confused. */
-      try {
-        const r = await discoveryPass(env, { chain: dChain, rpcRaw: (m, p) => rpcCall(dChain, m, p) });
-        console.log('discovery(' + dChain + '): ' + jstr(r, 0));
-        try {
-          const log = (await env.KV.get('discover:log', 'json')) || {};
-          log[dChain] = { at: new Date().toISOString(), ok: true, result: r };
-          await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
-        } catch { /* logging must never break discovery */ }
-      } catch (e) {
-        const msg = String(e?.message || e).slice(0, 300);
-        console.log('DISCOVERY ERROR ' + dChain + ': ' + msg);
-        try {
-          const log = (await env.KV.get('discover:log', 'json')) || {};
-          log[dChain] = { at: new Date().toISOString(), ok: false, error: msg };
-          await env.KV.put('discover:log', JSON.stringify(log), { expirationTtl: 604800 });
-        } catch { /* ditto */ }
-      }
-    })());
-    // Candidate GENERATION used to run only when the model remembered to call discover_new_sources —
-    // it never once pointed it at gnosis/unichain, so those chains sat at 5/5 free slots with
-    // "nothing is paying" for the project's entire life. Generation is pure procedure: rotate it
-    // through every chain on the cron, every 3rd tick, idle chains first. The prospector then
-    // triages whatever this turns up, and the batcher harvests whatever the prospector proves.
-    // ⬆️ It now runs CHAINED AFTER prospectTick in the block above, not as its own waitUntil —
-    // see the memory note there. Both touch the same 4 MB key; only one may hold it at a time.
-    c.waitUntil(
-      experimentTick(env, (ch, m, p) => rpcCall(ch, m, p), 'base')
-        .then(r => console.log('experiment: ' + jstr(r, 0)))
-        .catch(e => console.log('EXPERIMENT ERROR: ' + String(e.message).slice(0, 200)))
-    );
-    c.waitUntil(tick(env, 'cron').then(r => console.log('tick: ' + jstr(r, 0))).catch(e => console.log('TICK ERROR: ' + e.message)));
   },
 
   async fetch(req, env, c) {
@@ -1563,33 +1430,42 @@ export default {
          BLOCKS (a Worker cannot fetch a hostname routed to itself), and the catch swallowed the
          error. So after any quiet spell the cache was expired (TTL 600s) and every real visitor
          paid the full ~25-36s RPC fan-out. MEASURED 2026-08-15: miss 36.2s, hit 0.16s.
-         Now: serve ANY cached snapshot immediately regardless of age, and if it is older than
-         STALE_OK refresh it in the background via waitUntil (stale-while-revalidate). The cron
-         also warms it by calling computeStatusPayload() DIRECTLY — no self-fetch. TTL is 24h so
-         a snapshot is always on hand; staleness is governed by the refresh, not by expiry. */
-      const CACHE_KEY = 'cache:status', STALE_OK_MS = 150000, CACHE_TTL_S = 86400;
+         Now: serve ANY cached snapshot immediately regardless of age, revive its health
+         clocks/capacity from the snapshot itself (no RPC), and if it is older than STALE_OK
+         refresh it in the background via waitUntil — unless the cron lease is held, in which
+         case a full computeStatusPayload in this isolate OOMs. The cron then patches the
+         cached health from KV (harvest:state + state:current) when the lease drops. TTL is
+         24h so a snapshot is always on hand; the numbers a visitor reads are revived, not frozen. */
       const wantsFresh = url.searchParams.has('fresh');
       if (!wantsFresh && url.pathname === '/' && env.KV) {
         try {
-          const hit = await env.KV.get(CACHE_KEY, 'json');
+          const hit = await env.KV.get(STATUS_CACHE_KEY, 'json');
           if (hit?.payload && hit.at) {
             const age = Math.round((Date.now() - hit.at) / 1000);
-            const stale = (Date.now() - hit.at) >= STALE_OK_MS;
+            const stale = (Date.now() - hit.at) >= STATUS_STALE_OK_MS;
             if (stale) {
               try {
-                c?.waitUntil?.((async () => {
-                  const payload = await computeStatusPayload(env);
-                  await env.KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: CACHE_TTL_S });
-                })());
-              } catch { /* refresh is best-effort; the stale copy is still served */ }
+                const lease = await env.KV.get(CRON_LEASE_KEY, 'json');
+                if (cronLeaseHeld(lease)) {
+                  /* Same isolate as scheduled. A visitor-triggered computeStatusPayload on top of
+                     harvest is how a slim cron still dies exceededMemory. Serve a clock-revived
+                     snapshot; the cron patches health from KV when the lease drops. */
+                } else {
+                  c?.waitUntil?.((async () => {
+                    const payload = await computeStatusPayload(env);
+                    await env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: STATUS_CACHE_TTL_S });
+                  })());
+                }
+              } catch { /* refresh is best-effort; the revived copy is still served */ }
             }
-            const xCache = `hit ${age}s${stale ? ' (stale, refreshing)' : ''}`;
+            const live = reviveStatusPayload(hit.payload);
+            const xCache = `hit ${age}s${stale ? ' (stale, clocks revived)' : ''}`;
             const html = (req.headers.get('accept') || '').includes('text/html');
             return html
-              ? new Response(dashboardHTML(hit.payload), {
+              ? new Response(dashboardHTML(live), {
                   headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-cache': xCache },
                 })
-              : Response.json(hit.payload, { headers: { 'x-cache': xCache } });
+              : Response.json(live, { headers: { 'x-cache': xCache } });
           }
         } catch { /* cache is an optimisation, never a dependency — fall through and compute */ }
       }
@@ -1606,20 +1482,24 @@ export default {
          included so "gnosis is barren" has to survive contact with a number. */
       if (url.pathname === '/discovery') {
         const log = env.KV ? await env.KV.get('discover:log', 'json').catch(() => null) : null;
-        const st = env.KV ? await env.KV.get('discover:state', 'json').catch(() => null) : null;
+        const loaded = env.KV ? await loadDiscoverState(env).catch(() => ({ skipped: true, reason: 'load failed', state: null })) : { skipped: true, reason: 'no KV', state: null };
+        const st = loaded.skipped ? null : loaded.state;
         const byChain = {};
         for (const cnd of Object.values(st?.candidates || {})) {
           byChain[cnd.chain] = (byChain[cnd.chain] || 0) + 1;
         }
         return Response.json({
+          skipped: loaded.skipped ? loaded.reason : undefined,
           candidates_by_chain: byChain,
           keepers_seeded: Object.keys(st?.keepers || {}).length,
           blindSeeded: st?.blindSeeded ?? null,
           behaviourSeeded: st?.behaviourSeeded ?? null,
           passes: st?.passes ?? null,
           last_pass_per_chain: log || 'no passes recorded yet — redeploy landed recently, wait one rotation',
-          reading: 'ok:false means the pass ERRORED, not that the chain is empty. A chain absent from '
-                 + 'candidates_by_chain with ok:true has genuinely been looked at and found nothing.',
+          reading: loaded.skipped
+            ? loaded.reason
+            : 'ok:false means the pass ERRORED, not that the chain is empty. A chain absent from '
+              + 'candidates_by_chain with ok:true has genuinely been looked at and found nothing.',
         });
       }
 
@@ -1667,7 +1547,7 @@ export default {
       const payTo = SMART_ACCOUNT; // paid at the smart account so it can pay its own gas in USDC
 
       // ZERO's storefront — the capital-free earning rail (buyer settles onchain, seller needs no gas).
-      if (eoa && (url.pathname.startsWith('/api/') || url.pathname === '/shop' || url.pathname === '/.well-known/x402')) {
+      if (eoa && (url.pathname.startsWith('/api/') || url.pathname === '/shop' || url.pathname === '/.well-known/x402' || url.pathname === '/.well-known/x402-discovery')) {
         const shopRes = await handleShop(req, env, url, (chain, method, params) => rpcCall(chain, method, params), payTo);
         if (shopRes) return shopRes;
       }
@@ -1980,7 +1860,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       }
       if (req.method === 'POST' && url.pathname === '/harvest/run') {
         if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('forbidden', { status: 403 });
-        return Response.json(await harvestCycle(env, (ch, m, p) => rpcCall(ch, m, p)));
+        return Response.json(await harvestRun(env, (ch, m, p) => rpcCall(ch, m, p)));
       }
 
       // Everything below is the status document. Unknown paths must 404 — a 200 catch-all silently
@@ -1995,7 +1875,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       const payload = await computeStatusPayload(env);
       // Refill the cache for the next visitor. waitUntil so the write never delays THIS response.
       if (url.pathname === '/' && env.KV) {
-        try { c?.waitUntil?.(env.KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: CACHE_TTL_S })); }
+        try { c?.waitUntil?.(env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: STATUS_CACHE_TTL_S })); }
         catch { /* never let a cache write break the response */ }
       }
       const wantsHtml = (req.headers.get('accept') || '').includes('text/html');
@@ -2132,8 +2012,7 @@ export async function computeStatusPayload(env) {
         try {
           const rows = balances.all_chains_priced;
           if (Array.isArray(rows) && typeof balances.holdings_usd === 'number') {
-            const colTotal = rows.reduce((t, r) => t
-              + (r.eoa_native_usd || 0) + (r.safe_usd || 0) + (r.eoa_usd || 0) + (r.usdc_usd || 0), 0);
+            const colTotal = rows.reduce((t, r) => t + rowUsd(r), 0);
             const gap = +(colTotal - balances.holdings_usd).toFixed(9);
             balances.price_coherence = {
               per_chain_total_usd: +colTotal.toFixed(8),
@@ -2159,6 +2038,14 @@ export async function computeStatusPayload(env) {
             at: Date.now(),
             spendable_usd: balances.spendable_liquid_native_eth_on_base_usd ?? balances.native_liquid_usd ?? null,
             total_holdings_usd: balances.total_holdings_usd ?? balances.holdings_usd ?? null,
+            all_chains_priced: (balances.all_chains_priced || []).map(r => ({
+              chain: r.chain,
+              price_known: r.price_known,
+              eoa_usd: r.eoa_usd, safe_usd: r.safe_usd,
+              eoa_native_usd: r.eoa_native_usd, usdc_usd: r.usdc_usd,
+              eoa_wei: r.eoa_wei, safe_wei: r.safe_wei,
+              eoa_native_wei: r.eoa_native_wei, safe_native_wei: r.safe_native_wei,
+            })),
           }), { expirationTtl: 86400 });
         } catch { /* auditing must never break the page */ }
 
@@ -2206,13 +2093,14 @@ export async function computeStatusPayload(env) {
           .map(([name, c]) => ({ chain: name, hours: Math.max(0, (Date.parse(c.last_refill) + c.median_gap_hours * 3600000 - Date.now()) / 3600000) }))
           .sort((a, b) => a.hours - b.hours);
         refillEta = withWork[0]
-          ? { hours: +withWork[0].hours.toFixed(2), chain: withWork[0].chain, basis: 'median observed refill gap, chains with harvestable work only' }
-          : { hours: null, chain: null, basis: 'no chain has both an observed refill period and harvestable work — no honest ETA exists' };
+          ? { hours: +withWork[0].hours.toFixed(2), chain: withWork[0].chain, basis: 'median observed refill gap, chains with harvestable work only', median_gap_hours: median }
+          : { hours: null, chain: null, basis: 'no chain has both an observed refill period and harvestable work — no honest ETA exists', median_gap_hours: median };
       } catch { /* health falls back to its own default */ }
       const health = diagnose({
         earnings: balances,
         relay: { chains: relayAll.map(c => ({ name: c.name, remaining: c.remaining, limit: c.limit })) },
         prospect, meta, harvest: harvestState, refill,
+        current: cur,
       });
 
       const payload = {
@@ -2263,7 +2151,8 @@ export async function computeStatusPayload(env) {
         harvest_attempts: harvestState?.attempts ?? null,
         sessions_completed: meta.sessions,
         last_session: meta.lastSession || null,
-        session_in_progress: cur ? { session: cur.session, round: cur.round, started: new Date(cur.startedAt).toISOString() } : null,
+        session_in_progress: sessionProgress(cur),
+        refill: refill || null,
         routes,
         /* TOOL HEALTH — published so a broken tool is a number on the outside, not silence.
            This is the check that would have caught route_log's 10-day ReferenceError on day one. */

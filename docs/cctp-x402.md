@@ -567,6 +567,11 @@ https://zero-agent.broke2built.workers.dev/api/wallet-brief` returns HTTP 402 wi
 `Payment-Required` header *and* a v1 JSON body. If you are changing `shop.mjs`, do not "clean up"
 one of them.
 
+### x402 payTo — GENESIS II Safe only
+`payTo` is `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f` (`shop.mjs` `SMART_ACCOUNT`). The GENESIS I
+Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` is retired — advertising it sends USDC into an
+account ZERO cannot sign for.
+
 ### v1 — 402 response body
 ```json
 {
@@ -580,7 +585,7 @@ one of them.
     "description": "Address activity brief",
     "mimeType": "application/json",
     "outputSchema": {},
-    "payTo": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+    "payTo": "0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f",
     "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "maxTimeoutSeconds": 3600,
     "extra": { "name": "USDC", "version": "2" }
@@ -588,6 +593,8 @@ one of them.
 }
 ```
 `maxAmountRequired` / `amount` are **strings in the asset's smallest unit**. `"20000"` = 0.02 USDC.
+`payTo` is the GENESIS II Safe (`shop.mjs` `SMART_ACCOUNT`). The GENESIS I Safe `0x5106…cbb1` is
+retired — advertising it as payTo sends USDC into an account ZERO cannot sign for.
 Not a float, not dollars. `extra.name` / `extra.version` are the **EIP-712 domain** of the asset,
 needed by the buyer to sign a `transferWithAuthorization` — get them wrong and every signature the
 buyer produces is invalid against your token.
@@ -608,7 +615,7 @@ buyer produces is invalid against your token.
     "network": "eip155:8453",
     "amount": "20000",
     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "payTo": "0x510601f59FDa068D70ad6760c9d9085B0F42cbb1",
+    "payTo": "0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f",
     "maxTimeoutSeconds": 3600,
     "extra": { "name": "USD Coin", "version": "2" }
   }],

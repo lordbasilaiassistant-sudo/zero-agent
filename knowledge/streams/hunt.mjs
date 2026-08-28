@@ -4,13 +4,14 @@
 // tx.origin-based payouts pay 0x0 and are correctly excluded; only msg.sender payouts to Safe count.
 import { ethers } from 'ethers';
 import fs from 'fs';
+import { SMART_ACCOUNT } from '../../shop.mjs';
 
 const CH = {
   base:     { url: 'https://mainnet.base.org' },
   optimism: { url: 'https://optimism-rpc.publicnode.com' },
 };
 const MC   = '0xcA11bde05977b3631167028862bE2a173976CA11';
-const SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+const SAFE = SMART_ACCOUNT;
 
 const TOKENS = {
   base: [

@@ -4,9 +4,10 @@
 // Read-only. Saves scripts/zora-referrer-value-result.json
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { LIVE_EOA } from '../shop.mjs';
 
 const HOOK = '0x0469a4Bd3724DC86C9542F4694c976DA13C450c0';
-const ZERO_EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const ZERO_EOA = LIVE_EOA;
 const RPCS = ['https://base-rpc.publicnode.com', 'https://mainnet.base.org', 'https://1rpc.io/base'];
 const BS = 'https://base.blockscout.com/api/v2';
 const BLOCK_TIME = 2; // Base

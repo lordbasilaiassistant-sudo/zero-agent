@@ -51,13 +51,21 @@ local only while we're online, otherwise a Worker). His PC is not 24/7.
   the Worker won't see it.
 
 ### Sliced sessions (why the Worker doesn't time out)
-A session is resumable: each cron tick (every 2 min) runs `SLICE_ROUNDS=2` GLM rounds, persists the
-whole conversation to `state:current`, and returns. A new session starts once `SESSION_GAP_MS` (25 min)
-has passed since the last ended; sessions cap at `MAX_ROUNDS=12` and stale ones (45 min) are abandoned
-with an auto-stub journal entry. Verified: ~6s and ~16 subrequests per tick — far under Worker limits.
+A session is resumable. Cron is every 2 min and earns first (escape / sweep / harvest). Janitor +
+invariants run every 5th tick, discovery every 3rd. GLM sessions run on a **sparse** tick
+(`cronSessionDue`: ~20 min, never stacked with janitor or discovery) — stacking them with keeper
+`eth_simulateV1` traces OOMed the 128 MB isolate on 2026-08-27. Each session slice is
+`SLICE_ROUNDS=2`, persisted to `state:current`. A new session starts once `SESSION_GAP_MS` (25 min)
+has passed since the last ended; sessions cap at `MAX_ROUNDS=12`. Stale means **no slice in 90 min**
+(`lastSliceAt`, not `startedAt`) — the old 45-minute start clock abandoned every sparse session
+before it could finish. If a cron lease skips a sparse GLM tick, the next non-hygiene tick replays
+it instead of waiting another 20 min. Public `/` serves a KV snapshot; health clocks and usable
+capacity are revived on read so a leased cron cannot freeze a pre-fix census. Full
+`computeStatusPayload` stays off cron (OOM); the cron patches the snapshot from KV when the lease
+drops. The Worker secret is still `ADMIN_KEY`.
 
 ## Architecture
-- `worker.mjs` — cloud body (canonical). Same 15 tools as local, KV-backed.
+- `worker.mjs` — cloud body (canonical). Same **34 tools** as local, KV-backed.
 - `agent.mjs` + `tools.mjs` — local dev harness / offline runs (file-backed memory). **Tool semantics are
   duplicated in both worker.mjs and tools.mjs — change BOTH.**
 - `docs.mjs` + `docs/` + `scripts/build-docs.mjs` — **the reference library.** Five distilled
@@ -173,11 +181,10 @@ Candide's **keyless** public bundler+paymaster (`https://api.candide.dev/public/
 paymaster `0x8b1f…5ba`) accepts USDC/DAI/USDT/USDS as the gas token with no API key. Measured against ZERO's
 own account: `pm_getPaymasterData` → *"token balance lower than the required 0x237f allowance"* =
 **0.009087 USDC per operation** (account deployment included in that same op).
-- **ZERO's smart account: `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`** — owner = its EOA `0x5062…0dB9`,
-  threshold 1. ⚠️ **CORRECTED 2026-08-12, this line was wrong twice over.** It is not "Safe v0.3.0" and
-  it is not "undeployed": `VERSION()` returns **1.4.1**, the singleton is **SafeL2 v1.4.1**
-  (`0x29fcB43b…C762`), and it is **DEPLOYED and transacting** on base, optimism, arbitrum, polygon and
-  gnosis (nonces 30 / 14 / 80 / 75 respectively). The "0.3.0" was the **Safe4337Module** version
+- **ZERO's smart account: `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`** — owner = GENESIS II EOA `0xC949…D57A`,
+  threshold 1. SafeL2 v1.4.1, singleton `0x29fcB43b…C762`, DEPLOYED on base/optimism/arbitrum/polygon/gnosis.
+  The retired Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` is owned by the contaminated EOA — never use it as caller, payTo, or callFeeRecipient.
+  ⚠️ The "0.3.0 undeployed" claim was the **Safe4337Module** version
   (`0x75cf1146…c226`, whose `SUPPORTED_ENTRYPOINT()` is EntryPoint v0.7) — a different contract.
 - ⚠️ **UNICHAIN IS PHANTOM CAPACITY.** The Safe is **NOT deployed** there (`eth_getCode` = `0x`,
   verified on two providers) — yet the relay cheerfully reports **5/5 free slots**, because the

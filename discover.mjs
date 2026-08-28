@@ -1,5 +1,6 @@
-﻿// discover.mjs â€” the teat-finder. Turns one proven income family into many.
+// discover.mjs — the teat-finder. Turns one proven income family into many.
 import { ethers } from 'ethers';   // blindSeed() used ethers.id() with no top-level import: it threw ReferenceError on its first line on EVERY call, and the throw was swallowed at the call site — so the entire 'break the closed Beefy loop' mechanism has never executed once.
+import { SMART_ACCOUNT } from './shop.mjs';
 //
 // Method (empirical, not theoretical): professional keeper bots get paid by every contract worth
 // calling. So instead of guessing which contracts pay an arbitrary caller, we find the WALLETS that
@@ -7,7 +8,7 @@ import { ethers } from 'ethers';   // blindSeed() used ethers.id() with no top-l
 // That yields a list where every entry is backed by a real payout that actually happened.
 //
 // Why this beats reading view functions: Beefy's callReward() read $615 on a strategy that paid the
-// caller $0.0001 â€” an 8.5-million-x lie. Historical transfers cannot lie.
+// caller $0.0001 — an 8.5-million-x lie. Historical transfers cannot lie.
 const SCOUT = {
   base: 'https://base.blockscout.com',
   optimism: 'https://optimism.blockscout.com',
@@ -32,7 +33,7 @@ export const SEED_KEEPERS = {
 };
 
 // A keeper's inbound transfers are full of NOISE: DEX pools and routers show up constantly because
-// the keeper swaps its rewards through them. Those are counterparties, not mechanisms â€” they never
+// the keeper swaps its rewards through them. Those are counterparties, not mechanisms — they never
 // pay an arbitrary caller for showing up. Filter them or the candidate list is 80% garbage.
 // D14 FIX: the old regex discarded `…Pool` and `…Vault` payers before they were ever recorded —
 // and StrategyRewardPool is literally the implementation behind our own KNOWN_PAYERS, while every
@@ -129,7 +130,7 @@ export async function payersOf(chain, keeper, pages = 2) {
     for (const it of data.items || []) {
       const from = (it.from?.hash || '').toLowerCase();
       if (!from || from === keeper.toLowerCase()) continue;
-      // Only count payments FROM contracts â€” an EOA paying a keeper is a payroll, not a mechanism.
+      // Only count payments FROM contracts — an EOA paying a keeper is a payroll, not a mechanism.
       if (it.from?.is_contract === false) continue;
       const dec = Number(it.token?.decimals ?? 18);
       const amt = Number(it.total?.value ?? 0) / Math.pow(10, dec);
@@ -150,7 +151,8 @@ export async function payersOf(chain, keeper, pages = 2) {
 const GATE_RE = /onlyOwner|onlyKeeper|onlyManager|onlyGovernance|onlyStrategist|onlyVault|onlyOperator|require\s*\(\s*msg\.sender\s*==|hasRole\s*\(|_checkRole|onlyRole/;
 const PAYS_CALLER_RE = /msg\.sender|callFeeRecipient|rewardRecipient|feeRecipient|_recipient|tx\.origin/;
 
-export async function inspect(chain, contract, caller = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1') {
+export const DISCOVERY_CALLER = SMART_ACCOUNT;
+export async function inspect(chain, contract, caller = DISCOVERY_CALLER) {
   const base = SCOUT[chain];
   let meta;
   // Resolve proxies FIRST — a proxy's own source describes the proxy, never the logic.
@@ -298,7 +300,7 @@ export async function simulateCandidate(chain, contract, fnSig, caller) {
 }
 
 // Bootstrap seed keepers on a chain with none: look at contracts we ALREADY know pay callers
-// (the strategies we harvest), and read who else they pay. Those recipients are other keepers â€”
+// (the strategies we harvest), and read who else they pay. Those recipients are other keepers —
 // and each one is a doorway to every other contract that pays them. The network seeds itself.
 export async function bootstrapKeepers(chain, knownPayers = [], perContract = 25) {
   const base = SCOUT[chain];
@@ -325,9 +327,127 @@ export async function bootstrapKeepers(chain, knownPayers = [], perContract = 25
     .map(([addr, n]) => ({ address: addr, seen: n }));
 }
 
+// Bound `discover:state` so the 128 MB isolate cannot die `exceededMemory`.
+// MEASURED 2026-08-23: 4.0 MB / 6,639 candidates, parsed in concurrent waitUntil blocks, killed
+// every cron for ~40 minutes (session 933 never started). Serializing the two writers was tried
+// and was NOT enough — the blob itself has to stop growing. Compact fat fields on every write;
+// drop PAYS_ZERO past the 30-day recheck window; if still over cap, evict oldest eliminated
+// rows and never a proven payer.
+// Compact 2026-08-27: 2,500 rows was 1.71 MB — over DISCOVER_SAFE_BYTES. 949 rows fit at 977 KB.
+export const DISCOVER_CANDIDATE_CAP = 900;
+
+export function pruneDiscoverState(state, { cap = DISCOVER_CANDIDATE_CAP, now = Date.now() } = {}) {
+  const src = state && typeof state === 'object' ? state : {};
+  const next = { ...src, candidates: { ...(src.candidates || {}) } };
+  let compacted = 0, pruned = 0;
+
+  for (const [k, c] of Object.entries(next.candidates)) {
+    if (!c || typeof c !== 'object') continue;
+    const out = { ...c };
+    if (Array.isArray(out.functions) && out.functions.length) {
+      const slim = out.functions.slice(0, 4).map(f => (typeof f === 'string' ? f : (f?.sig ? { sig: f.sig } : null))).filter(Boolean);
+      if (slim.length !== out.functions.length || out.functions.some(f => f && typeof f === 'object' && Object.keys(f).length > 1)) compacted++;
+      out.functions = slim;
+    }
+    if (Array.isArray(out.settled_examples) && out.settled_examples.length > 1) {
+      out.settled_examples = out.settled_examples.slice(0, 1);
+      compacted++;
+    }
+    if (Array.isArray(out.tokens) && out.payout_verdict !== 'PAYS_CALLERS' && out.tokens.length > 2) {
+      out.tokens = out.tokens.slice(0, 2);
+      compacted++;
+    }
+    next.candidates[k] = out;
+  }
+
+  const DROP_AFTER = 45 * 86400e3;   // D13 rechecks at 30d; 15d buffer then the stub goes
+  for (const [k, c] of Object.entries(next.candidates)) {
+    if (c?.retired && c?.payout_verdict === 'PAYS_ZERO' && (now - (c.retired_at || 0)) > DROP_AFTER) {
+      delete next.candidates[k];
+      pruned++;
+    }
+  }
+
+  if (next.noise && typeof next.noise === 'object') {
+    const keys = Object.keys(next.noise);
+    if (keys.length > 400) {
+      next.noise = Object.fromEntries(keys.slice(-400).map(k => [k, next.noise[k]]));
+      pruned += keys.length - 400;
+    }
+  }
+
+  const entries = Object.entries(next.candidates);
+  if (entries.length > cap) {
+    const rank = (c) => {
+      if (c?.payout_verdict === 'PAYS_CALLERS') return -1;          // never drop
+      if (c?.callable_now?.length && !c?.payout_verdict) return 0;  // hot queue
+      if (!c?.triaged_at) return 1;
+      if (c?.retired) return 3;
+      return 2;
+    };
+    const droppable = entries
+      .filter(([, c]) => rank(c) >= 0)
+      .sort((a, b) => rank(b[1]) - rank(a[1]) || String(a[1]?.first_seen || '').localeCompare(String(b[1]?.first_seen || '')));
+    let need = entries.length - cap;
+    for (const [k] of droppable) {
+      if (need <= 0) break;
+      delete next.candidates[k];
+      pruned++;
+      need--;
+    }
+  }
+
+  return { state: next, pruned, compacted, size: Object.keys(next.candidates).length };
+}
+
+// MEASURED 2026-08-26→27: 1,015 scheduled crons, every one `exceededMemory`, zero `ok`.
+// Public fetch was fine. The isolate dies on the FIRST parse of the fat blob — prune-on-write
+// never runs. `discover:bytes` is a tiny sibling key. Missing or oversized ⇒ do not get()
+// `discover:state`. Compact writes the sibling; every later prune write keeps it in sync.
+export const DISCOVER_BYTES_KEY = 'discover:bytes';
+export const DISCOVER_SAFE_BYTES = 1_000_000;
+
+export function jsonBytes(value) {
+  const s = typeof value === 'string' ? value : JSON.stringify(value);
+  return new TextEncoder().encode(s).byteLength;
+}
+
+export async function discoverBlobSafe(env) {
+  const raw = await env.KV.get(DISCOVER_BYTES_KEY);
+  if (raw == null || raw === '') {
+    return { ok: false, bytes: null, reason: 'discover:bytes unset — refuse first parse of a blob that already killed every cron (measured 4.0 MB / exceededMemory)' };
+  }
+  const bytes = Number(raw);
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return { ok: false, bytes: null, reason: 'discover:bytes malformed' };
+  }
+  if (bytes > DISCOVER_SAFE_BYTES) {
+    return { ok: false, bytes, reason: `discover:state ${bytes} bytes exceeds ${DISCOVER_SAFE_BYTES} parse cap` };
+  }
+  return { ok: true, bytes };
+}
+
+export async function loadDiscoverState(env, fallback = { candidates: {} }) {
+  const gate = await discoverBlobSafe(env);
+  if (!gate.ok) return { skipped: true, reason: gate.reason, bytes: gate.bytes, state: fallback };
+  const state = (await env.KV.get('discover:state', 'json')) || fallback;
+  return { skipped: false, bytes: gate.bytes, state };
+}
+
+export async function putDiscoverState(env, state) {
+  const { state: bounded, pruned, compacted, size } = pruneDiscoverState(state);
+  const json = JSON.stringify(bounded);
+  const bytes = jsonBytes(json);
+  await env.KV.put('discover:state', json);
+  await env.KV.put(DISCOVER_BYTES_KEY, String(bytes));
+  return { bounded, pruned, compacted, size, bytes };
+}
+
 // One discovery pass: seeds -> payers -> inspected candidates, persisted for the agent to work through.
 export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, rpcRaw = null } = {}) {
-  const state = (await env.KV.get('discover:state', 'json')) || { keepers: {}, candidates: {}, passes: 0 };
+  const loaded = await loadDiscoverState(env, { keepers: {}, candidates: {}, passes: 0 });
+  if (loaded.skipped) return { skipped: loaded.reason };
+  const state = loaded.state;
   state.keepers ||= {};
   // D18 FIX: normalise on read too — the dedupe below missed across casings before.
   for (const k of Object.keys(state.keepers)) {
@@ -489,7 +609,7 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
       };
     }
   } catch { /* fall back to our own snapshot rather than skip the write */ }
-  await env.KV.put('discover:state', JSON.stringify(merged));
+  await putDiscoverState(env, merged);
   // Gating on `pays_a_caller` — a REGEX OVER SOURCE — threw away every one of 214 candidates while
   // reporting "0 promising", which is what stalled expansion for eleven sessions. It was the weakest
   // signal available and it was being used as a hard gate.
@@ -532,6 +652,35 @@ export async function discoveryPass(env, { chain = 'arbitrum', maxPayers = 12, r
     })),
   };
 }
+
+/** Ranked candidate list for the agent. Shared by Worker discover_list and the local harness. */
+export function discoverList(state) {
+  const c = Object.values(state?.candidates || {});
+  const scored = c.filter(x => !x.retired && (x.callable_now?.length || !x.access_controlled) && !x.tried)
+    .map(x => ({ ...x, score: (x.callable_now?.length ? 1000 : 0) + (x.payouts_seen || 0) * 10 + (x.pays_a_caller ? 5 : 0) + (x.verified ? 1 : 0) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+  return {
+    total: c.length, passes: state?.passes || 0,
+    promising: scored.length,
+    callable_right_now: scored.filter(x => x.callable_now?.length).length,
+    how_to_use: 'Work DOWN this list. inspect_contract to find an entry point, payout_history to prove it has ever paid a caller, and only then a relay slot. Each one that pays becomes a permanent stacked stream — you never retire a paying route, you add to it.',
+    untried_promising: scored.slice(0, 12)
+      .map(x => ({ chain: x.chain, contract: x.contract, name: x.name, payouts_seen: x.payouts_seen, callable_now: x.callable_now || [], functions: (x.functions || []).slice(0, 4).map(f => f.sig) })),
+  };
+}
+
+export async function loadDiscoverList(env) {
+  const loaded = await loadDiscoverState(env);
+  if (loaded.skipped) {
+    return {
+      skipped: loaded.reason, total: 0, passes: 0, promising: 0, callable_right_now: 0,
+      untried_promising: [], how_to_use: loaded.reason,
+    };
+  }
+  return discoverList(loaded.state);
+}
+
 
 
 

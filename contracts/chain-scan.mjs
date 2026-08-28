@@ -29,10 +29,12 @@ import { ethers } from 'ethers';
 import fs from 'node:fs';
 import { RpcPool } from './rpcpool.mjs';
 
+import { SMART_ACCOUNT } from '../shop.mjs';
+
 const RPC = process.env.BASE_RPC || 'https://mainnet.base.org';
 const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 const WETH = '0x4200000000000000000000000000000000000006';
-const ZERO_SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
+const ZERO_SAFE = SMART_ACCOUNT;
 const BLOCKS = Number(process.env.BLOCKS || 600);     // ~20 min of Base
 const MAX_CONTRACTS = Number(process.env.MAX_CONTRACTS || 60);
 const MIN_HOLD_WEI = BigInt(process.env.MIN_HOLD_WEI || '100000000000000'); // 1e14 = ~$0.0002

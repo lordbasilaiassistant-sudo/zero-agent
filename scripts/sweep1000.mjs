@@ -8,10 +8,11 @@
 // Usage: node scripts/sweep1000.mjs [blocks] [concurrency]
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const NBLOCKS = Number(process.argv[2] || 2500);
 const CONC = Number(process.argv[3] || 6);
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const MULTICALL = '0xcA11bde05977b3631167028862bE2a173976CA11';
 const RPCS = [
   'https://base-rpc.publicnode.com', 'https://mainnet.base.org',

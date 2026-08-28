@@ -7,6 +7,15 @@
   "scripts": {
     "selftest": "node selftest.mjs",
     "agent": "node agent.mjs",
+    "regress": "node regress.mjs",
+    "shoptest": "node shoptest.mjs",
+    "test:janitor": "node test-janitor.mjs",
+    "render": "node scripts/render-check.mjs",
+    "test": "node regress.mjs && node test-janitor.mjs && node scripts/compact-discover.mjs --selftest && node scripts/check-tree.mjs",
+    "authtest": "node authtest.mjs",
+    "verify:chainstate": "node scripts/verify-chainstate.mjs",
+    "compact:discover": "node scripts/compact-discover.mjs --selftest",
+    "check:tree": "node scripts/check-tree.mjs",
     "map": "node scripts/wallet-map.mjs",
     "map:selftest": "node scripts/wallet-map.mjs --selftest",
     "map:all": "node scripts/wallet-map.mjs --chains base,optimism,arbitrum,gnosis,unichain --blocks 60"

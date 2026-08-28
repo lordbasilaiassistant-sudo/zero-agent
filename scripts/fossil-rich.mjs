@@ -10,6 +10,7 @@
 // Read-only. Usage: node scripts/fossil-rich.mjs [chain] [pages]
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const CHAINS = {
   gnosis:   { bs: 'https://gnosis.blockscout.com/api/v2',   rpcs: ['https://rpc.gnosischain.com', 'https://gnosis-rpc.publicnode.com'], sym: 'xDAI', free: true },
@@ -19,7 +20,7 @@ const CHAINS = {
 const chain = process.argv[2] || 'gnosis';
 const PAGES = Number(process.argv[3] || 6);
 const C = CHAINS[chain];
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 const STALE_DAYS = 180;
 

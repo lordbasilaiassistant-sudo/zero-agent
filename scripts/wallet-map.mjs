@@ -69,13 +69,14 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { keccak256, formatUnits } from 'ethers';
+import { LIVE_EOA } from '../shop.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const STATE = path.join(ROOT, 'state');
 
 // ZERO's own address. Callability is graded from here — "can WE claim this", not "does anyone".
-const ZERO_WALLET = '0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A';
+const ZERO_WALLET = LIVE_EOA;
 
 /* ───────────────────────────── chains ─────────────────────────────
  * rpcs are ordered by measured reliability on 2026-08-20 (see the capability probe in the rebuild
@@ -86,7 +87,9 @@ const ZERO_WALLET = '0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A';
 const CHAINS = {
   base: {
     rpcs: ['https://base-rpc.publicnode.com', 'https://base.drpc.org', 'https://base.gateway.tenderly.co',
-           'https://mainnet.base.org', 'https://base-mainnet.public.blastapi.io', 'https://1rpc.io/base'],
+           'https://mainnet.base.org', 'https://base-mainnet.public.blastapi.io', 'https://1rpc.io/base',
+           // paid tier: eth_getBlockReceipts without the burst refusals (key from env, never hardcoded)
+           ...(process.env.ALCHEMY_BASE_RPC ? [process.env.ALCHEMY_BASE_RPC] : [])],
     llama: 'base', nativeKey: 'coingecko:ethereum', nativeSymbol: 'ETH', opStack: true,
   },
   optimism: {
@@ -108,7 +111,7 @@ const CHAINS = {
     llama: 'unichain', nativeKey: 'coingecko:ethereum', nativeSymbol: 'ETH', opStack: true,
   },
   polygon: {
-    rpcs: ['https://1rpc.io/matic'],
+    rpcs: ['https://1rpc.io/matic', ...(process.env.ALCHEMY_POLYGON_RPC ? [process.env.ALCHEMY_POLYGON_RPC] : [])],
     llama: 'polygon', nativeKey: 'coingecko:matic-network', nativeSymbol: 'POL', opStack: false,
   },
   /* -- CHEAP-GAS CHAINS, added 2026-08-21 -------------------------------------------------------

@@ -111,45 +111,90 @@ export async function readChainState(rpc, eoa, safe, chains = Object.keys(CHAINS
       // SEQUENTIALLY, not Promise.all. This project has already been burned once by 38 parallel probes
       // being silently rate-limited into a clean-looking zero — and a wrong zero here is a lie about
       // how much money exists.
-      stage = 'wrapped';
-      const eoaWrapped = await wethBalance(rpc, eoa, name, c.weth);
-      const safeWrapped = await wethBalance(rpc, safe, name, c.weth);
-      stage = 'native';
-      const eoaNative = BigInt(await rpc(name, 'eth_getBalance', [eoa, 'latest']));
-      const safeNative = BigInt(await rpc(name, 'eth_getBalance', [safe, 'latest']));
-      stage = 'usdc';
+      //
+      // 2026-08-24 — STAGE INDEPENDENCE. Until today one failed stage discarded the WHOLE chain:
+      // base rate-limited its wrapped-native read and the exclusion silently dropped that chain's
+      // successfully-readable native ETH ($0.45 measured live that day by direct eth_getBalance)
+      // from every total the page publishes. A failed read is still never a zero — but a chain that
+      // half-reads now contributes the half we MEASURED and names the half we could not read,
+      // instead of contributing nothing at all. Each stage below stands alone.
+      const parts = {};
+      const missingStages = [];
+      const grab = async (key, fn) => {
+        try { parts[key] = await fn(); }
+        catch (e) { missingStages.push(`${key}: ${String(e.message || e).slice(0, 90)}`); }
+      };
+      await grab('eoaWrapped', () => wethBalance(rpc, eoa, name, c.weth));
+      await grab('safeWrapped', () => wethBalance(rpc, safe, name, c.weth));
+      await grab('eoaNative', () => rpc(name, 'eth_getBalance', [eoa, 'latest']).then(BigInt));
+      await grab('safeNative', () => rpc(name, 'eth_getBalance', [safe, 'latest']).then(BigInt));
+
       let eoaUsdc = 0n, safeUsdc = 0n, usdcError = null;
+      let usdcKnown = !USDC_BY_CHAIN[name];   // no USDC configured here = nothing to read = known-zero
       if (USDC_BY_CHAIN[name]) {
         try {
           eoaUsdc = await erc20Balance(rpc, name, USDC_BY_CHAIN[name], eoa);
           safeUsdc = await erc20Balance(rpc, name, USDC_BY_CHAIN[name], safe);
-        } catch (e) { usdcError = String(e.message || e).slice(0, 90); }
+          usdcKnown = true;
+        } catch (e) {
+          usdcError = String(e.message || e).slice(0, 90);
+          missingStages.push(`usdc: ${usdcError}`);
+        }
+      }
+
+      // Every stage failed → the honest full-exclusion path, unchanged.
+      if (!Object.keys(parts).length && !usdcKnown) {
+        const error = missingStages.join('; ').slice(0, 300);
+        unreadable.push({ chain: name, stage: 'all-stages', error });
+        per.push({ chain: name, read: 'failed', stage: 'all-stages', error, token_usd: price.usd });
+        continue;
       }
 
       const toUsd = (wei) => Number(ethers.formatEther(wei)) * price.usd;
-      const eoaWrappedUsd = toUsd(eoaWrapped), safeWrappedUsd = toUsd(safeWrapped);
-      const eoaNativeUsd = toUsd(eoaNative), safeNativeUsd = toUsd(safeNative);
-      const usdcUsd = Number(eoaUsdc + safeUsdc) / 1e6;   // USDC is a dollar by construction
+      const eoaWrappedUsd = 'eoaWrapped' in parts ? toUsd(parts.eoaWrapped) : null;
+      const safeWrappedUsd = 'safeWrapped' in parts ? toUsd(parts.safeWrapped) : null;
+      const eoaNativeUsd = 'eoaNative' in parts ? toUsd(parts.eoaNative) : null;
+      const safeNativeUsd = 'safeNative' in parts ? toUsd(parts.safeNative) : null;
+      const usdcUsd = usdcKnown ? Number(eoaUsdc + safeUsdc) / 1e6 : null;   // USDC is a dollar by construction
 
-      holdings += eoaWrappedUsd + safeWrappedUsd + eoaNativeUsd + safeNativeUsd + usdcUsd;
-      relaySpendable += safeWrappedUsd;
+      // Only measured components enter any total. A component we could not read contributes NOTHING
+      // and is named — it never contributes zero, because zero is a claim about the world.
+      // relaySpendable stays SAFE-wrapped only: DOCTRINE §11b says wrapped native at the EOA is
+      // stranded, not relay-spendable, and widening this key would redefine it silently.
+      if (eoaWrappedUsd !== null) holdings += eoaWrappedUsd;
+      if (safeWrappedUsd !== null) { holdings += safeWrappedUsd; relaySpendable += safeWrappedUsd; }
       // DOCTRINE §11b: native ETH the EOA holds is the ONLY thing that equals capability — any
       // transaction, any time, no quota, no sponsor, nobody able to revoke it.
-      nativeLiquid += eoaNativeUsd;
-      usdcTotal += usdcUsd;
+      if (eoaNativeUsd !== null) { holdings += eoaNativeUsd; nativeLiquid += eoaNativeUsd; }
+      if (safeNativeUsd !== null) holdings += safeNativeUsd;
+      if (usdcUsd !== null) { holdings += usdcUsd; usdcTotal += usdcUsd; }
       // CLAUDE.md:93-95 — while the EOA holds no gas, EVERY asset sitting on it is stranded, not just
       // the wrapped native the old code counted. USDC on the EOA is stranded for exactly the same
       // reason (the paymaster checks the balance of the account SUBMITTING the op).
-      if (eoaNative === 0n) stranded += eoaWrappedUsd + Number(eoaUsdc) / 1e6;
+      // Only assert stranding when the EOA's native balance was actually READ — an unread balance
+      // proves neither "has gas" nor "has none".
+      if (('eoaNative' in parts) && parts.eoaNative === 0n) {
+        if (eoaWrappedUsd !== null) stranded += eoaWrappedUsd;
+        if (usdcKnown) stranded += Number(eoaUsdc) / 1e6;
+      }
 
       per.push({
-        chain: name, read: 'ok', token_usd: price.usd, price_source: price.source,
-        eoa_wrapped_wei: eoaWrapped.toString(), safe_wrapped_wei: safeWrapped.toString(),
-        eoa_native_wei: eoaNative.toString(), safe_native_wei: safeNative.toString(),
-        eoa_wrapped_usd: +eoaWrappedUsd.toFixed(8), safe_wrapped_usd: +safeWrappedUsd.toFixed(8),
-        eoa_native_usd: +eoaNativeUsd.toFixed(8), safe_native_usd: +safeNativeUsd.toFixed(8),
-        usdc_usd: +usdcUsd.toFixed(6), usdc_error: usdcError,
+        chain: name,
+        read: missingStages.length ? 'partial' : 'ok',
+        token_usd: price.usd, price_source: price.source,
+        eoa_wrapped_wei: parts.eoaWrapped?.toString() ?? null,
+        safe_wrapped_wei: parts.safeWrapped?.toString() ?? null,
+        eoa_native_wei: parts.eoaNative?.toString() ?? null,
+        safe_native_wei: parts.safeNative?.toString() ?? null,
+        eoa_wrapped_usd: eoaWrappedUsd !== null ? +eoaWrappedUsd.toFixed(8) : null,
+        safe_wrapped_usd: safeWrappedUsd !== null ? +safeWrappedUsd.toFixed(8) : null,
+        eoa_native_usd: eoaNativeUsd !== null ? +eoaNativeUsd.toFixed(8) : null,
+        safe_native_usd: safeNativeUsd !== null ? +safeNativeUsd.toFixed(8) : null,
+        usdc_usd: usdcUsd !== null ? +usdcUsd.toFixed(6) : null,
+        usdc_error: usdcError,
+        ...(missingStages.length ? { missing_stages: missingStages } : {}),
       });
+      if (missingStages.length) unreadable.push({ chain: name, stage: 'partial', error: missingStages.join('; ') });
     } catch (e) {
       const error = `${stage}: ${String(e.message || e).slice(0, 110)}`;
       unreadable.push({ chain: name, stage, error });
@@ -158,6 +203,7 @@ export async function readChainState(rpc, eoa, safe, chains = Object.keys(CHAINS
   }
 
   const okCount = per.filter(p => p.read === 'ok').length;
+  const partialCount = per.filter(p => p.read === 'partial').length;
   return {
     measured_at: new Date().toISOString(),
     source: 'eth_getBalance + wrapped-native balanceOf + USDC balanceOf at both addresses, each chain priced in ITS OWN token',
@@ -168,10 +214,13 @@ export async function readChainState(rpc, eoa, safe, chains = Object.keys(CHAINS
     stranded_on_eoa_usd: +stranded.toFixed(8),
     chains_configured: chains.length,
     chains_read_ok: okCount,
+    chains_partial: partialCount,
     unreadable,
     prices,
     per_chain: per,
-    read_note: unreadable.length
+    read_note: partialCount
+      ? `read ${okCount} of ${chains.length} chains fully, ${partialCount} partially. A partial chain's MEASURED stages are counted above; only its named failed stages are excluded.`
+      : unreadable.length
       ? `read ${okCount} of ${chains.length} chains. Every figure above EXCLUDES the chains that failed — it is a lower bound, not a balance.`
       : `read ${okCount} of ${chains.length} chains, all ok.`,
   };

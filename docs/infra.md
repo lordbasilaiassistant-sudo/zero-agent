@@ -388,7 +388,7 @@ Get it wrong and you read an all-zero slot, which looks exactly like "not a prox
 |---|---|---|---|
 | **USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`** | all zero | **impl `0x2ce6311ddae708829bc0784c967b7d77d19fd779`, admin `0x4fc7850364958d97b4d3f5a08f79db2493f8ca44`** | returns the impl |
 | **WETH `0x4200000000000000000000000000000000000006`** | all zero | all zero | returns `0x` (not a proxy) |
-| **ZERO's Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`** | all zero | all zero | **REVERTS** |
+| **GENESIS I Safe (retired) `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`** | all zero | all zero | **REVERTS** |
 
 - **Circle's FiatTokenProxy uses the LEGACY zeppelinos slots.** Checking only EIP-1967 on USDC — the
   single most important token we touch — returns zero and tells you it is not a proxy. It is. Its

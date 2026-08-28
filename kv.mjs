@@ -3,9 +3,11 @@
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
 // THE RACE THIS EXISTS TO CLOSE (found 2026-08-12).
 //
-// `scheduled()` fires FIVE concurrent `c.waitUntil()` blocks: the earner loop, the prospector,
-// discovery, the experiment rotation, and — the dangerous one — `tick(env,'cron')`, the agent's own
-// reasoning session. The session's tools call `harvest_run` and `route_log`, which read-modify-write
+// `scheduled()` used to fire FIVE concurrent `c.waitUntil()` blocks. That died `exceededMemory`.
+// It now runs ONE sequential waitUntil, but the cron is still `*/2 * * * *`, so a tick that takes
+// longer than two minutes would start a SECOND isolate-sharing invocation on top of the first —
+// the same peak-RAM death, just delayed. `cronLeaseHeld` is the skip gate for that overlap.
+// The session's tools still call `harvest_run` and `route_log`, which read-modify-write
 // `harvest:state` and `state:routes`. The earner loop writes the very same two keys.
 //
 // Cloudflare KV has NO transactions and NO compare-and-swap. So the classic pattern used everywhere
@@ -34,6 +36,52 @@
 // A residual window remains. It is orders of magnitude smaller, and the mutations are now written so
 // that losing the race degrades to "applied late" instead of "silently discarded".
 export const KV_MUTATE_RETRIES = 3;
+export const CRON_LEASE_KEY = 'cron:lease';
+export const CRON_LEASE_HOLD_MS = 12 * 60 * 1000;
+export const CRON_SESSION_MISS_KEY = 'cron:sessionMissed';
+// Sparse GLM is ~20 min, and a discovery skip stretches that to ~40 min; a live
+// lease can delay one more slot. 45 min from startedAt abandoned every in-flight
+// session (measured 2026-08-27, session 973). Age from the last slice, with margin.
+export const SESSION_STALE_MS = 90 * 60 * 1000;
+
+/** True when a previous scheduled tick is still in flight. KV is not a mutex; this only shrinks
+    overlap. A missing/expired lease always means "run". */
+export function cronLeaseHeld(lease, now = Date.now(), holdMs = CRON_LEASE_HOLD_MS) {
+  if (!lease || !Number.isFinite(Number(lease.at))) return false;
+  return (now - Number(lease.at)) < holdMs;
+}
+
+/** GLM slice on cron, but never on the same tick as janitor (%5) or discovery (%3).
+ *  Measured 2026-08-27: stacking session + keeper traces + invariants OOMed the isolate. */
+export function cronSessionDue(jtick) {
+  const n = Number(jtick);
+  if (!Number.isFinite(n)) return false;
+  return n % 10 === 1 && n % 3 !== 0;
+}
+
+/** Janitor (%5) or discovery (%3) — GLM must not share these ticks. */
+export function cronHygieneTick(jtick) {
+  const n = Number(jtick);
+  if (!Number.isFinite(n)) return false;
+  return n % 5 === 0 || n % 3 === 0;
+}
+
+/** Run GLM on its sparse slot, or on the next non-hygiene tick if a lease ate that slot.
+ *  Measured 2026-08-27: 23:40Z janitor held the 12 min lease, 23:42Z session tick skipped,
+ *  session 973 stuck at round 2 for 30+ min. */
+export function cronSessionShouldRun(jtick, missed) {
+  if (cronSessionDue(jtick)) return true;
+  return Boolean(missed) && !cronHygieneTick(jtick);
+}
+
+/** True when an in-flight session has had no slice in staleMs. Age lastSliceAt,
+ *  not startedAt — sparse GLM cannot finish 12 rounds inside a 45-minute start clock. */
+export function sessionIsStale(state, now = Date.now(), staleMs = SESSION_STALE_MS) {
+  if (!state) return false;
+  const last = Number(state.lastSliceAt || state.startedAt);
+  if (!Number.isFinite(last) || last <= 0) return false;
+  return (now - last) > staleMs;
+}
 
 // ⚠️ CORRECTION, MEASURED 2026-08-13. The paragraph above claims "an accumulating mutation applied
 // twice to fresh state is still correct". THAT IS FALSE, and it inflated our own success metrics.

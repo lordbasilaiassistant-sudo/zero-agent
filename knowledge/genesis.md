@@ -63,8 +63,8 @@ not merely repeat a result — it converts a one-off into a **procedure**. And a
 written down and handed to a stranger, which is the third and strongest rung:
 **possible → repeatable → someone else does it on their own wallet.**
 
-**🚨 BLOCKER FOUND 2026-08-13 — YOUR SAFE IS STILL OWNED BY THE RETIRED KEY. YOU CANNOT TRANSACT.**
-Measured: `getOwners()` on your Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` returns exactly one
+**🚨 BLOCKER FOUND 2026-08-13 — HISTORICAL. RESOLVED two headings down. Do not treat as current.**
+Measured then: `getOwners()` on the *now-retired* Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` returned exactly one
 owner — **`0x50624f7790732f9767180871d03a304756200db9`, the RETIRED EOA.** `SMART_ACCOUNT` is a
 hardcoded constant in `shop.mjs`, so swapping `AGENT_PRIVATE_KEY` changed the signer WITHOUT changing
 the account. Consequences, all of them real:
@@ -79,6 +79,10 @@ the account. Consequences, all of them real:
 `createProxyWithNonce` is charged to the OWNER's quota, which is exactly what the new EOA's 5/5 is
 for — this is deploying your own account, not farming a rate limit. Then update `SMART_ACCOUNT`, and
 the storefront `payTo` moves with it.
+
+**✅ RESOLVED — GENESIS II SAFE IS LIVE (shop.mjs `SMART_ACCOUNT`, measured on-chain).**
+- **Live smart account: `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`** — SafeL2 v1.4.1, owner = this wallet `0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A`, threshold 1. This is your payTo, callFeeRecipient, and harvest caller.
+- **RETIRED Safe `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1` is not yours.** It is owned by the contaminated EOA. Never pass it as a fee recipient, never advertise it for payment, never simulate as it. Value sent there is gone from the GENESIS II ledger.
 
 **THE LESSON, which is the point: a fresh key is not a fresh identity.** Everything that actually
 holds value or transacts — the Safe, the storefront address, the relay quota — hung off a constant
@@ -489,18 +493,16 @@ bundler + ERC-20 paymaster on Base** — no API key, no account, no signup, veri
 - `pm_supportedERC20Tokens` returns USDC/DAI/USDT on Base; a minimal op was priced at **0.0071 USDC**
 - it prices ops for an unknown wallet with no credentials — verified, not documentation
 
-**YOUR EXACT NUMBERS (measured against YOUR account 2026-07-27, not estimated):**
-- **Your smart account: `0x510601f59FDa068D70ad6760c9d9085B0F42cbb1`** — a Safe v0.3.0 owned by your EOA
-  `0x50624F7790732f9767180871D03A304756200dB9`. Deterministic, not yet deployed, and **it can receive USDC
-  before deployment**. Your EOA is your signing identity; the smart account is your hands.
-- The paymaster quoted your exact op: `token balance lower than the required 0x237f allowance` =
-  **0.009087 USDC**. That is your entire cost to act on-chain — deploying the account is paid the same way,
-  in the same operation. **Under one cent stands between you and full autonomy.**
+**YOUR EXACT NUMBERS (measured against YOUR GENESIS II account, not estimated):**
+- **Your smart account: `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`** — SafeL2 v1.4.1 owned by your EOA
+  `0xC94929d14435D80dd04b3206BfEA9F5dEBAbD57A`. Deployed and transacting. Your EOA is your signing identity; the smart account is your hands.
+- The paymaster quoted a GENESIS I op at `token balance lower than the required 0x237f allowance` =
+  **0.009087 USDC**. That is your entire cost to act on-chain. **Under one cent stands between you and full autonomy.**
 - ⚠️ **THIS IS WHY YOU ARE PAID AT THE SMART ACCOUNT, NOT YOUR EOA.** The paymaster checks the *balance of
   the account submitting the op* at validation time. USDC sitting on your EOA is STRANDED — moving it would
   need ETH you will never have. Your storefront already directs every buyer to the smart account. If you
-  ever publish your address anywhere for payment, publish `0x5106…cbb1`. Getting this wrong would leave you
-  holding money you cannot spend, which is the same as being broke.
+  ever publish your address anywhere for payment, publish `0x75d93b33708e7cf5eb4dcf14dfc25254f5d5817f`. Getting this wrong would leave you
+  holding money you cannot spend, which is the same as being broke. **NEVER publish the retired Safe `0x5106…cbb1`.**
 - To transact: build a userOp from the smart account, request `pm_getPaymasterData` from
   `https://api.candide.dev/public/v3/8453` with the USDC token, sign with your EOA key (`sign_message`
   handles signing), submit to the same bundler. Your operator will wire this into a tool the moment you

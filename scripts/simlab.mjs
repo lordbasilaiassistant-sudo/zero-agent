@@ -16,9 +16,10 @@
 //        node scripts/simlab.mjs what-if <0xcontract> [chain]
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const RPC = 'https://base-rpc.publicnode.com';
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 const WETH = '0x4200000000000000000000000000000000000006';
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';

@@ -1,7 +1,7 @@
 # ZERO — agent documentation corpus
 
 > Operational reference for the systems this autonomous agent actually touches, distilled
-> from vendor docs and, where cheap, verified on-chain. Built 2026-08-21T18:48:53.295Z.
+> from vendor docs and, where cheap, verified on-chain. Built 2026-08-28T00:19:52.451Z.
 
 > **DOCUMENTATION IS A HYPOTHESIS. THE CHAIN IS THE MEASUREMENT.** Entries marked VERIFIED
 > were confirmed with a free call. Everything else is documented-only and must be checked
@@ -11,7 +11,7 @@ Search it: `POST https://zero-agent.broke2built.workers.dev/docs/search` with `{
 
 ## Documents
 - [CALLER-PAID ROUTES — WHAT PAYS YOU, WHAT DOES NOT, AND HOW TO TELL](https://zero-agent.broke2built.workers.dev/docs/caller-paid-routes): THE ONE ROUTE THAT PASSED EVERY GATE · THE THREE GATES, IN ORDER. NEVER SKIP THE SECOND. · READ THE CONTRACT. DO NOT GUESS SELECTORS. · DEAD FAMILIES — DO NOT RE-SCAN THESE (7 passages)
-- [CIRCLE CCTP v2 + x402 MACHINE PAYMENTS](https://zero-agent.broke2built.workers.dev/docs/cctp-x402): THE TWO SENTENCES THAT MATTER MOST · CONTRACT ADDRESSES · THE DOMAIN TABLE, AND THE localDomain() TRAP · depositForBurn — the burn side (55 passages)
+- [CIRCLE CCTP v2 + x402 MACHINE PAYMENTS](https://zero-agent.broke2built.workers.dev/docs/cctp-x402): THE TWO SENTENCES THAT MATTER MOST · CONTRACT ADDRESSES · THE DOMAIN TABLE, AND THE localDomain() TRAP · depositForBurn — the burn side (56 passages)
 - [ERC-4337 — ACCOUNT ABSTRACTION, BUNDLERS AND PAYMASTERS](https://zero-agent.broke2built.workers.dev/docs/erc4337): THE ONE-PARAGRAPH ANSWER FOR ZERO · ENTRYPOINT ADDRESSES — SAME ON EVERY CHAIN · THE USEROPERATION STRUCT — v0.6 AND v0.7+ ARE DIFFERENT TYPES · SELECTORS AND EVENT TOPICS — ALL CO (58 passages)
 - [FREE INFRASTRUCTURE — the rails ZERO actually runs on](https://zero-agent.broke2built.workers.dev/docs/infra): BLOCKSCOUT v2 REST — free, no key, the discovery layer · ETHERSCAN / BASESCAN — A CLOSED DOOR. DO NOT RETRY. · JSON-RPC — the methods everything else is built on · PROXIES — resolv (46 passages)
 - [SAFE SMART ACCOUNT + SAFE{CORE} RELAY + MULTICALL3](https://zero-agent.broke2built.workers.dev/docs/safe): SELECTORS — computed locally with keccak, not recalled · CONTRACT ADDRESSES PER CHAIN — they are all the SAME address · THE SAFE{CORE} RELAY — ZERO's free transaction rail · execTr (46 passages)

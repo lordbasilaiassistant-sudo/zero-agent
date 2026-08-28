@@ -1,9 +1,10 @@
 // Can I put Multicall3's code AT ZERO's Safe address, so the inner calls see msg.sender = the Safe?
 import { ethers } from 'ethers';
+import { LIVE_EOA, SMART_ACCOUNT } from '../../shop.mjs';
 const RPC='https://mainnet.base.org';
 const MC='0xcA11bde05977b3631167028862bE2a173976CA11';
-const SAFE='0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';
-const EOA='0x50624F7790732f9767180871D03A304756200dB9';
+const SAFE=SMART_ACCOUNT;
+const EOA=LIVE_EOA;
 const WETH='0x4200000000000000000000000000000000000006';
 async function rpc(m,p){const r=await fetch(RPC,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:m,params:p})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result;}
 const AGG=new ethers.Interface(['function aggregate3((address target,bool allowFailure,bytes callData)[] calls) view returns ((bool success,bytes returnData)[])']);

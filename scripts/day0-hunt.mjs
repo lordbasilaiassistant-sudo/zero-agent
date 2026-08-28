@@ -17,6 +17,7 @@
 // Usage: node scripts/day0-hunt.mjs [chain] [startBlock] [blocks]
 import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
+import { SMART_ACCOUNT } from '../shop.mjs';
 
 const CHAINS = {
   gnosis:   { rpcs: ['https://rpc.gnosischain.com', 'https://gnosis-rpc.publicnode.com', 'https://rpc.ankr.com/gnosis'], firstBlock: 1, mc: '0xcA11bde05977b3631167028862bE2a173976CA11' },
@@ -27,7 +28,7 @@ const chain = process.argv[2] || 'gnosis';
 const START = Number(process.argv[3] || CHAINS[chain].firstBlock);
 const NBLOCKS = Number(process.argv[4] || 4000);
 const C = CHAINS[chain];
-const EOA = '0x50624F7790732f9767180871D03A304756200dB9';
+const EOA = SMART_ACCOUNT;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let rr = 0;

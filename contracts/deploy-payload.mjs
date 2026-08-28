@@ -32,8 +32,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // ── the pinned facts. Any drift from these means STOP, not "probably fine". ──────────────────────────
 const CHAIN_ID = 8453;
-const SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';   // ZERO's Safe, v1.4.1, threshold 1
-const OWNER = '0x50624F7790732f9767180871D03A304756200dB9';  // its sole owner = ZERO's EOA
+const SAFE = '0x510601f59FDa068D70ad6760c9d9085B0F42cbb1';   // GENESIS I Safe — RETIRED. Do not send.
+const OWNER = '0x50624F7790732f9767180871D03A304756200dB9';  // retired EOA. Do not sign as this.
 const CREATE2_PROXY = '0x4e59b44847b379578588920cA78FbF26c0B4956C'; // deterministic-deployment-proxy
 const SALT = ethers.id('ZERO/ZeroHarvester/v1');
 // keccak256(initcode ++ abi.encode(BENEFICIARY)) as measured at commit 0e0c06d. If the assert on this
@@ -105,7 +105,11 @@ function encodeExec(innerData, signatures) {
 }
 
 // ── run ─────────────────────────────────────────────────────────────────────────────────────────────
-const consent = process.argv.includes('--i-have-consent');
+const consent = process.argv.includes('--i-have-consent') || process.argv.includes('--spend');
+if (consent) {
+  console.error('REFUSED: this payload still targets the RETIRED Safe/owner (GENESIS I). Re-pin SAFE/OWNER to shop.mjs SMART_ACCOUNT / Genesis II EOA and recompute EXPECTED_INIT_HASH before any send.');
+  process.exit(2);
+}
 const b = build();
 
 console.log('ZeroHarvester → Base, via ZERO\'s Safe relay slot');
