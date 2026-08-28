@@ -347,3 +347,42 @@ So the ordering is: **deploy costs one slot, once, and pays for itself on the fi
 - **`0x592e1224d203be4214b15e205f6081fbbacfcd2d`** is confirmed as a live paymaster by tonight's log scan
   (6 ops), but I did **not** re-verify the prior claim that it is a permissionless USDC token paymaster —
   that classification is inherited from the 2026-07-28 project measurement.
+
+---
+
+## FLEET-ALT addendum — extra Safe mint without Anthony's money (measured 2026-08-28)
+
+Instrument: `scripts/fleet-alt-mint-probe.mjs` + `scripts/fleet-alt-candide-preflight.mjs`.
+**No EOA ETH spent. No Safe-client relay POST. Remaining EOA Base quota left at 3/5.**
+
+### Already-deployed extras (the finding)
+
+`createProxyWithNonce` salt+0 and salt+1 from `zero-fleet-bucket-2-${EOA}` **already have code**. Rhinestone
+salt+2 (`0x9f48142d…`) is the empty one the swarm retried. Do not burn more EOA slots minting salt+2.
+
+| salt | address | Base code | owner | Base relay | other chains |
+|---|---|---|---|---|---|
+| +0 | `0x3e4C5b87069a141a1f84397855349C99C87A63cC` | 171 bytes | GENESIS II EOA | **5/5, nonce 0** | empty everywhere else (phantom 5/5) |
+| +1 | `0x1744b8FDD9548C4B98616B14901011133B87aB73` | 171 bytes | GENESIS II EOA | **5/5, nonce 1** | deployed optimism/arbitrum/polygon 5/5 each; gnosis empty |
+| +2 | `0x9F48142d1cDa293e6F092E74728ca0D2CC1c161f` | **0** | — | phantom 5/5 | empty. Rhinestone 201 then status 400 Rejected (twice). |
+
+Quota is not capability: pair every `remaining` with `eth_getCode`. The failed predicted address reports 5/5
+and cannot spend it.
+
+### Other mint rails, exact errors
+
+- **eth_call** of `createProxyWithNonce` from the EOA **succeeds** on factory 1.4.1 salt+3 (`0xc3BF465c…`,
+  262177 gas), factory 1.3.0, factory 1.5.0 (`0x14F2982D…` live, 3321 bytes), and `createChainSpecificProxyWithNonce`
+  / `createProxyWithNonceL2`. Acceptance is not a sponsor.
+- **Gelato sponsoredCall** (not Rhinestone): `POST api.gelato.digital/relays/v2/sponsored-call` HTTP **400**
+  `{"message":"Unsupported chainId"}` (numeric and string `"8453"`). `POST api.gelato.cloud/rpc`
+  `relayer_sendTransaction` HTTP **401** `"API key required. Get your API key from our dashboard at https://app.gelato.cloud/relay."`
+- **ERC-4337 Candide** (dummy sig, measured): new-sender initCode → `"validator: token balance lower than the required 0x55d3 allowance"` = **0.021971 USDC on the NEW empty account** (holds 0). Existing GENESIS II as sender calling the factory → **0.029504 USDC** required (`0x7340`); Safe held **0.016188 USDC** (allowance already = balance). `eth_estimateUserOperationGas` → `AA21 didn't pay prefund` / `AA23 reverted`. Pimlico `pm_getPaymasterStubData` HTTP **403** `"Sponsorship policy ID is required for this API key"`. Coinbase paymaster HTTP **401** `"unauthorized - invalid key"`.
+- **Gnosis**: EOA 5/5, GENESIS II 5/5 and **deployed**. Curve FeeCollector epoch **1 (SLEEP)**. wallet-map
+  actionable **0** PAYS rows; no ≥$0.20 gnosis payer. Extra gnosis slots do not mint Base ETH. Not pursued.
+- **EIP-7702**: live (6 type-`0x4` txs in 6 blocks at head ~50546879). EOA code **0 bytes**, not delegated.
+  None of the type-4 `authorizationList`s included `0xC949…D57A`. Sender pays; no sponsor attached our auth.
+- **EIP-7708**: **not live**. Latest-block native value tx `0xe20391ae…` (input `0x`, value > 0) had **0 logs**.
+- **EIP-8130 / Cobalt**: Base docs: mainnet timestamp **TBD**, experimental on vibenet only.
+- **Coinbase Smart Wallet factory** `eth_call createAccount` returns counterfactuals
+  `0xcc41f3c9…` / `0x3494e378…` — both **empty code**. No public sponsor to deploy them.

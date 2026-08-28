@@ -67,22 +67,22 @@ export const EARNERS = [
     needs: 'a free Gnosis relay slot AND the COLLECT epoch to be open',
     chain: 'gnosis',
     contract: '0xBb7404F9965487a9DdE721B3A5F0F3CcfA9aa4C5',
-    call: 'collect(address[],address) 0x42b1689d — pass tokens, pass our Safe as _receiver',
-    /* MEASURED 2026-08-13 against https://rpc.gnosischain.com:
-       - contract exists (16,808 bytes of code), target() = 0xe91D…a97d
-       - holds $49.65 of collectable fees across 14 tokens (EURE 12.78, EURE 12.78,
-         EURC.E 12.71, BREAD 10.33, XDAI 1.03, …)
-       - epoch(ts) probed hourly for 24h then daily for 7: the cycle is WEEKLY, not daily —
-         Thu/Fri/Sat/Sun = 1 SLEEP · Mon = 2 COLLECT · Tue = 4 EXCHANGE · Wed = 8 FORWARD.
-       So collect() is CLOSED today and OPENS MONDAY. This is why the first probe read "epoch 1"
-       and would have looked like "the route does not work" — it works, it is time-gated. */
+    call: 'collect(address[],address) 0x42b1689d — pass tokens, pass our Safe as _receiver. Keepers historically used collect(address[]) 0xa4520aee (pays msg.sender). A relayed Safe is msg.sender, but we still name the recipient.',
+    /* MEASURED 2026-08-13 against https://rpc.gnosischain.com, RE-READ from verified
+       FeeCollector.vy on gnosis.blockscout.com 2026-08-28:
+       - contract exists, target() = WXDAI 0xe91D…a97d, burner = CowSwapBurner 0x566b…da83
+       - is_killed(0)=0 (COLLECT is live); is_killed(WXDAI)=6 (COLLECT|EXCHANGE — do not pass WXDAI)
+       - max_fee[COLLECT]=1e15 (0.1%, lowered from 1% on 2026-06-16)
+       - holds ~$49 of collectable fees (EURE/EURC.E/BREAD). Last settled collect: 2026-03-30T23:11Z
+       - epoch week starts Thursday 00:00 UTC: SLEEP 0–4d · COLLECT Mon · EXCHANGE Tue · FORWARD Wed.
+       Cron now probes this from batchHarvest when Beefy is empty on gnosis. Do NOT fire at
+       Monday 00:00 — an early collect sweeps the pile for dust; wait until fee ≥ 90% of max. */
     epochs: { SLEEP: 1, COLLECT: 2, EXCHANGE: 4, FORWARD: 8 },
     epochCheck: 'epoch(uint256) 0x5487c577 with a unix ts — only call collect() when it returns 2',
-    note: 'THE FIRST REAL MATCH between free execution and a payer: Gnosis has 5/5 free relay slots '
-        + 'and 1,299 examined candidates that pay nothing — this one pays. Fee is a 0→1% ramp on the '
-        + 'swept amount, so ~$0.49 at the current $49.65 balance, and it RECURS WEEKLY. Fee ramps '
-        + 'through the window, so later in the COLLECT epoch pays more — but a competitor sweeping '
-        + 'first pays us zero, so do not wait for the theoretical maximum.',
+    note: 'Wired into batchHarvest 2026-08-28. Gnosis still has 5/5 idle slots (Beefy has 0 vaults). '
+        + 'Fee is a 0→0.1% ramp (max_fee lowered 2026-06-16), so ~$0.05 of the ~$49 pile at the end '
+        + 'of Monday UTC — in EURe/BREAD at the Safe, NOT Base native ETH. A competitor sweeping '
+        + 'first pays us zero. Cron waits until fee ≥ 90% of max so we do not sweep for dust.',
   },
   {
     id: 'curve-hooker-gnosis',

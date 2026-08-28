@@ -9,6 +9,7 @@ import { writeFileSync } from 'node:fs';
 import { ethers } from 'ethers';
 
 import { SMART_ACCOUNT, LIVE_EOA } from '../shop.mjs';
+import { RELAY_HEADERS } from '../harvest.mjs';
 
 const SAFE = SMART_ACCOUNT;
 const EOA = LIVE_EOA;
@@ -86,6 +87,36 @@ out.relayDeployRecipe = {
   dataTemplate: createCallIface.encodeFunctionData('performCreate2', [0, '0x', ethers.ZeroHash]).slice(0, 10) + ' + abi(value, initcode, salt)',
   note: 'the Safe must be DEPLOYED first; its own deployment is also sponsorable by the same relay (verified in this repo: Safe deploy tx 0x8bfe6633…3863 at $0 balance)',
 };
+
+// R3 — extra-account mint (FLEET-ALT 2026-08-28). Full matrix: scripts/fleet-alt-mint-probe.mjs
+// Prior negatives kept: Rhinestone createProxyWithNonce + gasLimit 1M + salt+2 → HTTP 201 then status 400
+// Rejected, predicted 0x9f48142d… still empty. Do not retry that payload. Gelato sponsoredCall without
+// an API key is 401/400. Candide initCode on an empty sender needs USDC on the NEW account.
+const FAILED_RHINESTONE = '0x9f48142d1cda293e6f092e74728ca0d2cc1c161f';
+const EXTRA_SAFES = [
+  { id: 'fleet-salt+0', address: '0x3e4C5b87069a141a1f84397855349C99C87A63cC' },
+  { id: 'fleet-salt+1', address: '0x1744b8FDD9548C4B98616B14901011133B87aB73' },
+];
+out.mintAccount = { rhinestoneSaltPlus2Negative: FAILED_RHINESTONE, extras: {}, eoa7702: null };
+try {
+  const eoaCode = await rpc(CHAINS.base.rpc, 'eth_getCode', [EOA, 'latest']);
+  out.mintAccount.eoa7702 = { bytes: eoaCode && eoaCode !== '0x' ? (eoaCode.length - 2) / 2 : 0, delegated: typeof eoaCode === 'string' && eoaCode.startsWith('0xef0100') };
+  const failedCode = await rpc(CHAINS.base.rpc, 'eth_getCode', [FAILED_RHINESTONE, 'latest']);
+  out.mintAccount.failedPredictedEmpty = !failedCode || failedCode === '0x';
+  for (const extra of EXTRA_SAFES) {
+    const code = await rpc(CHAINS.base.rpc, 'eth_getCode', [extra.address, 'latest']);
+    const bytes = code && code !== '0x' ? (code.length - 2) / 2 : 0;
+    const q = await (await fetch(`https://safe-client.safe.global/v1/chains/8453/relay/${extra.address}`, { headers: RELAY_HEADERS })).json();
+    out.mintAccount.extras[extra.id] = {
+      address: extra.address, bytes, deployed: bytes > 0,
+      remaining: q.remaining ?? null, limit: q.limit ?? null,
+      phantom: bytes === 0 && q.remaining > 0,
+    };
+    console.log(`extra ${extra.id}: ${extra.address} bytes=${bytes} quota=${q.remaining}/${q.limit}`);
+  }
+} catch (e) {
+  out.mintAccount.error = String(e).slice(0, 200);
+}
 
 writeFileSync(new URL('./free-deploy-result.json', import.meta.url), JSON.stringify(out, null, 2));
 console.log('\nsaved -> scripts/free-deploy-result.json');

@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-08-26T14:40:49.693Z",
+ "generatedAt": "2026-08-28T02:14:30.983Z",
  "ceiling": "rung 2 ACCEPTED — eth_call proves the call is taken from ZERO, NEVER that it pays. Rung 3 needs a settled tx; rung 4 needs a measured balance increase. Do not report as income.",
  "spot_warning": "spot_only rows are quoted in tokens we have not proven we can exit at that price. executable_usd_per_call counts only native, canonical WETH and major stables.",
  "count": 0,

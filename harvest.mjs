@@ -12,12 +12,19 @@
 import { ethers } from 'ethers';
 import { mutateKV, addBig } from './kv.mjs';
 import { probeContract, probeMany, probeOne } from './oracle.mjs';
-import { SMART_ACCOUNT } from './shop.mjs';
+import { SMART_ACCOUNT, LIVE_EOA } from './shop.mjs';
+import { pickCurveGnosisCall, CURVE_FEE_COLLECTOR } from './curve-fees.mjs';
 
 /** The only Safe this signer can exec. `env.SAFE_ADDRESS` is ignored on purpose: a Worker
  *  secret still set to the retired 0x5106… would sign against an account this key does not own. */
 export function harvestSafe(_env) {
   return SMART_ACCOUNT;
+}
+
+/** Base fees go to the EOA: it now holds native gas, so escapeCycle can unwrap WETH→ETH
+ *  without a second relay slot. Other chains still pay the Safe (CCTP/sweep pickup). */
+export function harvestFeeTo(chainName, safe) {
+  return chainName === 'base' ? LIVE_EOA : safe;
 }
 
 // Every chain where Safe sponsors gas gives the SAME Safe address its own independent budget.
@@ -296,15 +303,17 @@ export function harvestCalldata(recipient, withRecipient = true) {
 }
 
 export async function simulate(rpc, strategy, safe, recipient, chain = 'base') {
-  for (const withRecipient of [true, false]) {
-    const data = harvestCalldata(recipient, withRecipient);
-    try {
-      await rpc(chain, 'eth_call', [{ to: strategy, data, from: safe }, 'latest']);
-      return { ok: true, data, withRecipient };
-    } catch (e) {
-      const m = String(e.message || '');
-      if (/insufficient|gas required/i.test(m)) return { ok: true, data, withRecipient };
-    }
+  // NEVER fall back to harvest(). Verified 2026-08-28 on Basescan impl
+  // StrategyPassiveManagerVelodromeV4 0xfc90cf1235a4fbe38b1a14d989627f0a2decb433:
+  // harvest() → _harvest(tx.origin) pays the Safe relayer; harvest(address) pays the named recipient.
+  // A revert on harvest(address) is "this strategy does not pay us", not "try the relayer-fee form".
+  const data = harvestCalldata(recipient, true);
+  try {
+    await rpc(chain, 'eth_call', [{ to: strategy, data, from: safe }, 'latest']);
+    return { ok: true, data, withRecipient: true };
+  } catch (e) {
+    const m = String(e.message || '');
+    if (/insufficient|gas required/i.test(m)) return { ok: true, data, withRecipient: true };
   }
   return { ok: false };
 }
@@ -1125,8 +1134,34 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
   // would buy no accuracy on the hottest path in the system. harvestCycle needs the gate because its
   // BANDIT FALLBACK can select a strategy that probeMany never priced at all; this function has no
   // such path — nothing reaches the batch without a measured delta.
-  const paying = await probeMany(rpc, chainName, strategies.map(s => s.strategy), chain.weth);
+  const paying = strategies.length
+    ? await probeMany(rpc, chainName, strategies.map(s => s.strategy), chain.weth)
+    : [];
   if (!paying.length) {
+    if (chainName === 'gnosis') {
+      try {
+        const curve = await pickCurveGnosisCall(rpc, safe);
+        if (curve?.ok) {
+          const sent = await relayExec(env, rpc, safe, CURVE_FEE_COLLECTOR, curve.data, chainName, chain.chainId, 0);
+          return {
+            chain: chainName,
+            route: 'curve-feecollector-' + curve.kind,
+            coin: curve.coin,
+            predicted_wei: curve.wei.toString(),
+            relayed: sent.ok,
+            taskId: sent.taskId,
+            error: sent.error,
+          };
+        }
+        await mutateKV(env, 'harvest:state', (s) => {
+          s.chainWork = { ...(s.chainWork || {}), [chainName]: 0 };
+          return s;
+        }, { fallback: harvestStateFallback() });
+        return { skipped: curve?.skipped || 'nothing is paying on this chain right now', chain: chainName, curve };
+      } catch (e) {
+        return { skipped: 'curve gnosis probe failed: ' + String(e.message || e).slice(0, 120), chain: chainName };
+      }
+    }
     await mutateKV(env, 'harvest:state', (s) => {
       s.chainWork = { ...(s.chainWork || {}), [chainName]: 0 };
       return s;
@@ -1136,7 +1171,8 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
 
   // Validate each candidate ALONE — one revert would take the whole batch down with it.
   const iface = new ethers.Interface(['function harvest(address)']);
-  const data = iface.encodeFunctionData('harvest', [safe]);
+  const feeTo = harvestFeeTo(chainName, safe);
+  const data = iface.encodeFunctionData('harvest', [feeTo]);
   const good = [];
   for (const p of paying.slice(0, max * 2)) {
     if (good.length >= max) break;
@@ -1177,7 +1213,7 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
     return { ready: true, chain: chainName, size: good.length, expected_wei: expected.toString(), skipped: 'no relay slot on this chain' };
   }
 
-  const before = await wethBalance(rpc, safe, chainName, chain.weth);
+  const before = await wethBalance(rpc, feeTo, chainName, chain.weth);
   const sent = await relayExec(env, rpc, safe, MULTISEND, msData, chainName, chain.chainId, 1); // DELEGATECALL
   if (sent.status === 409) {
     await mutateKV(env, 'harvest:state', (s) => {
@@ -1202,7 +1238,7 @@ export async function batchHarvest(env, rpc, safe, chainName = 'base', { max = 6
       const st = await relayStatus(sent.taskId, chain.chainId);
       if (st.tx) { result.tx = st.tx; await new Promise(r => setTimeout(r, 7000)); break; }
     }
-    const after = await wethBalance(rpc, safe, chainName, chain.weth);
+    const after = await wethBalance(rpc, feeTo, chainName, chain.weth);
     const delta = after - before;
     result.wei_earned = delta.toString();
     result.eth_earned = ethers.formatEther(delta);
@@ -1312,9 +1348,6 @@ export async function harvestCycle(env, rpc) {
   // GENESIS II Safe is the only account the live signer can exec. The retired 0x5106… fallback
   // would send signed txs at a Safe the current key does not own (measured: getOwners = retired EOA).
   const safe = harvestSafe(env);
-  // Fees MUST land in the Safe, not the EOA. The Safe can spend (free relay); the EOA cannot move a
-  // token without ETH it will never have. Earnings sent to the EOA are real but stranded.
-  const recipient = safe;
 
   const state = (await env.KV.get('harvest:state', 'json')) || { attempts: 0, wins: 0, weiEarned: '0', cooldowns: {}, log: [] };
   if (state.lastAttemptAt && Date.now() - state.lastAttemptAt < HARVEST_CFG.minAttemptGapMs) {
@@ -1348,6 +1381,7 @@ export async function harvestCycle(env, rpc) {
   state.chainWork = Object.fromEntries(tried.map(t => [t.chain, t.fresh]));
   if (!chain) { await env.KV.put('harvest:state', JSON.stringify(state)); return { skipped: 'slots available but no fresh strategy on any of them', tried, tracked: Object.keys(state.cooldowns).length }; }
   const budget = { remaining: chain.remaining, limit: chain.limit };
+  const recipient = harvestFeeTo(chain.name, safe);
 
   // Selection is EMPIRICAL, not predicted. callReward() proved worthless as a caller-fee signal
   // (read $615, paid $0.0001 — it measures something else entirely). What actually predicts a good

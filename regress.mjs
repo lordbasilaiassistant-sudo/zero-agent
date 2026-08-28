@@ -12,7 +12,7 @@
 // and worse, it makes the suite look thorough while the real failure modes go unwatched.
 //
 // Each test names the defect, the date, and what it cost.
-import { priceEarnings, creditRoute, rowUsd, relayRequestBody, harvestChainQueue, relayTaskOpen, harvestInflightRecord, funnelShouldArm, escapeConvertFloorUsd, ESCAPE, spendableFromRows } from './harvest.mjs';
+import { priceEarnings, creditRoute, rowUsd, relayRequestBody, harvestChainQueue, relayTaskOpen, harvestInflightRecord, funnelShouldArm, escapeConvertFloorUsd, ESCAPE, spendableFromRows, harvestFeeTo } from './harvest.mjs';
 import { searchCorpus, buildCorpus, reassembleDoc } from './docs.mjs';
 import { dashboardHTML } from './dashboard2.mjs';
 import fs from 'node:fs';
@@ -245,7 +245,7 @@ await t('when the funnel is holding Base, the mint leg yields', async () => {
 // and was NOT enough. The blob itself has to stop growing, and a proven payer must never be the
 // thing that gets evicted to make room.
 const { pruneDiscoverState, DISCOVERY_CALLER, loadDiscoverState, putDiscoverState, DISCOVER_SAFE_BYTES } = await import('./discover.mjs');
-const { SMART_ACCOUNT, RETIRED_SAFE } = await import('./shop.mjs');
+const { SMART_ACCOUNT, RETIRED_SAFE, LIVE_EOA } = await import('./shop.mjs');
 await t('discovery simulates from the live Safe, not the retired 0x5106', () => {
   eq(DISCOVERY_CALLER.toLowerCase(), SMART_ACCOUNT.toLowerCase());
   ok(DISCOVERY_CALLER.toLowerCase() !== '0x510601f59fda068d70ad6760c9d9085b0f42cbb1', 'retired Safe must not be the discovery caller');
@@ -465,6 +465,16 @@ await t('harvestScan and harvestRun are shared functions, not Worker-only copies
 await t('harvestSafe ignores env.SAFE_ADDRESS pointed at the retired Safe', () => {
   eq(harvestSafe({ SAFE_ADDRESS: RETIRED_SAFE }).toLowerCase(), SMART_ACCOUNT.toLowerCase());
   eq(harvestSafe({ SAFE_ADDRESS: '0x0000000000000000000000000000000000000001' }).toLowerCase(), SMART_ACCOUNT.toLowerCase());
+});
+await t('Base harvest fee lands at the EOA; other chains stay on the Safe', () => {
+  // DEFECT: harvest(address Safe) then needed a second relay slot to get spendable ETH at the EOA.
+  // CONTROL: the old always-Safe recipient.
+  const old = (chain, safe) => safe;
+  eq(old('base', SMART_ACCOUNT).toLowerCase(), SMART_ACCOUNT.toLowerCase());
+  ok(old('base', SMART_ACCOUNT).toLowerCase() !== LIVE_EOA.toLowerCase(), 'control still pays the Safe');
+  eq(harvestFeeTo('base', SMART_ACCOUNT).toLowerCase(), LIVE_EOA.toLowerCase());
+  eq(harvestFeeTo('gnosis', SMART_ACCOUNT).toLowerCase(), SMART_ACCOUNT.toLowerCase());
+  eq(harvestFeeTo('optimism', SMART_ACCOUNT).toLowerCase(), SMART_ACCOUNT.toLowerCase());
 });
 await t('relay POST body includes the Rhinestone-required safeTxHash', () => {
   const hash = '0x' + 'ab'.repeat(32);
