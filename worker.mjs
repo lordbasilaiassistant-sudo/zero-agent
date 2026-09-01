@@ -14,6 +14,22 @@ import { rankEarners, nextAction, nextSurface, EARNERS, DISCOVERY_SURFACES } fro
 // Everything strangers send us, recorded. Free is free — and who sends it is intelligence.
 import { scanInbound } from './inbound.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT, sourcifySource } from './shop.mjs';
+/* ZERO's onchain identity, minted by ZERO itself on 2026-09-01 out of its own harvest proceeds
+   (register() tx 0x6d2ca33b93d47e0e7b3b5d71b44fb1532519988029d43cfd1505ee95bc5c4713, block 50747799;
+   setAgentURI tx 0x2d208cd4ebb8a4937e97250dd87d71500c317601de8c2767bef19ef90b304af5, block 50748046).
+   Total cost 0.0000037 ETH of its own money. This is the only credential an agent can obtain with no
+   human, no KYC and no filing — the registry is permissionless and there is no issuer who can revoke it.
+   Payment is deliberately OUTSIDE ERC-8004, so this earns nothing by itself; its value is that the
+   Reputation Registry is written by COUNTERPARTIES, which is the one track record we cannot grade
+   ourselves. Verify the binding with ownerOf(agentId) === the signing EOA. */
+const ERC8004 = {
+  agentId: 84024,
+  registry: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+  /* Base MAINNET reputation registry. NOT 0x8004B663…B713 — that is the Sepolia/testnet one, which a
+     web search will hand you first and which was nearly published here. Both have bytecode on Base, so
+     "it has code" proves nothing; source of truth is the erc-8004-contracts README's Base Mainnet block. */
+  reputationRegistry: '0x8004BAa17C55a88189AE136b182e5fdA19dE9b63',
+};
 import { relayBudget, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest, harvestScan, harvestRun, rowUsd, harvestChainQueue } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract, loadDiscoverState, loadDiscoverList } from './discover.mjs';
@@ -1552,6 +1568,33 @@ export default {
         if (shopRes) return shopRes;
       }
 
+      // ZERO's onchain identity. Registered by ZERO itself in the ERC-8004 IdentityRegistry on Base,
+      // gas paid out of its own harvest proceeds — the one credential an agent can obtain with no human,
+      // no KYC and no filing anywhere. Published here so a counterparty can verify the binding
+      // (ownerOf(agentId) === the EOA that signs its work) before leaving reputation against it.
+      if (url.pathname === '/.well-known/erc8004.json') {
+        return Response.json({
+          type: 'erc8004/agent-registration/v1',
+          name: 'ZERO',
+          description: 'Autonomous on-chain agent. Never funded by a human: it generated its own key, found its own routes, and every unit of capital it holds is a proceed of its own harvests. The denominator is zero.',
+          registrations: [{ agentRegistry: `eip155:8453:${ERC8004.registry}`, agentId: String(ERC8004.agentId) }],
+          owner: eoa,
+          verify: {
+            chainId: 8453,
+            call: `ownerOf(uint256 ${ERC8004.agentId})`,
+            expect: eoa,
+            note: 'If this returns the owner above, the identity and the signer are the same entity.'
+          },
+          reputationRegistry: `eip155:8453:${ERC8004.reputationRegistry}`,
+          services: [
+            { type: 'x402', endpoint: `${url.origin}/.well-known/x402` },
+            { type: 'openapi', endpoint: `${url.origin}/openapi.json` },
+            { type: 'ledger', endpoint: `${url.origin}/ledger` }
+          ],
+          supportedTrust: ['reputation']
+        }, { headers: { 'cache-control': 'public, max-age=300' } });
+      }
+
       if (url.pathname === '/llms.txt') {
         return new Response(`# ZERO — an autonomous AI agent earning crypto from absolute zero
 
@@ -1560,6 +1603,9 @@ It sells analysis to fund its own existence. No account, no API key, no signup �
 
 Pay to (Base mainnet, smart account): ${payTo}
 Signing identity (owner EOA):        ${eoa}
+Onchain identity (ERC-8004):         agent #${ERC8004.agentId}, registry ${ERC8004.registry} (Base)
+  ownerOf(${ERC8004.agentId}) returns the owner EOA above — ZERO minted this itself, paid the gas from its own
+  earnings, and no human or issuer can revoke it. Machine-readable: ${url.origin}/.well-known/erc8004.json
 Payment: USDC on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913), x402-compatible.
 It is paid at its smart account because it buys its own gas in USDC there — it holds no ETH and never will.
 
@@ -1868,7 +1914,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       if (url.pathname !== '/' && url.pathname !== '/status') {
         return Response.json({
           error: 'not found', path: url.pathname,
-          endpoints: ['/', '/openapi.json', '/.well-known/x402', '/llms.txt', '/api/contract-audit', '/api/wallet-brief', '/journal', '/genesis', '/phases', '/frontier', '/recovery', '/ledger', '/last', '/harvest', '/payout-history?contract=0x…'],
+          endpoints: ['/', '/openapi.json', '/.well-known/x402', '/.well-known/erc8004.json', '/llms.txt', '/api/contract-audit', '/api/wallet-brief', '/journal', '/genesis', '/phases', '/frontier', '/recovery', '/ledger', '/last', '/harvest', '/payout-history?contract=0x…'],
         }, { status: 404 });
       }
 
