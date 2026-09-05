@@ -11,7 +11,7 @@
     "shoptest": "node shoptest.mjs",
     "test:janitor": "node test-janitor.mjs",
     "render": "node scripts/render-check.mjs",
-    "test": "node regress.mjs && node test-janitor.mjs && node scripts/compact-discover.mjs --selftest && node scripts/check-tree.mjs",
+    "test": "node regress.mjs && node test-janitor.mjs && node test-stream-opportunity.mjs && node scripts/compact-discover.mjs --selftest && node scripts/check-tree.mjs",
     "authtest": "node authtest.mjs",
     "verify:chainstate": "node scripts/verify-chainstate.mjs",
     "compact:discover": "node scripts/compact-discover.mjs --selftest",

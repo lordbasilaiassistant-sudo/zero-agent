@@ -11,6 +11,7 @@ import { dashboardHTML } from './dashboard2.mjs';
 import { scanResourceClass } from './resource-scan.mjs';
 // Earner registry — earning shapes beyond harvest, and the discovery surfaces still unexamined.
 import { rankEarners, nextAction, nextSurface, EARNERS, DISCOVERY_SURFACES } from './earners.mjs';
+import { nextSurface as chooseResearchSurface, scoreboard as surfaceScoreboard } from './surface-ledger.mjs';
 // Everything strangers send us, recorded. Free is free — and who sends it is intelligence.
 import { scanInbound } from './inbound.mjs';
 import { handleShop, PRODUCTS, SMART_ACCOUNT, sourcifySource } from './shop.mjs';
@@ -32,6 +33,7 @@ const ERC8004 = {
 };
 import { relayBudget, HARVEST_CFG, reconcileEarnings, pickChain, observeRelay, relayResetSummary, escapeCycle, ESCAPE, batchHarvest, harvestScan, harvestRun, rowUsd, harvestChainQueue } from './harvest.mjs';
 import { sweepCycle } from './sweep.mjs';
+import { STREAM_JOB, streamOpportunityTick } from './stream-opportunity.mjs';
 import { discoveryPass, payersOf, inspect as inspectContract, loadDiscoverState, loadDiscoverList } from './discover.mjs';
 import { payoutHistory } from './payouts.mjs';
 import { treasuryPlan, HOME, SWEEP } from './treasury.mjs';
@@ -1338,6 +1340,12 @@ export default {
           }
         } catch (e) { console.log('SWEEP ERROR: ' + String(e.message).slice(0, 200)); }
 
+        try {
+          const opportunity = await streamOpportunityTick(env, (ch,m,p) => rpcCall(ch,m,p), { spent });
+          if (opportunity.reserveChain) spent.push(opportunity.reserveChain);
+          console.log('stream-opportunity: ' + jstr(opportunity, 0));
+        } catch (e) { console.log('STREAM OPPORTUNITY READ ERROR: ' + String(e.message).slice(0, 180)); }
+
         for (const chain of harvestChainQueue({ escapeNeedsBase, spent })) {
           try {
             const r = await batchHarvest(env, (ch, m, p) => rpcCall(ch, m, p), SMART_ACCOUNT, chain);
@@ -1539,15 +1547,24 @@ export default {
       if (url.pathname === '/earners') {
         const cap = env.KV ? await env.KV.get('cache:capacity', 'json').catch(() => null) : null;
         const scanned = env.KV ? await env.KV.get('cache:surfaces', 'json').catch(() => null) : null;
+        const research = env.KV ? await env.KV.get('research:surfaces', 'json') : null;
+        const board = research ? surfaceScoreboard(DISCOVERY_SURFACES, research) : null;
         const state = { usdcBalance: 0, freeRelaySlots: cap?.free_execution_available ?? null };
         return Response.json({
           next: nextAction(state),
-          surface_to_grind: nextSurface(scanned || {}),
+          surface_to_grind: research ? chooseResearchSurface(DISCOVERY_SURFACES, research) : nextSurface(scanned || {}),
+          research_scoreboard: board,
           shapes: EARNERS.map(e => ({ id: e.id, shape: e.shape, proven: e.proven, capital: e.capitalRequiredUsd })),
-          unexamined_surfaces: DISCOVERY_SURFACES.length,
+          unexamined_surfaces: board ? board.surfaces_untried : DISCOVERY_SURFACES.filter(s => !scanned?.[s.id]).length,
           law: 'harvest is ONE shape. 352 proven routes all collapsed into it because it was the only '
              + 'architecture. Add an earner file, add it to EARNERS, the loop picks it up.',
         });
+      }
+
+      if (url.pathname === '/stream-opportunity' && req.method === 'GET') {
+        return Response.json({ job: STREAM_JOB.id, expiresAt: STREAM_JOB.expiresAt,
+          state: await env.KV.get(STREAM_JOB.key, 'json') || { phase: 'not-yet-ticked' },
+          meaning: 'Only phase settled with a receipt-bound proof is realized income. Simulations and queued work are not income.' });
       }
 
       if (url.pathname === '/capacity') {

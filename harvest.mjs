@@ -354,7 +354,7 @@ export async function relayExec(env, rpc, safe, target, innerData, chain = 'base
   const text = await res.text();
   if (res.status !== 201) return { ok: false, status: res.status, error: text.slice(0, 200) };
   let taskId; try { taskId = JSON.parse(text).taskId; } catch { /* noop */ }
-  return { ok: true, taskId };
+  return { ok: true, taskId, safeTxHash };
 }
 
 export async function relayStatus(taskId, chainId = 8453) {
