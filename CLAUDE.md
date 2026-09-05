@@ -1,5 +1,7 @@
 # AutoGLMwallet — "ZERO"
 
+**Current operating mandate (Anthony, 2026-09-05): let ZERO live autonomously.** Keep Phase 0 running and accumulating its own earnings; preserve its history for future evolution. No ongoing human research campaign or new paid model spending. Read [docs/AUTONOMOUS-CONTINUITY.md](docs/AUTONOMOUS-CONTINUITY.md) before changing its operating mode.
+
 An autonomous GLM-powered agent born with a self-created wallet and $0, whose sole mission is to
 earn crypto from nothing and permanently record how, so it can always climb back from broke.
 Fun project → serious project if it earns (Anthony, 2026-07-27).

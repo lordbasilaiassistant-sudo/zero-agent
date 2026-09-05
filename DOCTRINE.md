@@ -1,5 +1,7 @@
 # ZERO — DOCTRINE
 
+**Operating decision, Anthony, 2026-09-05:** let ZERO live on its own. Keep Phase 0 and its existing autonomous operation running, let earnings accumulate, and preserve the experiment for future research with better models when Anthony chooses. Small long-term earnings are acceptable. No new paid research or external funding. See [the continuity handoff](docs/AUTONOMOUS-CONTINUITY.md).
+
 Anthony's strategic model for ZERO, captured 2026-07-28 in his own words. This is the *why* behind the
 architecture. Code and knowledge files implement it; when they disagree with this file, this file wins.
 
