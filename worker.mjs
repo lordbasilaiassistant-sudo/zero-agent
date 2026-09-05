@@ -1422,7 +1422,8 @@ export default {
               current: curRaw ? JSON.parse(curRaw) : null,
               meta,
             });
-            await env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: STATUS_CACHE_TTL_S });
+            // A partial KV patch must not postpone the full RPC snapshot refresh forever.
+            await env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), fullAt: hit.fullAt ?? 0, payload }), { expirationTtl: STATUS_CACHE_TTL_S });
           }
         } catch (e) { console.log('CACHE PATCH ERROR: ' + String(e.message).slice(0, 140)); }
       }
@@ -1457,8 +1458,9 @@ export default {
         try {
           const hit = await env.KV.get(STATUS_CACHE_KEY, 'json');
           if (hit?.payload && hit.at) {
-            const age = Math.round((Date.now() - hit.at) / 1000);
-            const stale = (Date.now() - hit.at) >= STATUS_STALE_OK_MS;
+            const fullAt = hit.fullAt ?? hit.at;
+            const age = Math.round((Date.now() - fullAt) / 1000);
+            const stale = (Date.now() - fullAt) >= STATUS_STALE_OK_MS;
             if (stale) {
               try {
                 const lease = await env.KV.get(CRON_LEASE_KEY, 'json');
@@ -1469,7 +1471,8 @@ export default {
                 } else {
                   c?.waitUntil?.((async () => {
                     const payload = await computeStatusPayload(env);
-                    await env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: STATUS_CACHE_TTL_S });
+                    const at = Date.now();
+                    await env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at, fullAt: at, payload }), { expirationTtl: STATUS_CACHE_TTL_S });
                   })());
                 }
               } catch { /* refresh is best-effort; the revived copy is still served */ }
@@ -1921,7 +1924,7 @@ ${url.origin}/          — live status and balances (JSON, or HTML in a browser
       const payload = await computeStatusPayload(env);
       // Refill the cache for the next visitor. waitUntil so the write never delays THIS response.
       if (url.pathname === '/' && env.KV) {
-        try { c?.waitUntil?.(env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at: Date.now(), payload }), { expirationTtl: STATUS_CACHE_TTL_S })); }
+        try { const at = Date.now(); c?.waitUntil?.(env.KV.put(STATUS_CACHE_KEY, JSON.stringify({ at, fullAt: at, payload }), { expirationTtl: STATUS_CACHE_TTL_S })); }
         catch { /* never let a cache write break the response */ }
       }
       const wantsHtml = (req.headers.get('accept') || '').includes('text/html');

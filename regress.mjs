@@ -622,6 +622,56 @@ await t('a frozen status cache is revived to live clocks and usable=0', () => {
   eq(live.health.state, 'CYCLING');
   ok(!/nullh/.test(live.health.headline), 'revived headline must not print cycle nullh: ' + live.health.headline);
 });
+const septemberCacheFixture = {
+  last_session: '2026-09-01T12:23:15.546Z', sessions_completed: 990,
+  session_in_progress: { session: 991, round: 2, started: '2026-09-01T13:00:00Z' },
+  harvest_events: [{ at: '2026-09-01T16:46:32.893Z', wei_earned: '16338143320' }],
+  health: { capacity: { chains: [{ name: 'optimism', remaining: 0, limit: 5, work: 6 }] } },
+  refill: { medianGapHours: 25, nextEtaHours: 20 },
+};
+const septemberNow = Date.parse('2026-09-05T03:12:00Z');
+const septemberFreshKV = {
+  now: septemberNow,
+  harvest: { log: [{ at: '2026-09-04T23:21:05.305Z', wei_earned: '1384257095342' }], wins: 123, attempts: 125, chainWork: { optimism: 6 } },
+  meta: { sessions: 1004, lastSession: '2026-09-05T00:23:04.381Z' },
+  current: null,
+};
+await t('cron patch then cached GET keeps new settlement/session evidence and clears finished session', () => {
+  const patched = reviveStatusPayload(septemberCacheFixture, septemberFreshKV);
+  const served = reviveStatusPayload(JSON.parse(JSON.stringify(patched)), { now: septemberNow + 60000 });
+  eq(served.health.state, 'CYCLING');
+  ok(served.health.hours_since_earning < 4);
+  eq(served.sessions_completed, 1004);
+  eq(served.last_session, septemberFreshKV.meta.lastSession);
+  eq(served.recent_harvests[0].wei_earned, '1384257095342');
+  eq(served.harvest_wins, 123);
+  eq(served.session_in_progress, null);
+});
+await t('genuine old settlement still reports STALLED even after a fresh model session', () => {
+  const patched = reviveStatusPayload(septemberCacheFixture, { ...septemberFreshKV, harvest: { log: septemberCacheFixture.harvest_events } });
+  const served = reviveStatusPayload(patched, { now: septemberNow });
+  eq(served.health.state, 'STALLED');
+  ok(served.health.hours_since_earning > 82);
+});
+await control('old partial cache update loses current evidence on the next GET', () => {
+  const patched = reviveStatusPayload(septemberCacheFixture, septemberFreshKV);
+  const oldPatch = { ...septemberCacheFixture, health: patched.health, session_in_progress: patched.session_in_progress };
+  eq(reviveStatusPayload(oldPatch, { now: septemberNow }).health.state, 'CYCLING');
+});
+await t('cached GET ages the full snapshot despite a recent partial patch', async () => {
+  const { default: worker } = await import('./worker.mjs');
+  const now = Date.now();
+  const kv = { get: async (key) => {
+    if (key === 'cache:status') return { at: now, fullAt: now - 86400000, payload: septemberCacheFixture };
+    if (key === 'cron:lease') return { at: now };
+    throw new Error('Unexpected KV read: ' + key);
+  } };
+  const response = await worker.fetch(new Request('https://zero.example/', { headers: { accept: 'application/json' } }), { KV: kv }, {
+    waitUntil: () => { throw new Error('Must not refresh during a held lease'); },
+  });
+  eq(response.status, 200);
+  ok(response.headers.get('x-cache').includes('stale'), 'partial patch must not mark full balances fresh');
+});
 await t('a missing Base reconcile row is unread spendable, not $0', () => {
   eq(spendableFromRows([{ chain: 'optimism', eoa_native_usd: 0 }]), null);
   eq(spendableFromRows([{ chain: 'base', eoa_native_usd: null }]), null);

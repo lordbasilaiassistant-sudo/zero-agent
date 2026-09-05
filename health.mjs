@@ -132,7 +132,7 @@ export function reviveStatusPayload(payload, { now = Date.now(), harvest, curren
       chainWork: Object.keys(workFromSnap).length ? workFromSnap : null,
     };
   const sip = payload.session_in_progress;
-  const cur = current || (sip ? {
+  const cur = current !== undefined ? current : (sip ? {
     session: sip.session,
     round: sip.round,
     startedAt: Date.parse(sip.started),
@@ -165,12 +165,23 @@ export function reviveStatusPayload(payload, { now = Date.now(), harvest, curren
     ...payload,
     balances,
     health,
+    // Persist the evidence used above: the next GET revives this payload without KV inputs.
+    ...(harvest ? {
+      harvest_events: (harvestState.log || []).filter(l => l.at && Date.parse(l.at) >= now - 7 * 86400000).slice(0, 50),
+      recent_harvests: (harvestState.log || []).slice(0, 8),
+      harvest_wins: harvest.wins ?? payload.harvest_wins,
+      harvest_attempts: harvest.attempts ?? payload.harvest_attempts,
+    } : {}),
+    ...(meta ? {
+      sessions_completed: meta.sessions,
+      last_session: meta.lastSession ?? null,
+    } : {}),
     session_in_progress: cur ? {
       session: cur.session,
       round: cur.round,
       started: Number.isFinite(startedAt) ? new Date(startedAt).toISOString() : sip?.started || null,
       last_slice: Number.isFinite(slicedAt) && slicedAt > 0 ? new Date(slicedAt).toISOString() : sip?.last_slice || null,
-    } : payload.session_in_progress,
+    } : null,
   };
 }
 
